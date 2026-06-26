@@ -37,6 +37,7 @@ public final class MapperXmlTemplate {
         .append(".")
         .append(cls)
         .append("Mapper\">\n\n")
+        .append("    <!-- Scaffold 생성(v1) — scaffold 소유. 골격(SQL/searchConditions)은 재생성 시 덮어쓴다. -->\n")
         .append("    <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).\n")
         .append("         비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,\n")
         .append("         단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->\n\n");

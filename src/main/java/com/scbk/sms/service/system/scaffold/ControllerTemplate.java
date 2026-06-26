@@ -61,6 +61,10 @@ public final class ControllerTemplate {
       sb.append("import org.springframework.web.bind.annotation.RequestMapping;\n");
     }
     sb.append("import org.springframework.web.bind.annotation.ResponseBody;\n\n")
+        .append("/**\n")
+        .append(" * Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다.\n")
+        .append(" * 업무 로직은 확장 슬롯에만 (scaffold-contract.md §4).\n")
+        .append(" */\n")
         .append("@Controller\n")
         .append("@RequiredArgsConstructor\n")
         .append("@RequestMapping(\"")

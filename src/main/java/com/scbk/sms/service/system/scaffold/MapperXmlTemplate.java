@@ -53,6 +53,7 @@ public final class MapperXmlTemplate {
     sb.append("        </where>\n").append("    </sql>\n\n");
 
     sb.append("    <select id=\"count\" resultType=\"int\">\n")
+        .append(signature(cls, "count"))
         .append("        SELECT COUNT(1) FROM (\n")
         .append(dynamicQuery)
         .append("        ) A\n")
@@ -64,6 +65,7 @@ public final class MapperXmlTemplate {
         .append(".")
         .append(cls)
         .append("VO\">\n")
+        .append(signature(cls, "selectList"))
         .append("        SELECT A.*\n")
         .append("        FROM (\n")
         .append(dynamicQuery)
@@ -79,10 +81,12 @@ public final class MapperXmlTemplate {
 
     if (model.includeCreateUpdate()) {
       sb.append("\n    <insert id=\"insert\">\n")
+          .append(signature(cls, "insert"))
           .append(insertSql(model, targetTable))
           .append("    </insert>\n\n")
           .append("    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->\n")
           .append("    <update id=\"update\">\n")
+          .append(signature(cls, "update"))
           .append("        UPDATE ")
           .append(targetTable)
           .append("\n")
@@ -91,6 +95,7 @@ public final class MapperXmlTemplate {
           .append(lockWhereClause(model))
           .append("    </update>\n\n")
           .append("    <delete id=\"delete\">\n")
+          .append(signature(cls, "delete"))
           .append("        DELETE FROM ")
           .append(targetTable)
           .append(pkWhereClause(model, " WHERE "))
@@ -99,6 +104,7 @@ public final class MapperXmlTemplate {
 
     if (model.includeExcel()) {
       sb.append("\n    <select id=\"selectListForExcel\" resultType=\"java.util.HashMap\">\n")
+          .append(signature(cls, "selectListForExcel"))
           .append("        SELECT A.*\n")
           .append("        FROM (\n")
           .append(dynamicQuery)
@@ -414,5 +420,9 @@ public final class MapperXmlTemplate {
       return "#{" + fieldName + "}";
     }
     return "#{" + fieldName + ",jdbcType=" + jdbcType + "}";
+  }
+
+  private static String signature(String mapperShort, String method) {
+    return "        /* " + mapperShort + "Mapper." + method + " */\n";
   }
 }

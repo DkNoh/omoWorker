@@ -44,6 +44,7 @@
     </sql>
 
     <select id="count" resultType="int">
+        /* SmsHistoryMapper.count */
         SELECT COUNT(1)
         FROM SMS.SMS_HISTORY A
         WHERE 1 = 1
@@ -51,6 +52,7 @@
     </select>
 
     <select id="selectList" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
+        /* SmsHistoryMapper.selectList */
         SELECT <include refid="columns"/>
         FROM SMS.SMS_HISTORY A
         WHERE 1 = 1
@@ -61,6 +63,7 @@
 
     <!-- 엑셀 다운로드용. 검색 조건은 동일하되 페이징 제외. 대량 OOM 방지를 위해 상한(FETCH NEXT)을 둔다. -->
     <select id="selectListForExcel" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
+        /* SmsHistoryMapper.selectListForExcel */
         SELECT <include refid="columns"/>
         FROM SMS.SMS_HISTORY A
         WHERE 1 = 1
@@ -71,12 +74,14 @@
 
     <!-- 원문 상세 조회(CAN_MASK_VIEW 전용). 마스킹은 서비스에서 하지 않고 원문을 그대로 내린다. -->
     <select id="selectDetail" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
+        /* SmsHistoryMapper.selectDetail */
         SELECT <include refid="columns"/>
         FROM SMS.SMS_HISTORY A
         WHERE A.SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
     </select>
 
     <insert id="insert">
+        /* SmsHistoryMapper.insert */
         INSERT INTO SMS.SMS_HISTORY (
             SENT_AT,
             RECEIVER_NO,
@@ -100,6 +105,7 @@
 
     <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
     <update id="update">
+        /* SmsHistoryMapper.update */
         UPDATE SMS.SMS_HISTORY
            SET SENT_AT = #{sentAt,jdbcType=TIMESTAMP},
                RECEIVER_NO = #{receiverNo,jdbcType=VARCHAR},
@@ -115,6 +121,7 @@
     </update>
 
     <delete id="delete">
+        /* SmsHistoryMapper.delete */
         DELETE FROM SMS.SMS_HISTORY WHERE SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
     </delete>
 

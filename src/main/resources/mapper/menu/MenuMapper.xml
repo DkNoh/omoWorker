@@ -6,6 +6,7 @@
 <mapper namespace="com.scbk.sms.mapper.menu.MenuMapper">
 
     <select id="selectReadableMenus" resultType="com.scbk.sms.vo.menu.MenuItemVO">
+        /* MenuMapper.selectReadableMenus */
         SELECT DISTINCT
             M.MENU_ID AS menu_id,
             M.PARENT_MENU_ID AS parent_menu_id,

@@ -6,6 +6,7 @@
 <mapper namespace="com.scbk.sms.mapper.system.PrivacyAuditLogMapper">
 
     <insert id="insertAuditLog" parameterType="com.scbk.sms.vo.system.PrivacyAuditLogVO">
+        /* PrivacyAuditLogMapper.insertAuditLog */
         INSERT INTO SMS.TB_PRIVACY_AUDIT_LOG (
             EMP_ID,
             DEP_ID,

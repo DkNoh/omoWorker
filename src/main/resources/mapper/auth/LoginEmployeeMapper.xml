@@ -6,6 +6,7 @@
 <mapper namespace="com.scbk.sms.mapper.auth.LoginEmployeeMapper">
 
     <select id="selectActiveEmployeesByEmpId" resultType="com.scbk.sms.vo.auth.LoginEmployeeVO">
+        /* LoginEmployeeMapper.selectActiveEmployeesByEmpId */
         SELECT
             E.EMP_ID AS empId,
             E.DEP_ID AS depId,

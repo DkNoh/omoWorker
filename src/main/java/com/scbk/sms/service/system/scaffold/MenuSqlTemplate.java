@@ -10,8 +10,17 @@ public final class MenuSqlTemplate {
     String module = model.moduleName();
     String cls = model.domainClass();
     String domainId = model.domainId();
+    String mode = model.screenMode();
+    String canRead = "Y";
+    String canCreate = "CRUD".equals(mode) ? "Y" : "N";
+    String canUpdate = "CRUD".equals(mode) ? "Y" : "N";
+    String canDelete = "CRUD".equals(mode) ? "Y" : "N";
+    String canApprove = "N";
+    String canCancel = "N";
+    String canDownload = "EXCEL".equals(mode) ? "Y" : "N";
+    String canMaskView = model.includePrivacy() ? "Y" : "N";
 
-        return "-- Scaffold 생성(v1) — scaffold 소유. 골격만 재생성 대상.\n"
+    return "-- Scaffold 생성(v1) — scaffold 소유. 골격만 재생성 대상.\n"
             + "-- ============================================================\n"
         + "-- 메뉴 등록 SQL ( "
         + model.domainName()
@@ -46,8 +55,8 @@ public final class MenuSqlTemplate {
         + "', '"
         + model.roleCode()
         + "',\n"
-        + "    'Y', 'Y', 'Y', 'Y',\n"
-        + "    'Y', 'Y', 'Y', 'Y',\n"
+        + "    '" + canRead + "', '" + canCreate + "', '" + canUpdate + "', '" + canDelete + "',\n"
+        + "    '" + canApprove + "', '" + canCancel + "', '" + canDownload + "', '" + canMaskView + "',\n"
         + "    'Y', 'SYSTEM'\n"
         + ");\n\n"
         + "COMMIT;\n\n"

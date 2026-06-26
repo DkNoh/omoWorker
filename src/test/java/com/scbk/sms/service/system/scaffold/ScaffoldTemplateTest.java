@@ -37,7 +37,7 @@ class ScaffoldTemplateTest {
         Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
   }
 
-  private static final int GOLDEN_SCAFFOLD_HASH = 1918719249;
+  private static final int GOLDEN_SCAFFOLD_HASH = 556655004;
 
   @Test
   void 드리프트_게이트_스캐폴드_출력_변경_감지() {

@@ -12,7 +12,7 @@
 
 ## 1층 — scaffold 테스트 생성
 
-scaffold 산출물에 테스트 2종이 포함된다 (총 11종).
+scaffold 산출물에 테스트 2종이 포함된다 (기본 11종, CRUD 모드 시 UpdateRequestDTO + Rules 추가로 최대 13종).
 
 | 산출물 | 검증 내용 |
 |---|---|

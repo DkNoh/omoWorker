@@ -70,8 +70,13 @@ public final class ServiceTemplate {
         .append("Service {\n\n")
         .append("    private final ")
         .append(cls)
-        .append("Mapper mapper;\n\n")
-        .append("    @Transactional(readOnly = true)\n")
+        .append("Mapper mapper;\n\n");
+    if (model.includeCreateUpdate()) {
+      sb.append("    private final ")
+          .append(cls)
+          .append("Rules rules;\n\n");
+    }
+    sb.append("    @Transactional(readOnly = true)\n")
         .append("    public PageResponseDTO<")
         .append(cls)
         .append("VO> search(")
@@ -90,12 +95,14 @@ public final class ServiceTemplate {
           .append("    public void create(")
           .append(cls)
           .append("UpdateRequestDTO request) {\n")
+          .append("        rules.validateOnCreate(request);\n")
           .append("        mapper.insert(request);\n")
           .append("    }\n\n")
           .append("    @Transactional\n")
           .append("    public void update(")
           .append(cls)
           .append("UpdateRequestDTO request) {\n")
+          .append("        rules.validateOnUpdate(request);\n")
           .append("        int updated = mapper.update(request);\n")
           .append("        if (updated == 0) {\n")
           .append("            // 다른 사용자가 먼저 수정했거나(낙관적 잠금) 대상이 없다\n")

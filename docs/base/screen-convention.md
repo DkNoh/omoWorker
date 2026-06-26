@@ -142,7 +142,7 @@ const pageBuilder = new TuiPageBuilder({
 
 | 항목 | 계약 |
 |---|---|
-| 그리드 공통 옵션 | `TuiCommon.gridDefaults`가 단일 통제점 (rowHeight 42, minBodyHeight 300, scroll 없음). 화면별 예외는 `config.gridOptions`로 넘긴다 |
+| 그리드 공통 옵션 | `TuiCommon.gridDefaults`가 단일 통제점 (rowHeight 42, bodyHeight 420, scrollY true, minBodyHeight 300). 화면별 예외는 `config.gridOptions`로 넘긴다 |
 | 총 건수 표시 | `id="total-count"` 요소 기준. PageBuilder가 자동 갱신한다 |
 | 날짜 전송 형식 | Toast UI DatePicker 검색 input(`data-search-type="date"`) 값은 `-`가 제거된 `YYYYMMDD` 문자열로 전송된다 (datetime-local은 `YYYYMMDDHHMMSS`). DATE/TIMESTAMP 컬럼과 비교하는 SQL은 `TO_DATE(#{변수}, 'YYYYMMDD')`로 감싼다 |
 | 기간 검증 | input id가 정확히 `startDate`/`endDate`일 때만 시작일>종료일 검증이 동작한다 |
@@ -228,7 +228,7 @@ CommonUtils.toast('저장되었습니다.', 'success');
 
 - 성공(code 200): `ApiResponse` 껍데기를 벗긴다. **`response.data`가 곧 알맹이(data)다.** `response.data.data`로 접근하면 안 된다.
 - 업무 오류/HTTP 오류: 인터셉터가 서버 메시지를 모달로 표시하고 reject한다. 화면 JS의 catch에서 알림을 중복으로 띄우지 않는다.
-- `ApiResponse`가 아닌 응답(예: 세션 만료로 받은 로그인 HTML)은 가공 없이 통과하므로 `typeof response.data === 'string'`으로 구분할 수 있다.
+- 세션 만료 등으로 로그인 페이지 HTML이 응답으로 오면, 전역 응답 인터셉터(`common-utils.js`)가 이를 감지해 `/login`으로 전환한다. 화면 JS가 `typeof response.data === 'string'`으로 직접 분기하지 않는다.
 
 ## 금지
 

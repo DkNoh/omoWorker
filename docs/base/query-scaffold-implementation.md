@@ -108,7 +108,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 | `service/system/scaffold/ColumnTypeInferrer.java` | 실제 DB 기준 타입 추론 |
 | `service/system/scaffold/ScaffoldDialect.java` | Oracle/Postgres/DB2별 페이징, 날짜 변환, 현재시각 SQL 분기 |
 | `service/system/scaffold/ScaffoldMetadataReader.java` | JDBC 메타데이터 기반 PK/nullable 컬럼 조회 |
-| `service/system/scaffold/*Template.java` (11종) | 산출물별 템플릿 (테스트 2종 포함) |
+| `service/system/scaffold/*Template.java` (12종) | 산출물별 템플릿 (테스트 2종 포함) |
 | `dto/system/ScaffoldRequestDTO.java` | QuerySpec 입력 |
 | `dto/system/Scaffold*OptionDTO.java`, `ScaffoldApplyFileResultDTO.java` | 검색/컬럼/메뉴 옵션, 적용 미리보기 결과 |
 | `templates/system/scaffold.html`, `static/js/system/scaffold.js` | 생성기 화면 |

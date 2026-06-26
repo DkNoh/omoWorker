@@ -55,13 +55,13 @@ v2 생성기를 그대로 가져오면 안 된다. 다음을 반드시 조정한
 | 메뉴 SQL | `TB_MENU(MENU_CD, UP_MENU_CD)` + `TB_MENU_AUTH(AUTH_CD, CAN_WRITE, CAN_EXCEL)` | v3 스키마: `TB_MENU(MENU_ID, PARENT_MENU_ID, MENU_TYPE...)` + `TB_MENU_AUTH(ROLE_CD, CAN_* 8종)` |
 | 저장 endpoint | `/save` 단일 생성 | `/create`, `/update` 분리 생성 |
 | HTML 골격 | 구버전 `.search-section` 클래스 구조 | `screen-convention.md` 카드 골격으로 교체 |
-| 엑셀 | `ExcelUtil` 호출 + `Map` 반환 Mapper | `ExcelUtil`은 v3에 없음. 구현 후 연결. `Map` 반환은 규칙 위반이므로 VO 기반 검토 |
+| 엑셀 | `ExcelUtil` 호출 + `Map` 반환 Mapper | v3에 `ExcelUtil` 구현 완료. `selectListForExcel`은 `resultType=HashMap`(Map 반환)으로 생성 — 엑셀 전용 예외 허용 |
 | 타입 추론 실패 | 경고 로그 후 전부 String으로 진행 | 실패를 숨기지 않는 v3 원칙에 따라 실패 보고 후 사용자 판단 검토 |
 | 정렬 | `ORDER BY A.ROWID DESC /* TODO */` | 결정적 정렬 컬럼을 입력에서 받도록 개선 검토 |
 
 ## 의존성 (폐쇄망 반입 목록에 추가)
 
-- `net.sf.jsqlparser:jsqlparser` — SELECT 컬럼 파싱용. v3 pom에 없음. Query Scaffold 구현 시 반입 필요.
+- `com.github.jsqlparser:jsqlparser` — SELECT 컬럼 파싱용. v3 pom에 반입 완료(4.9).
 
 ## v3에서 유지할 가치가 있는 설계
 

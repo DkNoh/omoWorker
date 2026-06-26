@@ -51,12 +51,12 @@ v2의 공통 응답 규격을 v3로 이관한 설계 원문이다. 모든 JSON e
 
 | 클래스 | 역할 |
 |---|---|
-| `dto/common/ApiResponse.java` | 공통 응답 래퍼. `success(data)`, `success(message, data)`, `error(code, message)` |
+| `dto/common/ApiResponse.java` | 공통 응답 래퍼. `success(data)`, `success(message, data)`, `error(code, message)`, `error(code, message, List<FieldError>)` |
 | `dto/common/PageRequestDTO.java` | 공통 페이지 요청. 도메인 검색 DTO의 부모 |
 | `dto/common/PageResponseDTO.java` | 공통 페이지 응답. `of(...)` 정적 팩토리만 사용 |
 | `exception/ErrorCode.java` | HTTP status + 코드 + 메시지를 가진 업무 에러 enum |
 | `exception/CustomException.java` | Service에서 던지는 예측 가능한 업무 예외 |
-| `exception/GlobalExceptionHandler.java` | `@RestControllerAdvice`. 예외 -> `ApiResponse` 변환의 단일 지점 |
+| `exception/GlobalExceptionHandler.java` | `@ControllerAdvice`. 예외 -> `ApiResponse` 변환의 단일 지점 |
 
 ## 클라이언트(화면 JS) 처리 규약
 
@@ -72,7 +72,7 @@ v2의 공통 응답 규격을 v3로 이관한 설계 원문이다. 모든 JSON e
 - `GlobalExceptionHandler`는 요청 `Accept` 헤더로 분기한다 (2026-06-12): 화면 요청(`text/html`)은 공통 에러 페이지(`templates/error/error.html`), JSON 요청은 `ApiResponse`로 응답한다.
 - 예측 가능한 업무 오류는 `throw new CustomException(ErrorCode.XXX)`로 던진다.
 - 새 업무 오류가 필요하면 `ErrorCode`에 항목을 추가한다. 코드 체계: 공통 `C***`, 인증/권한 `A***`, 사용자 `U***`, 메뉴 `M***`.
-- `@Valid` 검증 실패는 `GlobalExceptionHandler`가 400 + 첫 번째 검증 메시지로 변환한다.
+- `@Valid` 검증 실패는 `GlobalExceptionHandler`가 400 + **전체 필드 에러(`errors[]` 리스트)**로 변환한다. (첫 메시지가 아님)
 - 매핑되지 않은 URL(404)은 원인 후보(컨트롤러 미등록/메뉴 URL 오타/파일 미배치)를 포함한 메시지로 응답한다.
 
 ## v2 대비 조정 사항

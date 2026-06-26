@@ -89,7 +89,7 @@ class ScaffoldFileApplierTest {
     Files.createDirectories(sameFile.getParent());
     Files.createDirectories(changedFile.getParent());
     Files.writeString(sameFile, "same");
-    Files.writeString(changedFile, "old");
+    Files.writeString(changedFile, "Scaffold 생성(v1) — scaffold 소유.\nold");
 
     Map<String, String> generatedFiles = new LinkedHashMap<>();
     generatedFiles.put("SmsHistoryVO.java", "same");
@@ -143,6 +143,28 @@ class ScaffoldFileApplierTest {
     assertThatThrownBy(() -> applier.apply(request, Map.of("SmsHistoryVO.java", "vo")))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("moduleName");
+  }
+
+  @Test
+  void 마커_없는_기존_파일은_사용자_소유로_간주해_덮어쓰지_않는다() throws Exception {
+    // given : scaffold 소유 마커가 없는 기존 파일 = 사용자가 편집 중인 파일
+    ScaffoldRequestDTO request = request("sms", "history", "SmsHistory");
+    Path userOwned = tempDir.resolve("src/main/resources/static/js/sms/history.js");
+    Files.createDirectories(userOwned.getParent());
+    Files.writeString(userOwned, "사용자가 손수 편집한 코드 (마커 없음)");
+
+    Map<String, String> generatedFiles = new LinkedHashMap<>();
+    generatedFiles.put("history.js", "새로 생성된 scaffold 내용");
+
+    ScaffoldFileApplier applier = new ScaffoldFileApplier(tempDir);
+
+    // when
+    List<ScaffoldApplyFileResultDTO> preview = applier.preview(request, generatedFiles);
+    applier.apply(request, generatedFiles);
+
+    // then : USER_OWNED 로 분류되고 실제 파일은 보존된다
+    assertThat(statusMap(preview)).containsEntry("history.js", "USER_OWNED");
+    assertThat(Files.readString(userOwned)).isEqualTo("사용자가 손수 편집한 코드 (마커 없음)");
   }
 
   private ScaffoldRequestDTO request(String moduleName, String domainId, String domainClass) {

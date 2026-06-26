@@ -13,14 +13,14 @@
 | §1 생성 산출물 11~12종 | **현행** | `ScaffoldService.generateFiles` 검증됨 |
 | §1 `{Domain}Rules`(사용자 소유) 파일 | **목표(미구현)** | RulesTemplate 없음, 생성 안 됨 |
 | §2 소유/버전 마커 | **현행(완료)** | 전 12개 템플릿이 `Scaffold 생성(v1) — scaffold 소유` 마커 부착(Service/Controller/MapperXml/Dto/Vo/MapperInterface/UpdateRequestDto/Html/Js/MenuSql/ServiceTest/ControllerTest) |
-| §3 재생성 보증(사용자 영역 보존) | **목표(미구현)** | 현재 `ScaffoldFileApplier`는 **무조건 덮어쓰기**(내용 같을 때만 skip). 보존 로직 0 |
+| §3 재생성 보증(사용자 영역 보존) | **현행(일부)** | `ScaffoldFileApplier`가 `SCAFFOLD_OWNED_MARKER`가 없는 기존 파일을 사용자 소유로 간주해 재생성 시 보존(skip, USER_OWNED). 단 `{Domain}Rules` 파일의 최초 1회 생성 후 스킵 등 더 세분된 보존은 A-2와 함께 |
 | §4-A 선언 옵션(screenMode/includePrivacy/컬럼 옵션) | **현행(일부)** | 옵션은 존재. 단 `includePrivacy`/`maskType`은 `// TODO` 주석만, 실마스킹 아님 |
 | §4-A `@PrivacyLog` 자동 부착 | **현행** | ControllerTemplate가 /data·/excel에 부착(검증됨) |
 | §4-B Service→`rules.validateOnCreate()` 호출 | **목표(미구현)** | ServiceTemplate.create()는 `mapper.insert()`만 |
 | §4-C 탈출(unplugged) 마커 | **목표(미구현)** | 마커 메커니즘 자체 없음 |
 | §6 drift gate | **목표(미구현)** | A-3 작업 대기 |
 
-> **경고**: §3(재생성 보증)이 미구현인 상태에서는 **재생성 시 사용자 편집이 날아간다**. 현재는 첫 생성 도구로만 안전. 보존 로직 구현(A-1) 전까지 재생성 주의.
+> **현재 보존 범위**: §3가 부분 구현됨 — 마커(`Scaffold 생성`)가 없는 기존 파일은 재생성 시 보존된다. 단 마커가 있는(scaffold 소유) 파일은 여전히 덮어쓰므로, 마커를 지우지 않은 채 파일을 손편집하면 날아갈 수 있다. 사용자 영역으로 전환하려면 마커 라인을 제거해 `USER_OWNED` 상태로 만든다.
 
 ---
 

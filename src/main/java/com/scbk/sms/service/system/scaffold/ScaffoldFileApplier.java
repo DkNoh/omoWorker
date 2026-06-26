@@ -29,6 +29,9 @@ public class ScaffoldFileApplier {
   private static final Pattern DOMAIN_CLASS_PATTERN = Pattern.compile("^[A-Z][A-Za-z0-9]*$");
   private static final char WINDOWS_PATH_SEPARATOR = '\\';
   private static final char DISPLAY_PATH_SEPARATOR = '/';
+  // scaffold 소유 파일에 붙는 마커(*Template가 생성). 이 마커가 없는 기존 파일은
+  // 사용자가 편집 중인 것으로 간주해 재생성 시 덮어쓰지 않는다 (scaffold-contract.md §3/§4-C).
+  private static final String SCAFFOLD_OWNED_MARKER = "Scaffold 생성";
 
   private final Path outputRoot;
 
@@ -105,9 +108,14 @@ public class ScaffoldFileApplier {
 
   private void writeFile(Path targetPath, String content) {
     try {
-      if (Files.exists(targetPath)
-          && content.equals(Files.readString(targetPath, StandardCharsets.UTF_8))) {
-        return;
+      if (Files.exists(targetPath)) {
+        String current = Files.readString(targetPath, StandardCharsets.UTF_8);
+        if (content.equals(current)) {
+          return; // 변경 없음
+        }
+        if (!current.contains(SCAFFOLD_OWNED_MARKER)) {
+          return; // 사용자 소유 파일 — 재생성 보존
+        }
       }
       Files.createDirectories(targetPath.getParent());
       Files.writeString(targetPath, content, StandardCharsets.UTF_8);
@@ -125,6 +133,10 @@ public class ScaffoldFileApplier {
       String current = Files.readString(targetPath, StandardCharsets.UTF_8);
       if (current.equals(content)) {
         return new ScaffoldApplyFileResultDTO(fileName, relativePath, "UNCHANGED", "변경 없음");
+      }
+      if (!current.contains(SCAFFOLD_OWNED_MARKER)) {
+        return new ScaffoldApplyFileResultDTO(
+            fileName, relativePath, "USER_OWNED", "사용자 소유 파일(재생성 보존)");
       }
       return new ScaffoldApplyFileResultDTO(fileName, relativePath, "OVERWRITE", "기존 파일 덮어쓰기");
     } catch (IOException e) {

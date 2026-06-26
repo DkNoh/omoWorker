@@ -14,7 +14,7 @@
 | §1 `{Domain}Rules`(사용자 소유) 파일 | **현행** | RulesTemplate가 CRUD 모드에서 `{Domain}Rules.java` 생성. 마커 없음 → 재생성 시 USER_OWNED 보존 |
 | §2 소유/버전 마커 | **현행(완료)** | 전 12개 템플릿이 `Scaffold 생성(v1) — scaffold 소유` 마커 부착(Service/Controller/MapperXml/Dto/Vo/MapperInterface/UpdateRequestDto/Html/Js/MenuSql/ServiceTest/ControllerTest) |
 | §3 재생성 보증(사용자 영역 보존) | **현행(일부)** | `ScaffoldFileApplier`가 `SCAFFOLD_OWNED_MARKER`가 없는 기존 파일을 사용자 소유로 간주해 재생성 시 보존(skip, USER_OWNED). 단 `{Domain}Rules` 파일의 최초 1회 생성 후 스킵 등 더 세분된 보존은 A-2와 함께 |
-| §4-A 선언 옵션(screenMode/includePrivacy/컬럼 옵션) | **현행** | `includePrivacy`+컬럼 `maskType`이 실제 `MaskingUtil.maskPhone/maskName/maskRrn/maskCard` 호출 생성(목록·엑셀). `@PrivacyLog` 자동 부착도 현행. 원문 비마스킹 조회(`CAN_MASK_VIEW` + `/unmask`)는 A-2 후속 |
+| §4-A 선언 옵션(screenMode/includePrivacy/컬럼 옵션) | **현행(완료)** | includePrivacy+maskType→MaskingUtil(목록·엑셀), validate=required→@NotBlank/@NotNull, @PrivacyLog 자동 부착, `/unmask` 원문 상세(selectDetail+getUnmaskedDetail) — MenuAuthInterceptor가 /unmask에 MASK_VIEW 권한 자동 적용 |
 | §4-A `@PrivacyLog` 자동 부착 | **현행** | ControllerTemplate가 /data·/excel에 부착(검증됨) |
 | §4-B Service→`rules.validateOnCreate()` 호출 | **현행** | RulesTemplate가 `{Domain}Rules` @Component 생성(validateOnCreate/Update stub). ServiceTemplate가 create/update에서 hook 호출. Rules는 마커 없음 → 재생성 보존 |
 | §4-C 탈출(unplugged) 마커 | **목표(미구현)** | 마커 메커니즘 자체 없음 |

@@ -30,8 +30,8 @@
 
 - ~~생성 Service의 목록 응답에서 `MaskingUtil`을 실제 적용한다.~~ ✅
 - ~~엑셀 다운로드 데이터에도 동일 마스킹을 적용한다.~~ ✅
-- `CAN_MASK_VIEW` 권한이 있는 경우에만 원문 조회 또는 비마스킹 조회를 허용한다.
-- 원문 조회 API가 생기면 `@PrivacyLog`와 감사 로그를 반드시 남긴다.
+- ~~`CAN_MASK_VIEW` 권한이 있는 경우에만 원문 조회 또는 비마스킹 조회를 허용한다.~~ ✅ (MenuAuthInterceptor /unmask → MASK_VIEW)
+- ~~원문 조회 API가 생기면 `@PrivacyLog`와 감사 로그를 반드시 남긴다.~~ ✅ (ControllerTemplate /unmask에 @PrivacyLog 부착)
 - 프론트 JS 마스킹 formatter는 보조 표시용으로만 둘지, 서버 마스킹으로 완전히 통일할지 결정한다.
 
 ## 아직 미비한 부분

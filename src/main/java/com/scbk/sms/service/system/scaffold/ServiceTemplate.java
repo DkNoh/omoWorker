@@ -26,8 +26,10 @@ public final class ServiceTemplate {
           .append(module)
           .append(".")
           .append(cls)
-          .append("UpdateRequestDTO;\n")
-          .append("import com.scbk.sms.exception.CustomException;\n")
+          .append("UpdateRequestDTO;\n");
+    }
+    if (model.includeCreateUpdate() || model.includePrivacy()) {
+      sb.append("import com.scbk.sms.exception.CustomException;\n")
           .append("import com.scbk.sms.exception.ErrorCode;\n");
     }
     sb.append("import com.scbk.sms.mapper.")
@@ -142,6 +144,26 @@ public final class ServiceTemplate {
           .append("    }\n");
     }
 
+    if (model.includePrivacy()) {
+      sb.append("\n    @Transactional(readOnly = true)\n")
+          .append("    public ")
+          .append(cls)
+          .append("VO getUnmaskedDetail(")
+          .append(model.pkJavaType())
+          .append(" ")
+          .append(model.pkFieldName())
+          .append(") {\n")
+          .append("        ")
+          .append(cls)
+          .append("VO vo = mapper.selectDetail(")
+          .append(model.pkFieldName())
+          .append(");\n")
+          .append("        if (vo == null) {\n")
+          .append("            throw new CustomException(ErrorCode.DATA_NOT_FOUND);\n")
+          .append("        }\n")
+          .append("        return vo;\n")
+          .append("    }\n");
+    }
     sb.append("}\n");
     return sb.toString();
   }

@@ -142,6 +142,25 @@ public final class ControllerTemplate {
           .append("    }\n");
     }
 
+    if (model.includePrivacy()) {
+      sb.append("\n    @PrivacyLog(action = \"")
+          .append(model.domainName())
+          .append(" 원문 상세 조회\")\n")
+          .append("    @ResponseBody\n")
+          .append("    @GetMapping(\"/unmask\")\n")
+          .append("    public ResponseEntity<ApiResponse<")
+          .append(cls)
+          .append("VO>> getUnmaskedDetail(@RequestParam ")
+          .append(model.pkJavaType())
+          .append(" ")
+          .append(model.pkFieldName())
+          .append(") {\n")
+          .append("        return ResponseEntity.ok(ApiResponse.success(service.getUnmaskedDetail(")
+          .append(model.pkFieldName())
+          .append(")));\n")
+          .append("    }\n");
+    }
+
     sb.append("}\n");
     return sb.toString();
   }

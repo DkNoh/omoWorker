@@ -56,6 +56,16 @@ public final class MapperInterfaceTemplate {
         .append(cls)
         .append("SearchRequestDTO request);\n");
 
+    if (model.includePrivacy()) {
+      sb.append("\n    ")
+          .append(cls)
+          .append("VO selectDetail(")
+          .append(model.pkJavaType())
+          .append(" ")
+          .append(model.pkFieldName())
+          .append(");\n");
+    }
+
     if (model.includeCreateUpdate()) {
       sb.append("\n    int insert(")
           .append(cls)

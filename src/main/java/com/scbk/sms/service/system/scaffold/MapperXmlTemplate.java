@@ -119,6 +119,25 @@ public final class MapperXmlTemplate {
           .append("    </select>\n");
     }
 
+    if (model.includePrivacy()) {
+      sb.append("\n    <select id=\"selectDetail\" resultType=\"com.scbk.sms.vo.")
+          .append(module)
+          .append(".")
+          .append(cls)
+          .append("VO\">\n")
+          .append(signature(cls, "selectDetail"))
+          .append("        SELECT A.*\n")
+          .append("        FROM (\n")
+          .append("        <include refid=\"baseQuery\"/>\n")
+          .append("        ) A\n")
+          .append("        WHERE A.")
+          .append(model.pkColumn())
+          .append(" = #{")
+          .append(model.pkFieldName())
+          .append("}\n")
+          .append("    </select>\n");
+    }
+
     sb.append("\n</mapper>\n");
     return sb.toString();
   }

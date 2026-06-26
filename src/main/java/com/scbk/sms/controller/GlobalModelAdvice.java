@@ -3,8 +3,11 @@ package com.scbk.sms.controller;
 import com.scbk.sms.auth.SmsUserPrincipal;
 import com.scbk.sms.service.menu.MenuSource;
 import com.scbk.sms.service.menu.PageAuth;
+import com.scbk.sms.vo.menu.MenuItemVO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.util.Arrays;
+import java.util.List;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.ui.Model;
@@ -36,7 +39,7 @@ public class GlobalModelAdvice {
       return;
     }
     model.addAttribute("user", principal);
-    model.addAttribute("menus", menuSource.getMenuTree(principal.getRoleCodes()));
+    model.addAttribute("menus", getCachedMenuTree(principal, request));
     model.addAttribute("pageAuth", resolvePageAuth(principal, request));
     model.addAttribute("clientIp", resolveClientIp(request));
   }
@@ -57,6 +60,22 @@ public class GlobalModelAdvice {
       return "127.0.0.1";
     }
     return ip;
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<MenuItemVO> getCachedMenuTree(SmsUserPrincipal principal, HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+    if (session != null) {
+      Object cached = session.getAttribute("menuTree");
+      if (cached instanceof List<?> list) {
+        return (List<MenuItemVO>) list;
+      }
+    }
+    List<MenuItemVO> tree = menuSource.getMenuTree(principal.getRoleCodes());
+    if (session != null) {
+      session.setAttribute("menuTree", tree);
+    }
+    return tree;
   }
 
   private PageAuth resolvePageAuth(SmsUserPrincipal principal, HttpServletRequest request) {

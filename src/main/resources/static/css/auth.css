@@ -1,0 +1,224 @@
+/* =====================================================================
+   omoWorker Auth pages (login) — token-driven.
+   ---------------------------------------------------------------------
+   Was a standalone palette (--bg, --text, --primary, ...). Now consumes
+   --sms-* tokens from admin-common.css so login and admin shell share
+   ONE design system. Login must load admin-common.css BEFORE this file.
+   ===================================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+body.auth-page,
+body.home-page {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--sms-bg-app);
+    color: var(--sms-text-body);
+    font-family: var(--sms-font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------------------------------------------------------------------
+   Login shell — split feel: subtle ambient panel on a calm app backdrop.
+   No purple gradient, no neon — corporate/trustworthy.
+   --------------------------------------------------------------------- */
+.login-shell,
+.home-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sms-space-8) var(--sms-space-4);
+}
+
+.login-panel,
+.home-panel {
+    width: min(100%, 420px);
+    background: var(--sms-bg-surface);
+    border: 1px solid var(--sms-border-subtle);
+    border-radius: var(--sms-radius-lg);
+    padding: var(--sms-space-8) var(--sms-space-8);
+    box-shadow: var(--sms-shadow-lg);
+}
+
+/* ---------------------------------------------------------------------
+   Brand block — eyebrow + logo lockup + page title
+   --------------------------------------------------------------------- */
+.brand-block {
+    margin-bottom: var(--sms-space-8);
+    text-align: left;
+}
+
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: var(--sms-space-3);
+    margin-bottom: var(--sms-space-5);
+}
+.brand-lockup img {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+.brand-lockup .brand-name {
+    font-size: var(--sms-fs-section);
+    font-weight: var(--sms-fw-bold);
+    color: var(--sms-text-strong);
+    line-height: var(--sms-lh-tight);
+    word-break: keep-all;
+}
+
+.eyebrow {
+    margin: 0 0 var(--sms-space-2);
+    color: var(--sms-primary);
+    font-size: var(--sms-fs-overline);
+    font-weight: var(--sms-fw-bold);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+h1 {
+    margin: 0;
+    font-size: var(--sms-fs-page-title);
+    font-weight: var(--sms-fw-bold);
+    color: var(--sms-text-strong);
+    line-height: var(--sms-lh-tight);
+    letter-spacing: -0.01em;
+    word-break: keep-all;
+}
+
+/* ---------------------------------------------------------------------
+   Login form — single column, clear vertical rhythm
+   --------------------------------------------------------------------- */
+.login-form {
+    display: grid;
+    gap: var(--sms-space-3);
+}
+
+.login-form label {
+    font-size: var(--sms-fs-body);
+    font-weight: var(--sms-fw-medium);
+    color: var(--sms-text-body);
+    margin-bottom: var(--sms-space-1);
+}
+
+.login-form input {
+    width: 100%;
+    height: 44px;
+    border: 1px solid var(--sms-border);
+    border-radius: var(--sms-radius);
+    padding: 0 var(--sms-space-3);
+    font-size: var(--sms-fs-body);
+    color: var(--sms-text-strong);
+    background-color: var(--sms-bg-surface);
+    font-family: var(--sms-font-sans);
+    transition:
+        border-color var(--sms-transition-fast),
+        box-shadow var(--sms-transition-fast);
+}
+.login-form input::placeholder {
+    color: var(--sms-text-disabled);
+}
+.login-form input:focus {
+    border-color: var(--sms-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--sms-primary-rgb), 0.16);
+}
+
+.login-form button[type="submit"] {
+    width: 100%;
+    height: 48px;
+    margin-top: var(--sms-space-3);
+    border: 0;
+    border-radius: var(--sms-radius);
+    background: var(--sms-primary);
+    color: #fff;
+    font-size: var(--sms-fs-body);
+    font-weight: var(--sms-fw-semibold);
+    font-family: var(--sms-font-sans);
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(var(--sms-primary-rgb), 0.2);
+    transition:
+        background-color var(--sms-transition-fast),
+        box-shadow var(--sms-transition-fast),
+        transform var(--sms-transition-fast);
+}
+.login-form button[type="submit"]:hover {
+    background: var(--sms-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--sms-primary-rgb), 0.24);
+}
+.login-form button[type="submit"]:active {
+    background: var(--sms-primary-active);
+    transform: translateY(0);
+}
+
+/* ---------------------------------------------------------------------
+   Alerts — token-driven (rules live in admin-ui-bridge.css but auth
+   page may load standalone; re-declared here for resilience).
+   --------------------------------------------------------------------- */
+.login-panel .alert,
+.home-panel .alert {
+    margin-bottom: var(--sms-space-4);
+    border-radius: var(--sms-radius);
+    padding: var(--sms-space-2) var(--sms-space-3);
+    font-size: var(--sms-fs-body-sm);
+    border: 1px solid transparent;
+    line-height: var(--sms-lh-body);
+    word-break: keep-all;
+}
+.login-panel .alert-error,
+.login-panel .alert-danger {
+    background: var(--sms-danger-soft);
+    color: var(--sms-danger);
+    border-color: rgba(var(--sms-danger-rgb), 0.2);
+}
+.login-panel .alert-success {
+    background: var(--sms-success-soft);
+    color: var(--sms-success);
+    border-color: rgba(var(--sms-success-rgb), 0.2);
+}
+
+/* ---------------------------------------------------------------------
+   Footer hint — local-mode / security copy under the form
+   --------------------------------------------------------------------- */
+.login-footer {
+    margin-top: var(--sms-space-6);
+    padding-top: var(--sms-space-4);
+    border-top: 1px solid var(--sms-border-subtle);
+    color: var(--sms-text-muted);
+    font-size: var(--sms-fs-caption);
+    text-align: center;
+    line-height: var(--sms-lh-body);
+}
+
+/* ---------------------------------------------------------------------
+   Home page (post-login info) — definition list layout
+   --------------------------------------------------------------------- */
+.home-panel dl {
+    display: grid;
+    gap: var(--sms-space-3);
+    margin: var(--sms-space-6) 0;
+}
+.home-panel dl div {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: var(--sms-space-3);
+    align-items: center;
+}
+.home-panel dt {
+    color: var(--sms-text-muted);
+    font-weight: var(--sms-fw-semibold);
+    font-size: var(--sms-fs-body-sm);
+}
+.home-panel dd {
+    margin: 0;
+    color: var(--sms-text-strong);
+    font-size: var(--sms-fs-body);
+    font-weight: var(--sms-fw-medium);
+    word-break: break-all;
+}

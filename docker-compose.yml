@@ -1,0 +1,33 @@
+# 로컬 개발용 Oracle (Apple Silicon arm64 네이티브).
+# gvenzl/oracle-free = Oracle Database 23ai Free. 공식 XE(x86) 대신 사용.
+#
+# 사용법:
+#   export SMS_DB_PASSWORD=oracle      # 앱과 동일한 비번 (application-local.yml이 이 값을 읽음)
+#   docker compose up -d
+#   docker compose logs -f oracle      # "DATABASE IS READY TO USE!" 까지 (첫 기동 수 분)
+#
+# 접속 확인:
+#   docker exec -it sms-oracle sqlplus system/$SMS_DB_PASSWORD@localhost:1521/SMS
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: sms-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      # SYS / SYSTEM 비밀번호.
+      ORACLE_PASSWORD: ${SMS_DB_PASSWORD:-oracle}
+      # 서비스명 SMS인 PDB를 생성 → application-local.yml의 url(.../SMS)과 일치
+      ORACLE_DATABASE: SMS
+    volumes:
+      - sms-oracle-data:/opt/oracle/oradata
+      # 스키마/DDL 적재는 기동 후 ./docker/db-init.sh 로 1회 실행한다.
+      # (gvenzl auto-init은 ORACLE_DATABASE PDB가 아닌 기본 PDB에 실행돼 서비스명 SMS와 어긋나므로 사용하지 않음)
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  sms-oracle-data:

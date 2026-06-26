@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF: axios 요청 인터셉터(common-utils.js)가 이 메타 값을 헤더로 싣는다 -->
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}" />
+    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}" />
+    <title>SMS전송시스템</title>
+
+    <!-- Toast UI & 기타 라이브러리 (로컬 참조) -->
+    <link rel="stylesheet" href="/lib/tui-pagination.css" />
+    <link rel="stylesheet" href="/lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="/lib/tui-grid.css" />
+
+    <script src="/lib/tui-pagination.min.js"></script>
+    <script src="/lib/xlsx.full.min.js"></script>
+    <script src="/lib/tui-date-picker.min.js"></script>
+    <script src="/lib/tui-grid.min.js"></script>
+    <script src="/lib/axios.min.js"></script>
+    <script src="/lib/dayjs.min.js"></script>
+    <script src="/lib/ko.js"></script>
+    <script src="/lib/lucide.js"></script>
+    <script src="/lib/imask.min.js"></script>
+    <script src="/lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <!-- CoreUI CSS (base component library — CoreUI owns .btn/.card/.form-control/.modal) -->
+    <link rel="stylesheet" th:href="@{/vendor/coreui/css/coreui.min.css}">
+
+    <!-- Design token layer — must load before admin-layout/bridge. Defines --sms-* tokens
+         and aliases them onto CoreUI's --cui-* variables (see DESIGN.md). -->
+    <link rel="stylesheet" th:href="@{/css/admin-common.css}" />
+
+    <!-- Project shell/bridge CSS: consumes --sms-* tokens, CoreUI component styling stays in CoreUI. -->
+    <link rel="stylesheet" th:href="@{/css/admin-layout.css}" />
+    <link rel="stylesheet" th:href="@{/css/admin-ui-bridge.css}" />
+    <script th:src="@{/js/common/common-utils.js}"></script>
+    <script th:src="@{/js/common/tui-common.js}"></script>
+    <script th:src="@{/js/common/tui-page-builder.js}"></script>
+    <script th:src="@{/js/common/form-binder.js}"></script>
+    <script th:src="@{/js/common/field-format.js}"></script>
+
+    <!-- 로그인 사용자 정보를 자바스크립트 전역 변수로 노출. 사용자 식별은 EMP_ID + DEP_ID -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const SESSION_INFO = {
+            empId:  /*[[${user != null ? user.empId : ''}]]*/ '',
+            depId:  /*[[${user != null ? user.depId : ''}]]*/ '',
+            empNm:  /*[[${user != null ? user.empNm : ''}]]*/ '',
+            depNm:  /*[[${user != null ? user.depNm : ''}]]*/ ''
+        };
+        window.PAGE_AUTH = {
+            read:     /*[[${pageAuth != null ? pageAuth.read : false}]]*/ false,
+            create:   /*[[${pageAuth != null ? pageAuth.create : false}]]*/ false,
+            update:   /*[[${pageAuth != null ? pageAuth.update : false}]]*/ false,
+            delete:   /*[[${pageAuth != null ? pageAuth.delete : false}]]*/ false,
+            approve:  /*[[${pageAuth != null ? pageAuth.approve : false}]]*/ false,
+            cancel:   /*[[${pageAuth != null ? pageAuth.cancel : false}]]*/ false,
+            download: /*[[${pageAuth != null ? pageAuth.download : false}]]*/ false,
+            maskView: /*[[${pageAuth != null ? pageAuth.maskView : false}]]*/ false
+        };
+        /*]]>*/
+    </script>
+
+    <th:block layout:fragment="css"></th:block>
+</head>
+
+<body class="admin-shell">
+
+    <!-- 스킵 네비게이션 (A11Y) -->
+    <a href="#main-content" class="skip-link">본문으로 건너뛰기</a>
+
+    <!-- 1. 사이드바 -->
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <!-- 2. 메인 래퍼 -->
+    <div class="main-wrapper bg-light">
+
+        <!-- 3. 헤더 -->
+        <header th:replace="~{fragments/header :: header}"></header>
+
+        <!-- 4. 컨텐츠 영역 -->
+        <div class="content-area">
+            <div class="container-fluid mb-4 p-0">
+                <main layout:fragment="content" id="main-content" tabindex="-1"></main>
+            </div>
+        </div>
+    </div>
+
+    <!-- CoreUI Bundle JS -->
+    <script th:src="@{/vendor/coreui/js/coreui.bundle.min.js}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
+            const sidebar = document.getElementById('sidebar');
+
+            if (toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function () {
+                    sidebar.classList.toggle('collapsed');
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    toggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
+                    const toggleIcon = document.getElementById('toggleIcon');
+                    if (toggleIcon) {
+                        toggleIcon.setAttribute('data-lucide', isCollapsed ? 'panel-left-open' : 'panel-left-close');
+                    }
+                    if (typeof CommonUtils !== 'undefined') {
+                        CommonUtils.refreshIcons();
+                    } else if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+
+                    setTimeout(() => {
+                        if (typeof grid !== 'undefined' && grid) grid.refreshLayout();
+                    }, 210);
+                });
+            }
+        });
+    </script>
+
+    <th:block layout:fragment="script"></th:block>
+</body>
+
+</html>

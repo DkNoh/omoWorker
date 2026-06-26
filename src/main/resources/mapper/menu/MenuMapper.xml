@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.menu.MenuMapper">
+
+    <select id="selectReadableMenus" resultType="com.scbk.sms.vo.menu.MenuItemVO">
+        SELECT DISTINCT
+            M.MENU_ID AS menu_id,
+            M.PARENT_MENU_ID AS parent_menu_id,
+            M.MENU_NM AS menu_nm,
+            M.MENU_URL AS menu_url,
+            M.MENU_LEVEL AS menu_level,
+            M.SORT_ORD AS sort_ord,
+            M.MENU_TYPE AS menu_type,
+            M.ICON_NM AS icon_nm,
+            M.DISPLAY_YN AS display_yn,
+            M.USE_YN AS use_yn,
+            M.SYSTEM_YN AS system_yn
+        FROM SMS.TB_MENU M
+        INNER JOIN SMS.TB_MENU_AUTH MA
+            ON MA.MENU_ID = M.MENU_ID
+        WHERE M.USE_YN = 'Y'
+          AND M.DISPLAY_YN = 'Y'
+          AND MA.USE_YN = 'Y'
+          AND MA.CAN_READ = 'Y'
+          AND MA.ROLE_CD IN
+          <foreach collection="roleCodes" item="roleCode" open="(" separator="," close=")">
+              #{roleCode}
+          </foreach>
+        ORDER BY M.MENU_LEVEL, M.PARENT_MENU_ID NULLS FIRST, M.SORT_ORD, M.MENU_ID
+    </select>
+
+</mapper>

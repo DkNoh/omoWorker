@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>Query Scaffold</title>
+    <th:block layout:fragment="css">
+        <link rel="stylesheet" th:href="@{/css/scaffold-tool.css}">
+    </th:block>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>Query Scaffold <small class="scaffold-page-subtitle">(local 전용 화면 생성 도구)</small></h2>
+    </div>
+
+    <!-- 입력 카드 -->
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-3">
+                    <label for="moduleName" class="form-label fw-bold">moduleName</label>
+                    <input type="text" id="moduleName" class="form-control" placeholder="sms">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label for="domainId" class="form-label fw-bold">domainId</label>
+                    <input type="text" id="domainId" class="form-control" placeholder="history">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label for="domainClass" class="form-label fw-bold">domainClass</label>
+                    <input type="text" id="domainClass" class="form-control" placeholder="SmsHistory">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label for="domainName" class="form-label fw-bold">domainName</label>
+                    <input type="text" id="domainName" class="form-control" placeholder="발송이력조회">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="rawQuery" class="form-label fw-bold">조회 SQL (검색조건은 $변수 사용)</label>
+                <textarea id="rawQuery" class="form-control font-monospace" rows="8"
+                          placeholder="SELECT A.SEND_DT, A.RECEIVER_NO, A.SEND_STATUS&#10;FROM SMS_HISTORY A&#10;WHERE 1=1&#10;AND A.SEND_DT &gt;= $start_dt"></textarea>
+            </div>
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-5">
+                    <label for="orderBy" class="form-label fw-bold">정렬 컬럼 (결정적 정렬, tie-breaker 포함)</label>
+                    <input type="text" id="orderBy" class="form-control" placeholder="A.SEND_DT DESC, A.HIST_ID DESC">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label for="screenMode" class="form-label fw-bold">화면 모드</label>
+                    <select id="screenMode" class="form-select">
+                        <option value="LIST">목록 조회만</option>
+                        <option value="EXCEL">목록 + 엑셀</option>
+                        <option value="DETAIL">목록 + 상세 모달</option>
+                        <option value="CRUD">목록 + 등록/수정/삭제</option>
+                    </select>
+                </div>
+                <div class="col-auto form-check form-switch ms-2">
+                    <input class="form-check-input" type="checkbox" id="includeModal">
+                    <label class="form-check-label" for="includeModal">상세 모달 사용</label>
+                </div>
+                <div class="col-auto form-check form-switch ms-2">
+                    <input class="form-check-input" type="checkbox" id="includePrivacy">
+                    <label class="form-check-label" for="includePrivacy">개인정보 포함(@PrivacyLog)</label>
+                </div>
+                <div class="col-auto ms-auto">
+                    <button type="button" id="btn-refresh-options" class="btn btn-outline-dark px-3 me-2"><i data-lucide="refresh-cw"></i><span>옵션 갱신</span></button>
+                    <button type="button" id="btn-generate" class="btn btn-primary px-4"><i data-lucide="sparkles"></i><span>생성</span></button>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h3 class="fs-6 fw-bold mb-0">조회조건 옵션</h3>
+                        <span class="text-secondary small">$변수 기준으로 생성됩니다</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>파라미터</th>
+                                <th>입력 타입</th>
+                                <th>기본값</th>
+                                <th>콤보/라디오 옵션</th>
+                            </tr>
+                            </thead>
+                            <tbody id="search-param-options">
+                            <tr><td colspan="4" class="text-secondary">조회 SQL 입력 후 옵션 갱신을 누르세요.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h3 class="fs-6 fw-bold mb-0">컬럼 옵션</h3>
+                        <span class="text-secondary small">SELECT alias 기준으로 생성됩니다</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>그리드</th>
+                                <th>모달</th>
+                                <th>수정</th>
+                                <th>컬럼</th>
+                                <th>헤더명</th>
+                                <th>너비</th>
+                                <th>정렬</th>
+                                <th>날짜 포맷</th>
+                                <th>마스킹</th>
+                            </tr>
+                            </thead>
+                            <tbody id="column-options">
+                            <tr><td colspan="9" class="text-secondary">조회 SQL 입력 후 옵션 갱신을 누르세요.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                    <h3 class="fs-6 fw-bold mb-2">PK / 잠금 옵션</h3>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label for="targetTable" class="form-label">수정 대상 테이블</label>
+                            <input type="text" id="targetTable" class="form-control" placeholder="SMS.SMS_HISTORY">
+                        </div>
+                        <div class="col-6">
+                            <label for="pkColumns" class="form-label">PK 컬럼</label>
+                            <select id="pkColumns" class="form-select" multiple size="4"></select>
+                        </div>
+                        <div class="col-6">
+                            <label for="lockColumn" class="form-label">낙관적 잠금 컬럼</label>
+                            <select id="lockColumn" class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                    <h3 class="fs-6 fw-bold mb-2">메뉴 등록 옵션</h3>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label for="menuId" class="form-label">menuId</label>
+                            <input type="text" id="menuId" class="form-control" placeholder="SMS_HISTORY">
+                        </div>
+                        <div class="col-6">
+                            <label for="parentMenuId" class="form-label">parentMenuId</label>
+                            <input type="text" id="parentMenuId" class="form-control" placeholder="G_SMS_SEARCH">
+                        </div>
+                        <div class="col-6">
+                            <label for="roleCode" class="form-label">roleCode</label>
+                            <input type="text" id="roleCode" class="form-control" value="ROLE_ADMIN">
+                        </div>
+                        <div class="col-6">
+                            <label for="sortOrd" class="form-label">sortOrd</label>
+                            <input type="number" id="sortOrd" class="form-control" value="99" min="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 결과 카드 -->
+    <div class="card shadow-sm border-0 mb-4 d-none" id="result-card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <div id="result-tabs" class="d-flex gap-1 flex-wrap"></div>
+            <div class="d-flex gap-2">
+                <button type="button" id="btn-preview" class="btn btn-outline-success btn-sm"><i data-lucide="eye"></i><span>적용 미리보기</span></button>
+                <button type="button" id="btn-apply" class="btn btn-success btn-sm"><i data-lucide="check"></i><span>적용</span></button>
+                <button type="button" id="btn-copy" class="btn btn-outline-secondary btn-sm"><i data-lucide="copy"></i><span>현재 탭 복사</span></button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <pre id="result-content" class="m-0 p-3 font-monospace scaffold-result-content"></pre>
+        </div>
+        <div class="card-footer bg-white d-none" id="apply-result">
+            <div class="fw-bold mb-2">적용 파일 미리보기</div>
+            <ul class="mb-0 small" id="apply-paths"></ul>
+        </div>
+    </div>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/system/scaffold.js}"></script>
+</th:block>
+</body>
+</html>

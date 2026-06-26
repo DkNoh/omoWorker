@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.menu.MenuAuthMapper">
+
+    <!-- URL 기준 메뉴 권한 조회. 역할이 여러 건이면 MAX 집계로 'Y' 우선 합산한다. -->
+    <select id="selectMenuPermissions" resultType="com.scbk.sms.vo.menu.MenuAuthVO">
+        SELECT
+            MAX(MA.CAN_READ) AS can_read,
+            MAX(MA.CAN_CREATE) AS can_create,
+            MAX(MA.CAN_UPDATE) AS can_update,
+            MAX(MA.CAN_DELETE) AS can_delete,
+            MAX(MA.CAN_APPROVE) AS can_approve,
+            MAX(MA.CAN_CANCEL) AS can_cancel,
+            MAX(MA.CAN_DOWNLOAD) AS can_download,
+            MAX(MA.CAN_MASK_VIEW) AS can_mask_view
+        FROM SMS.TB_MENU M
+        INNER JOIN SMS.TB_MENU_AUTH MA
+            ON MA.MENU_ID = M.MENU_ID
+        WHERE M.USE_YN = 'Y'
+          AND MA.USE_YN = 'Y'
+          AND M.MENU_URL = #{menuUrl}
+          AND MA.ROLE_CD IN
+          <foreach collection="roleCodes" item="roleCode" open="(" separator="," close=")">
+              #{roleCode}
+          </foreach>
+        GROUP BY M.MENU_ID
+    </select>
+
+</mapper>

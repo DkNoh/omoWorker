@@ -1,0 +1,26 @@
+# Project Rules
+
+- 상세 설계 원문은 `docs/base/*.md`를 따른다.
+- 신규 코드는 `com.scbk.sms` 패키지 아래에 둔다.
+- 계층은 `controller -> service -> mapper interface -> mapper XML -> Oracle` 순서를 따른다.
+- Controller는 요청/응답과 화면 반환에 집중한다.
+- Service는 트랜잭션과 업무 규칙을 담당한다.
+- Mapper는 SQL 호출만 담당한다.
+- DB 조회 결과는 VO를 사용한다.
+- 요청 파라미터는 DTO를 사용한다.
+- JSON 응답은 `ApiResponse<T>`로 감싼다. 목록 응답은 `ApiResponse<PageResponseDTO<VO>>`를 사용한다.
+- 페이지 응답은 `PageResponseDTO.of(list, request, totalCount)`로만 생성한다.
+- 도메인 검색 DTO는 `PageRequestDTO`를 상속한다.
+- 수정/등록 요청은 `*UpdateRequestDTO`(화이트리스트)로만 받는다. VO를 `@RequestBody`로 받지 않는다.
+- `UpdateRequestDTO`에는 수정 가능한 필드만 선언한다 (REG_*, 시스템/권한 필드 제외).
+- update 결과가 0건이면 `CustomException(ErrorCode.UPDATE_CONFLICT)`로 실패 처리한다.
+- 순수 데이터 홀더 DTO/VO(게터/세터 외 로직이 없는 가변 객체)는 레이어 무관 Lombok `@Data`를 사용한다 (기존 `dto/common`, `vo/*` 포함). Service/Controller는 `@RequiredArgsConstructor`를 사용한다.
+- 행위/불변/팩토리/enum/예외/`@ConfigurationProperties` 클래스와 게터·세터에 로직이 있는 객체는 plain Java를 유지한다 (예: `ApiResponse`·`PageResponseDTO` 불변 팩토리, `PageRequestDTO` 검증 로직, `ErrorCode` enum, `CustomException`, config/auth/aop/util 및 명시적 생성자로 의존성을 드러내야 하는 service/controller). 분류는 "위치(신규/기존)"가 아니라 "타입(데이터 vs 행위)" 기준으로 한다.
+- 예측 가능한 업무 오류는 `CustomException(ErrorCode)`로 던진다.
+- 예외 -> JSON 변환은 `GlobalExceptionHandler`(`@RestControllerAdvice`)에서만 한다.
+- 입력 검증은 `@Valid` + Bean Validation을 사용한다.
+- `@Transactional`은 Service 계층에만 둔다. 조회 메서드는 `readOnly = true`를 우선 검토한다.
+- 신규 코드에서 `Map` 반환은 동적 컬럼처럼 불가피한 경우에만 허용한다.
+- 실패를 fallback으로 우회하지 않는다.
+- 예외를 catch 후 정상 흐름으로 진행하지 않는다.
+- 운영 중 바뀔 값은 `application*.yml`로 외부화한다.

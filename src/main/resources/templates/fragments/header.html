@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <!-- CoreUI Header 컴포넌트 -->
+    <header class="header header-sticky p-0 app-header" th:fragment="header" role="banner">
+        <div class="container-fluid px-3 header-bar">
+
+            <!-- 사이드바 토글 버튼 (왼쪽 끝) -->
+            <button id="sidebarToggleBtn" type="button"
+                class="btn btn-link p-0 me-3 d-flex align-items-center header-toggle-btn"
+                aria-label="사이드바 메뉴 열기/닫기" aria-expanded="false" aria-controls="sidebar">
+                <i id="toggleIcon" data-lucide="panel-left-close" class="layout-icon" aria-hidden="true"></i>
+            </button>
+
+            <!-- 현재 페이지 타이틀 렌더링 -->
+            <ul class="header-nav d-none d-md-flex" role="navigation" aria-label="현재 페이지 위치">
+                <li class="nav-item">
+                    <span class="nav-link header-title" id="headerTitle" aria-current="page"></span>
+                </li>
+            </ul>
+
+            <!-- 사용자/로그아웃 메뉴 -->
+            <ul class="header-nav ms-auto" role="menubar" aria-label="사용자 메뉴">
+                <li class="nav-item d-flex align-items-center" role="none">
+                    <span class="me-2 header-user-text"
+                        th:text="${user != null ? user.empNm + ' 님 (' + user.depNm + ')' : ''}">사용자 님</span>
+                    <div class="avatar avatar-md me-3 header-avatar"
+                        aria-hidden="true" th:text="${user != null and user.empNm != null ? #strings.substring(user.empNm, 0, 1) : 'A'}">A</div>
+                </li>
+                <li class="nav-item" role="none">
+                    <form th:action="@{/logout}" method="post" class="m-0 d-flex align-items-center">
+                        <button type="submit" class="btn btn-link nav-link px-0 header-logout-btn"
+                            aria-label="로그아웃">
+                            <i data-lucide="log-out" class="layout-icon" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 현재 URL 기반 메뉴 활성화 및 타이틀 세팅 -->
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const currentPath = window.location.pathname;
+
+                document.querySelectorAll('.nav-group-items .nav-link').forEach(link => {
+                    const href = link.getAttribute('href');
+
+                    if (href === currentPath) {
+                        link.classList.add('active');
+
+                        const parentGroup = link.closest('.nav-group');
+                        if (parentGroup) {
+                            parentGroup.classList.add('show');
+                            const parentMenuText = parentGroup.querySelector('.nav-group-toggle span').textContent.trim();
+                            const subMenuText = link.textContent.trim();
+
+                            const headerTitle = document.getElementById('headerTitle');
+                            if (headerTitle) {
+                                headerTitle.textContent = parentMenuText + ' > ' + subMenuText;
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    </header>
+</body>
+
+</html>

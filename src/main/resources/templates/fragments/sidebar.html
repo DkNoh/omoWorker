@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div class="sidebar" data-coreui-theme="light" id="sidebar" th:fragment="sidebar">
+
+        <!-- 로고/타이틀 -->
+        <div class="sidebar-brand d-flex align-items-center bg-white border-bottom">
+            <div class="sidebar-brand-full d-flex align-items-center px-3">
+                <img th:src="@{/img/SC.png}" alt="SC 로고" width="28" height="28" class="me-2 flex-shrink-0">
+                <span class="fs-5 fw-bold text-truncate">SMS전송시스템</span>
+            </div>
+            <div class="sidebar-brand-narrow d-none align-items-center justify-content-center" style="width:100%;">
+                <img th:src="@{/img/SC.png}" alt="SC 로고" width="28" height="28">
+            </div>
+        </div>
+
+        <!-- 로그인 사용자 정보 (Collapsed 시 숨김). 사용자 식별은 EMP_ID + DEP_ID -->
+        <div class="sidebar-userinfo sidebar-brand-full" th:if="${user != null}">
+            <div class="mb-1 text-truncate"><strong>사용자:</strong> <span th:text="${user.empNm} + ' (' + ${user.empId} + ')'">사용자</span></div>
+            <div class="mb-1 text-truncate"><strong>부서:</strong> <span th:text="${user.depNm} + ' (' + ${user.depId} + ')'">부서</span></div>
+            <div class="text-truncate"><strong>IP :</strong> <span th:text="${clientIp}">999.999.999</span></div>
+        </div>
+
+        <!-- 메뉴 목록: Controller가 넘긴 메뉴 tree만 사용한다 -->
+        <ul class="sidebar-nav flex-grow-1 overflow-auto" data-coreui="navigation" data-simplebar="">
+            <th:block th:if="${menus != null and !#lists.isEmpty(menus)}">
+
+                <li class="nav-group" th:each="parentMenu : ${menus}">
+                    <a class="nav-link nav-group-toggle" href="#">
+                        <th:block th:switch="${parentMenu.menuNm}">
+
+                            <!-- 기본메뉴 : 홈 아이콘 -->
+                            <i th:case="'기본메뉴'" data-lucide="home" class="nav-icon flex-shrink-0"></i>
+
+                            <!-- SMS발송조회 : 메시지 검색 아이콘 -->
+                            <i th:case="'SMS발송조회'" data-lucide="message-square-search" class="nav-icon flex-shrink-0"></i>
+
+                            <!-- 캠페인SMS : 발송(종이비행기) 아이콘 -->
+                            <i th:case="'캠페인SMS'" data-lucide="send" class="nav-icon flex-shrink-0"></i>
+
+                            <!-- 시스템관리 : 설정 슬라이더(tune) 아이콘 -->
+                            <i th:case="'시스템관리'" data-lucide="sliders-horizontal" class="nav-icon flex-shrink-0"></i>
+
+                            <!-- 시스템관리 계정관리 : 다중 사용자(group) 아이콘 -->
+                            <i th:case="'시스템관리 계정관리'" data-lucide="users" class="nav-icon flex-shrink-0"></i>
+
+                            <!-- 통계 관리 : 꺾은선+막대 혼합(insights) 아이콘 -->
+                            <i th:case="'통계 관리'" data-lucide="chart-no-axes-combined" class="nav-icon flex-shrink-0"></i>
+
+                            <!-- 기본 fallback 아이콘 -->
+                            <i th:case="*" data-lucide="list" class="nav-icon flex-shrink-0"></i>
+                        </th:block>
+                        <span th:text="${parentMenu.menuNm}" class="text-truncate">메뉴 그룹</span>
+                    </a>
+                    <ul class="nav-group-items">
+                        <li class="nav-item" th:each="childMenu : ${parentMenu.children}">
+                            <a class="nav-link text-truncate"
+                               th:href="@{${childMenu.menuUrl != null ? childMenu.menuUrl : '#'}}"
+                               th:text="${childMenu.menuNm}">하위 링크</a>
+                        </li>
+                    </ul>
+                </li>
+            </th:block>
+
+            <th:block th:if="${menus == null or #lists.isEmpty(menus)}">
+                <li class="nav-item sidebar-empty-auth">
+                    <span class="sidebar-brand-full">허용된 메뉴 권한이<br>존재하지 않습니다.</span>
+                </li>
+            </th:block>
+        </ul>
+
+    </div>
+</body>
+
+</html>

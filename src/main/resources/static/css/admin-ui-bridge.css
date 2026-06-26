@@ -1,0 +1,640 @@
+/* =====================================================================
+   omoWorker UI Bridge — CoreUI / TUI / icon wiring
+   ---------------------------------------------------------------------
+   Owns the visual bridge between CoreUI components, TUI grid/picker,
+   Lucide icons, and the project token layer (admin-common.css).
+   CoreUI component classes (.btn / .card / .form-control / .modal) are
+   NOT replaced — only augmented with token-driven refinements.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   Icon sizing — Lucide. No emoji icons anywhere.
+   --------------------------------------------------------------------- */
+.lucide {
+    width: var(--sms-icon-md);
+    height: var(--sms-icon-md);
+    flex-shrink: 0;
+    stroke-width: 2;
+}
+
+.btn .lucide {
+    width: var(--sms-icon-sm);
+    height: var(--sms-icon-sm);
+    margin-right: var(--sms-space-2);
+    stroke-width: 2;
+}
+
+.btn-icon .lucide,
+.btn.btn-icon .lucide {
+    margin-right: 0;
+}
+
+.layout-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.nav-icon.lucide {
+    width: var(--sms-icon-lg);
+    height: var(--sms-icon-lg);
+    margin-right: var(--sms-space-2);
+}
+
+.toast-icon {
+    width: var(--sms-icon-md);
+    height: var(--sms-icon-md);
+    margin-right: var(--sms-space-2);
+}
+
+/* ---------------------------------------------------------------------
+   Surface primitives — token-based card/panel alternatives so templates
+   stop repeating `class="card shadow-sm border-0"` with ad-hoc spacing.
+   Existing CoreUI .card usage continues to work; .surface-card is the
+   project's explicit, tokenized primitive.
+   --------------------------------------------------------------------- */
+.surface-card {
+    background-color: var(--sms-bg-surface);
+    border: 1px solid var(--sms-border-subtle);
+    border-radius: var(--sms-radius-md);
+    box-shadow: var(--sms-shadow-sm);
+}
+.surface-flat {
+    background-color: var(--sms-bg-surface);
+    border: 1px solid var(--sms-border-subtle);
+    border-radius: var(--sms-radius-md);
+}
+
+/* Standardize the previously ad-hoc `card shadow-sm border-0` pattern
+   so all existing screens benefit automatically. */
+.card.shadow-sm.border-0,
+.card.border-0.shadow-sm {
+    background-color: var(--sms-bg-surface);
+    border: 1px solid var(--sms-border-subtle) !important;
+    border-radius: var(--sms-radius-md);
+    box-shadow: var(--sms-shadow-sm);
+}
+.card-header.bg-white {
+    background-color: var(--sms-bg-surface) !important;
+    border-bottom: 1px solid var(--sms-border-subtle) !important;
+    padding: var(--sms-space-3) var(--sms-space-4);
+    font-size: var(--sms-fs-section);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-text-strong);
+}
+.card-footer.bg-white {
+    background-color: var(--sms-bg-surface) !important;
+    border-top: 1px solid var(--sms-border-subtle) !important;
+    padding: var(--sms-space-3) var(--sms-space-4);
+}
+
+/* ---------------------------------------------------------------------
+   Form controls — token-driven focus glow. CoreUI owns base structure.
+   --------------------------------------------------------------------- */
+.form-control,
+.form-select {
+    border-color: var(--sms-border);
+    color: var(--sms-text-body);
+    transition:
+        border-color var(--sms-transition-fast),
+        box-shadow var(--sms-transition-fast);
+}
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--sms-primary);
+    box-shadow: 0 0 0 3px rgba(var(--sms-primary-rgb), 0.16);
+    color: var(--sms-text-strong);
+}
+.form-control:disabled,
+.form-select:disabled,
+.form-control[readonly] {
+    background-color: var(--sms-bg-muted);
+    color: var(--sms-text-disabled);
+}
+.form-label,
+.col-form-label {
+    font-size: var(--sms-fs-body);
+    font-weight: var(--sms-fw-medium);
+    color: var(--sms-text-body);
+}
+
+/* ---------------------------------------------------------------------
+   TUI Grid bridge — token-driven table styling. TUI ships its own
+   borders/colors; we override here so the grid matches the design system.
+   --------------------------------------------------------------------- */
+.tui-grid-container {
+    border-color: var(--sms-border) !important;
+    font-family: var(--sms-font-sans) !important;
+}
+
+.tui-grid-header-area {
+    background-color: var(--sms-bg-surface-alt) !important;
+    border-color: var(--sms-border) !important;
+    box-shadow: inset 0 -2px 0 var(--sms-border-subtle);
+}
+
+.tui-grid-cell-header {
+    background-color: transparent !important;
+    border-left: none !important;
+    border-right: none !important;
+    font-weight: var(--sms-fw-semibold) !important;
+    color: var(--sms-text-strong) !important;
+    font-size: var(--sms-fs-caption) !important;
+    letter-spacing: 0.02em;
+}
+
+.tui-grid-cell {
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--sms-border-subtle) !important;
+    color: var(--sms-text-body) !important;
+    font-size: var(--sms-fs-body-sm) !important;
+    line-height: var(--sms-lh-body);
+    font-variant-numeric: tabular-nums;
+}
+
+.tui-grid-row-odd .tui-grid-cell {
+    background-color: var(--sms-bg-surface-alt) !important;
+}
+
+.tui-grid-row:hover td,
+.tui-grid-row-hover .tui-grid-cell {
+    background-color: var(--sms-primary-soft) !important;
+    cursor: pointer;
+}
+
+.tui-grid-row-hover .tui-grid-cell {
+    transition: background-color var(--sms-transition-fast);
+}
+
+.tui-grid-cell-selected {
+    background-color: var(--sms-primary-soft) !important;
+    color: var(--sms-primary) !important;
+}
+
+.tui-grid-header-area .tui-grid-cell {
+    background-color: var(--sms-bg-surface-alt) !important;
+    font-weight: var(--sms-fw-semibold);
+    font-size: var(--sms-fs-caption);
+}
+
+/* Pagination — token-driven page buttons */
+.tui-grid-pagination {
+    padding: var(--sms-space-3) 0 var(--sms-space-1);
+    display: flex;
+    justify-content: center;
+}
+
+.tui-page-btn {
+    border: 1px solid var(--sms-border) !important;
+    border-radius: var(--sms-radius-sm) !important;
+    color: var(--sms-text-body) !important;
+    font-size: var(--sms-fs-body-sm) !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    margin: 0 2px !important;
+    background-color: var(--sms-bg-surface) !important;
+    transition:
+        background-color var(--sms-transition-fast),
+        border-color var(--sms-transition-fast),
+        color var(--sms-transition-fast) !important;
+}
+
+.tui-page-btn.tui-is-selected {
+    background-color: var(--sms-primary) !important;
+    border-color: var(--sms-primary) !important;
+    color: #fff !important;
+}
+
+.tui-page-btn:hover:not(.tui-is-selected) {
+    background-color: var(--sms-bg-surface-alt) !important;
+    border-color: var(--sms-border-strong) !important;
+    color: var(--sms-primary) !important;
+}
+
+/* ---------------------------------------------------------------------
+   Autocomplete balloon — token-driven popover
+   --------------------------------------------------------------------- */
+.autocomplete-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.autocomplete-balloon {
+    display: none;
+    position: absolute;
+    top: calc(100% + var(--sms-space-2));
+    left: 0;
+    z-index: var(--sms-z-dropdown);
+    min-width: 240px;
+    background: var(--sms-bg-surface);
+    border: 1px solid var(--sms-border);
+    border-radius: var(--sms-radius-md);
+    box-shadow: var(--sms-shadow-md);
+    overflow: hidden;
+}
+
+.autocomplete-balloon::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: var(--sms-space-4);
+    width: 12px;
+    height: 12px;
+    background: var(--sms-bg-surface);
+    border-left: 1px solid var(--sms-border);
+    border-top: 1px solid var(--sms-border);
+    transform: rotate(45deg);
+}
+
+.autocomplete-item {
+    padding: var(--sms-space-2) var(--sms-space-3);
+    font-size: var(--sms-fs-body-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--sms-space-2);
+    border-bottom: 1px solid var(--sms-border-subtle);
+    color: var(--sms-text-body);
+    transition: background-color var(--sms-transition-fast);
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: var(--sms-bg-surface-alt);
+}
+
+.autocomplete-item:hover .ac-code {
+    color: var(--sms-primary);
+}
+
+.ac-code {
+    font-weight: var(--sms-fw-bold);
+    color: var(--sms-text-strong);
+    font-family: var(--sms-font-mono);
+    min-width: 50px;
+}
+
+.ac-name {
+    color: var(--sms-text-muted);
+    font-size: var(--sms-fs-caption);
+}
+
+.ac-empty {
+    padding: var(--sms-space-2) var(--sms-space-3);
+    color: var(--sms-text-disabled);
+    font-size: var(--sms-fs-body-sm);
+    text-align: center;
+}
+
+/* ---------------------------------------------------------------------
+   Global ajax spinner overlay — token-driven backdrop
+   --------------------------------------------------------------------- */
+#global-spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(245, 247, 250, 0.65);
+    z-index: var(--sms-z-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+        opacity var(--sms-transition-base),
+        visibility var(--sms-transition-base);
+}
+
+#global-spinner-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* ---------------------------------------------------------------------
+   Auto detail modal refinement — token-driven grid rows
+   --------------------------------------------------------------------- */
+.tui-auto-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#tui-auto-modal-form {
+    display: grid;
+    gap: 0;
+}
+
+#tui-auto-modal .detail-row {
+    display: grid;
+    grid-template-columns: minmax(148px, 190px) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--sms-space-3);
+    min-height: 42px;
+    padding: var(--sms-space-2) 0;
+    border-bottom: 1px solid var(--sms-border-subtle);
+}
+
+#tui-auto-modal .detail-row:first-child {
+    border-top: 1px solid var(--sms-border-subtle);
+}
+
+#tui-auto-modal .detail-label {
+    width: auto;
+    min-width: 0;
+    color: var(--sms-text-muted);
+    font-size: var(--sms-fs-body-sm);
+    font-weight: var(--sms-fw-semibold);
+    letter-spacing: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+#tui-auto-modal .detail-value {
+    min-width: 0;
+    color: var(--sms-text-body);
+    font-size: var(--sms-fs-body);
+    line-height: var(--sms-lh-body);
+    word-break: break-word;
+}
+
+#tui-auto-modal .detail-readonly {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-height: 28px;
+    padding: 3px 0;
+}
+
+#tui-auto-modal .detail-input {
+    height: 32px;
+    border-radius: var(--sms-radius);
+}
+
+@media (max-width: 576px) {
+    #tui-auto-modal .detail-row {
+        grid-template-columns: 1fr;
+        gap: var(--sms-space-1);
+        align-items: start;
+    }
+}
+
+/* ---------------------------------------------------------------------
+   Scaffold / search control sizing — kept here because TUI date picker
+   layering depends on the same widths.
+   --------------------------------------------------------------------- */
+.scaffold-search-control,
+.scaffold-radio-group {
+    width: var(--sms-search-control-width);
+}
+
+.toast-grid-page-size {
+    width: var(--sms-page-size-width);
+}
+
+.toast-grid-card {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.toast-grid {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* No-data overlay for grid cards. Lives as a SIBLING of #grid inside
+   .toast-grid-shell (never inside #grid, which TUI Grid owns). Hidden by
+   default; .is-visible is toggled from TuiPageBuilder on empty results. */
+.toast-grid-shell {
+    position: relative;
+    min-height: 180px;
+}
+
+.toast-grid-empty {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sms-space-1);
+    padding: var(--sms-space-8) var(--sms-space-6);
+    text-align: center;
+    background-color: var(--sms-bg-surface);
+    color: var(--sms-text-muted);
+    pointer-events: none;
+}
+
+.toast-grid-empty.is-visible {
+    display: flex;
+}
+
+.toast-grid-empty-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--sms-text-disabled);
+    stroke-width: 1.5;
+    margin-bottom: var(--sms-space-1);
+}
+
+.toast-grid-empty-title {
+    margin: 0;
+    font-size: var(--sms-fs-section);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-text-body);
+    word-break: keep-all;
+}
+
+.toast-grid-empty-hint {
+    margin: 0;
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+    word-break: keep-all;
+}
+
+/* DatePicker layering — must stay above in-flight content but below modals */
+.history-search-card,
+.scaffold-search-card {
+    position: relative;
+    z-index: 30;
+    overflow: visible;
+}
+
+.history-search-card .card-body,
+.history-search-card .row,
+.history-search-card .col-auto,
+.scaffold-search-card .card-body,
+.scaffold-search-card .row,
+.scaffold-search-card .col-auto {
+    overflow: visible;
+}
+
+/* History filter toolbar — modern compact enterprise surface.
+   Scoped under .history-search-card so other screens are untouched. */
+.history-search-card .card-body {
+    padding: var(--sms-space-4) var(--sms-space-5);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--sms-space-4);
+}
+
+.history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sms-space-4);
+    align-items: flex-end;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.history-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sms-space-1);
+}
+
+.history-filter-label {
+    font-size: var(--sms-fs-caption);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-text-muted);
+    letter-spacing: 0.01em;
+    margin: 0;
+}
+
+.history-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sms-space-2);
+    align-items: center;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.btn-ghost {
+    color: var(--sms-text-body);
+    background-color: transparent;
+    border: 1px solid var(--sms-border);
+}
+.btn-ghost:hover {
+    background-color: var(--sms-bg-surface-alt);
+    border-color: var(--sms-border-strong);
+    color: var(--sms-text-strong);
+}
+
+.history-date-field,
+.scaffold-date-field {
+    position: relative;
+    z-index: 40;
+}
+
+.history-date-field,
+.scaffold-date-field-md {
+    width: var(--sms-search-control-width);
+}
+
+.scaffold-date-field-sm {
+    width: 150px;
+}
+
+.history-datepicker-input,
+.scaffold-datepicker-input {
+    width: 100%;
+    height: var(--sms-control-height);
+}
+
+#sentAtPickerLayer,
+.scaffold-date-picker-layer {
+    position: absolute;
+    top: var(--sms-control-height);
+    left: 0;
+    z-index: var(--sms-z-datepicker);
+    margin-top: -1px;
+}
+
+#sentAtPickerLayer .tui-datepicker,
+.scaffold-date-picker-layer .tui-datepicker {
+    z-index: var(--sms-z-datepicker);
+    box-shadow: var(--sms-shadow-md);
+    border: 1px solid var(--sms-border);
+    border-radius: var(--sms-radius-md);
+}
+
+/* ---------------------------------------------------------------------
+   Empty state component — used inside #grid containers as the initial /
+   no-data hint. TUI Grid will replace #grid contents on init, so this
+   acts as the pre-init placeholder and reads cleanly while data loads.
+   --------------------------------------------------------------------- */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sms-space-2);
+    padding: var(--sms-space-12) var(--sms-space-6);
+    color: var(--sms-text-muted);
+    text-align: center;
+    background-color: var(--sms-bg-surface);
+    border-radius: var(--sms-radius-md);
+}
+.empty-state-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--sms-text-disabled);
+    stroke-width: 1.5;
+    margin-bottom: var(--sms-space-1);
+}
+.empty-state-title {
+    margin: 0;
+    font-size: var(--sms-fs-section);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-text-body);
+    word-break: keep-all;
+}
+.empty-state-hint {
+    margin: 0;
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+    word-break: keep-all;
+}
+.empty-state-actions {
+    margin-top: var(--sms-space-3);
+}
+
+/* ---------------------------------------------------------------------
+   Inline alert (auth pages) — token-based success/error feedback.
+   --------------------------------------------------------------------- */
+.alert {
+    border-radius: var(--sms-radius);
+    padding: var(--sms-space-2) var(--sms-space-3);
+    font-size: var(--sms-fs-body-sm);
+    border: 1px solid transparent;
+}
+.alert-error,
+.alert-danger {
+    background: var(--sms-danger-soft);
+    color: var(--sms-danger);
+    border-color: rgba(var(--sms-danger-rgb), 0.2);
+}
+.alert-success {
+    background: var(--sms-success-soft);
+    color: var(--sms-success);
+    border-color: rgba(var(--sms-success-rgb), 0.2);
+}
+.alert-warning {
+    background: var(--sms-warning-soft);
+    color: var(--sms-warning);
+}
+.alert-info {
+    background: var(--sms-info-soft);
+    color: var(--sms-info);
+}
+
+/* ---------------------------------------------------------------------
+   A11Y — keyboard focus indicator (kept here for legacy compatibility;
+   the canonical rule lives in admin-common.css).
+   --------------------------------------------------------------------- */

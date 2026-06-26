@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>오류</title>
+    <!-- 미인증 상태에서도 표시될 수 있어 공통 레이아웃을 쓰지 않는 독립 화면이다.
+         공통 Design Token(--sms-*)을 사용하기 위해 CoreUI CSS와 admin-common.css를 직접 링크한다. -->
+    <link rel="stylesheet" th:href="@{/vendor/coreui/css/coreui.min.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-common.css}">
+    <script th:src="@{/lib/lucide.js}"></script>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--sms-bg-app);
+            font-family: var(--sms-font-sans);
+            color: var(--sms-text-body);
+            padding: var(--sms-space-6) var(--sms-space-4);
+        }
+
+        .error-card {
+            background: var(--sms-bg-surface);
+            border: 1px solid var(--sms-border-subtle);
+            border-radius: var(--sms-radius-lg);
+            box-shadow: var(--sms-shadow-lg);
+            padding: var(--sms-space-12) var(--sms-space-10);
+            max-width: 560px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .error-icon-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            margin-bottom: var(--sms-space-5);
+            border-radius: var(--sms-radius-pill);
+            background: var(--sms-danger-soft);
+        }
+        .error-icon-wrap.is-warning {
+            background: var(--sms-warning-soft);
+        }
+        .error-icon-wrap .lucide {
+            width: 32px;
+            height: 32px;
+            color: var(--sms-danger);
+            stroke-width: 1.75;
+        }
+        .error-icon-wrap.is-warning .lucide {
+            color: var(--sms-warning);
+        }
+
+        .error-status {
+            font-size: var(--sms-fs-display);
+            font-weight: var(--sms-fw-bold);
+            color: var(--sms-text-strong);
+            margin: 0 0 var(--sms-space-2);
+            line-height: var(--sms-lh-tight);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+
+        .error-message {
+            color: var(--sms-text-muted);
+            font-size: var(--sms-fs-body);
+            line-height: var(--sms-lh-body);
+            margin: 0 0 var(--sms-space-8);
+            word-break: keep-all;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: var(--sms-space-2);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .error-actions a,
+        .error-actions button {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--sms-space-2);
+            padding: var(--sms-space-2) var(--sms-space-5);
+            border-radius: var(--sms-radius);
+            font-size: var(--sms-fs-body-sm);
+            font-weight: var(--sms-fw-medium);
+            font-family: var(--sms-font-sans);
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid var(--sms-border);
+            background: var(--sms-bg-surface);
+            color: var(--sms-text-body);
+            transition:
+                background-color var(--sms-transition-fast),
+                border-color var(--sms-transition-fast),
+                color var(--sms-transition-fast),
+                transform var(--sms-transition-fast);
+        }
+        .error-actions a .lucide,
+        .error-actions button .lucide {
+            width: var(--sms-icon-sm);
+            height: var(--sms-icon-sm);
+            margin-right: 0;
+        }
+
+        .error-actions a.primary {
+            background: var(--sms-primary);
+            border-color: var(--sms-primary);
+            color: #fff;
+        }
+        .error-actions a.primary:hover {
+            background: var(--sms-primary-hover);
+            border-color: var(--sms-primary-hover);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .error-actions button:hover,
+        .error-actions a:not(.primary):hover {
+            background: var(--sms-bg-surface-alt);
+            border-color: var(--sms-border-strong);
+            color: var(--sms-primary);
+            transform: translateY(-1px);
+        }
+
+        .error-meta {
+            margin-top: var(--sms-space-6);
+            padding-top: var(--sms-space-4);
+            border-top: 1px solid var(--sms-border-subtle);
+            color: var(--sms-text-disabled);
+            font-size: var(--sms-fs-caption);
+            line-height: var(--sms-lh-body);
+        }
+    </style>
+</head>
+
+<body>
+    <th:block th:with="
+        isClientError=${status != null and status >= 400 and status < 500},
+        iconName=${isClientError ? 'compass' : 'cloud-off'}">
+        <div class="error-card" role="alert" aria-live="assertive">
+            <div class="error-icon-wrap" th:classappend="${isClientError} ? 'is-warning' : ''">
+                <i data-lucide="${iconName}" aria-hidden="true"></i>
+            </div>
+            <p class="error-status" th:text="${status}">500</p>
+            <p class="error-message" th:text="${message}">오류가 발생했습니다.</p>
+            <div class="error-actions">
+                <a class="primary" th:href="@{/}" aria-label="홈으로 이동">
+                    <i data-lucide="home" aria-hidden="true"></i>
+                    <span>홈으로</span>
+                </a>
+                <button type="button" onclick="history.back()" aria-label="이전 화면으로 이동">
+                    <i data-lucide="arrow-left" aria-hidden="true"></i>
+                    <span>이전 화면</span>
+                </button>
+            </div>
+            <p class="error-meta">
+                오류가 지속되면 담당자에게 문의해 주세요.
+            </p>
+        </div>
+    </th:block>
+
+    <script>
+        if (window.lucide) { window.lucide.createIcons(); }
+    </script>
+</body>
+
+</html>

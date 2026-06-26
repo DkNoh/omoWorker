@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.menu.EmployeeRoleMapper">
+
+    <select id="selectRoleCodes" resultType="string">
+        SELECT ER.ROLE_CD
+        FROM SMS.TB_EMP_ROLE ER
+        INNER JOIN SMS.TB_ROLE R
+            ON R.ROLE_CD = ER.ROLE_CD
+        WHERE ER.EMP_ID = #{empId}
+          AND ER.DEP_ID = #{depId}
+          AND ER.USE_YN = 'Y'
+          AND R.USE_YN = 'Y'
+        ORDER BY R.SORT_ORD, R.ROLE_CD
+    </select>
+
+</mapper>

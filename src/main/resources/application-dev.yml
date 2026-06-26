@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: ${SMS_DB_URL:jdbc:oracle:thin:@dev-db.example.internal:1521/SMS}
+    username: ${SMS_DB_USERNAME}
+    password: ${SMS_DB_PASSWORD}
+
+sms:
+  auth:
+    mode: ldap
+  menu:
+    source: db
+  role:
+    source: db
+  ldap:
+    url: ldap://ldap-dev.example.internal:389
+    base-dn: dc=example,dc=internal
+    manager-dn: cn=sms-service,ou=system,dc=example,dc=internal
+    manager-password: ${SMS_LDAP_MANAGER_PASSWORD}
+    user-search-base: ou=users
+    user-search-filter: "(uid={0})"

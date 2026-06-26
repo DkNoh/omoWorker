@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continue 룰 적용 가이드 — sms-project-v3</title>
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#e6edf3;
+    --muted:#9da7b3; --accent:#58a6ff; --green:#3fb950; --yellow:#d29922;
+    --code-bg:#1b2230; --th:#1f2733;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Segoe UI",Roboto,"Malgun Gothic","맑은 고딕",sans-serif;
+    line-height:1.7; font-size:15px;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:48px 24px 96px}
+  header.top{border-bottom:1px solid var(--border); padding-bottom:24px; margin-bottom:36px}
+  header.top h1{font-size:26px; margin:0 0 8px}
+  header.top p{color:var(--muted); margin:0}
+  .badge{display:inline-block; font-size:12px; padding:2px 10px; border-radius:20px;
+    background:rgba(88,166,255,.15); color:var(--accent); border:1px solid rgba(88,166,255,.3); margin-right:6px}
+  h2{font-size:20px; margin:44px 0 14px; padding-left:12px; border-left:3px solid var(--accent)}
+  h3{font-size:16px; margin:28px 0 10px; color:var(--accent)}
+  p{margin:10px 0}
+  code{background:var(--code-bg); padding:2px 6px; border-radius:5px; font-size:13px;
+    font-family:"Cascadia Code",Consolas,"D2Coding",monospace; color:#ffa657}
+  pre{background:var(--code-bg); border:1px solid var(--border); border-radius:10px;
+    padding:16px 18px; overflow:auto; margin:14px 0}
+  pre code{background:none; padding:0; color:var(--text); font-size:13px; line-height:1.6}
+  table{width:100%; border-collapse:collapse; margin:16px 0; font-size:13.5px}
+  th,td{border:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top}
+  th{background:var(--th); color:var(--text); font-weight:600}
+  td code{font-size:12px}
+  .tag-true{color:var(--green); font-weight:600}
+  .tag-false{color:var(--muted)}
+  .note{background:rgba(210,153,34,.1); border:1px solid rgba(210,153,34,.35);
+    border-radius:10px; padding:14px 18px; margin:18px 0}
+  .note strong{color:var(--yellow)}
+  .tip{background:rgba(63,185,80,.08); border:1px solid rgba(63,185,80,.3);
+    border-radius:10px; padding:14px 18px; margin:18px 0}
+  .tip strong{color:var(--green)}
+  ul{padding-left:22px} li{margin:6px 0}
+  .filetree{color:var(--muted)}
+  .filetree b{color:var(--green)}
+  .pill{font-size:11px; padding:1px 7px; border-radius:6px; background:#21262d; color:var(--muted); border:1px solid var(--border)}
+  footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border); color:var(--muted); font-size:12.5px}
+  .conv{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:14px 0}
+  .conv .box{background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-family:monospace; font-size:13px}
+  .conv .arrow{color:var(--accent); font-size:20px; font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div style="margin-bottom:12px">
+    <span class="badge">sms-project-v3</span>
+    <span class="badge">Continue</span>
+    <span class="badge">폐쇄망 STS</span>
+  </div>
+  <h1>Continue 룰 적용 가이드</h1>
+  <p><code>.claude/rules</code> → <code>.continue/rules</code> 로 기존 작업 룰을 그대로 이관하기</p>
+</header>
+
+<p>폐쇄망 STS에서 Continue 확장이 v3의 기존 작업 룰을 그대로 쓰도록 맞추는 문서입니다.
+인터넷 불필요 — 전부 프로젝트 내 로컬 파일입니다. 핵심은
+<strong>frontmatter의 <code>paths:</code> 를 <code>globs:</code> 로 바꾸는 것</strong>이 거의 전부라는 점입니다.</p>
+
+<div class="conv">
+  <span class="box">.claude/rules/*.md<br><span style="color:#9da7b3">paths:</span></span>
+  <span class="arrow">→</span>
+  <span class="box">.continue/rules/*.md<br><span style="color:#3fb950">globs:</span> + alwaysApply</span>
+</div>
+
+<h2>1. 폴더 구조</h2>
+<p><code>.claude/rules/</code> 와 1:1로 대응하는 <code>.continue/rules/</code> 를 만듭니다.</p>
+<pre><code class="filetree">&lt;프로젝트루트&gt;/
+├─ .claude/rules/          (기존, Claude Code용 — 그대로 둔다)
+└─ <b>.continue/</b>
+   └─ <b>rules/</b>               (신규, Continue용)
+      ├─ 00-core.md            ← CLAUDE.md 핵심을 항상 적용
+      ├─ project.md            ← 항상 적용
+      ├─ vcs.md                ← 항상 적용
+      ├─ environment-auth.md   ← globs 한정
+      ├─ menu-authority.md     ← globs 한정
+      ├─ mybatis-oracle.md     ← globs 한정
+      ├─ scaffold-query.md     ← globs 한정
+      ├─ testing.md            ← globs 한정
+      └─ thymeleaf.md          ← globs 한정</code></pre>
+<div class="note"><strong>왜 두 폴더를 둘 다 두나?</strong> <code>.claude/rules</code>는 Claude Code가,
+<code>.continue/rules</code>는 Continue가 읽습니다. 폴더를 공유하지 않으므로 복사해서 형식만 맞춥니다.</div>
+
+<h2>2. 변환 규칙 (frontmatter)</h2>
+<table>
+  <thead><tr><th>항목</th><th>.claude/rules (현재)</th><th>.continue/rules (변환 후)</th></tr></thead>
+  <tbody>
+    <tr><td>적용 범위</td><td><code>paths:</code> (glob 리스트)</td><td><code>globs:</code> (glob 리스트) — <strong>이름만 변경</strong></td></tr>
+    <tr><td>범위 한정 룰</td><td><code>paths:</code> 있음</td><td><code>globs:</code> + <code>alwaysApply: false</code></td></tr>
+    <tr><td>공통 룰</td><td>frontmatter 없음</td><td><code>alwaysApply: true</code></td></tr>
+    <tr><td>본문</td><td>마크다운</td><td><strong>그대로 복사</strong> (수정 불필요)</td></tr>
+  </tbody>
+</table>
+<p>Continue frontmatter가 인식하는 키: <code>name</code>, <code>description</code>, <code>globs</code>, <code>alwaysApply</code>.</p>
+<ul>
+  <li><code>alwaysApply: true</code> → 매 요청에 항상 포함 (공통 룰)</li>
+  <li><code>alwaysApply: false</code> + <code>globs</code> → context에 해당 파일이 있을 때만 포함 (범위 룰)</li>
+</ul>
+
+<h2>3. 파일별 매핑표</h2>
+<table>
+  <thead><tr><th>파일</th><th>globs (= 기존 paths)</th><th>alwaysApply</th></tr></thead>
+  <tbody>
+    <tr><td><code>00-core.md</code></td><td>—</td><td class="tag-true">true</td></tr>
+    <tr><td><code>project.md</code></td><td>—</td><td class="tag-true">true</td></tr>
+    <tr><td><code>vcs.md</code></td><td>—</td><td class="tag-true">true</td></tr>
+    <tr><td><code>environment-auth.md</code></td><td><code>**/application*.yml</code>, <code>**/config/**/*Auth*.java</code>, <code>**/auth/**/*.java</code>, <code>**/templates/login.html</code></td><td class="tag-false">false</td></tr>
+    <tr><td><code>menu-authority.md</code></td><td><code>**/menu/**/*.java</code>, <code>**/mapper/menu/**/*.xml</code>, <code>**/templates/**/*.html</code>, <code>**/db/oracle/*menu*.sql</code>, <code>**/db/oracle/*auth*.sql</code></td><td class="tag-false">false</td></tr>
+    <tr><td><code>mybatis-oracle.md</code></td><td><code>**/mapper/**/*.xml</code>, <code>**/resources/mapper/**/*.xml</code>, <code>**/db/oracle/**/*.sql</code></td><td class="tag-false">false</td></tr>
+    <tr><td><code>scaffold-query.md</code></td><td><code>**/scaffold/**/*.java</code>, <code>**/system/Scaffold*.java</code>, <code>**/templates/**/scaffold*.html</code>, <code>**/js/system/scaffold.js</code>, <code>**/docs/base/**/*scaffold*.md</code></td><td class="tag-false">false</td></tr>
+    <tr><td><code>testing.md</code></td><td><code>**/*.java</code>, <code>**/*.xml</code>, <code>**/*.html</code>, <code>**/*.css</code>, <code>**/pom.xml</code></td><td class="tag-false">false</td></tr>
+    <tr><td><code>thymeleaf.md</code></td><td><code>**/templates/**/*.html</code>, <code>**/static/css/**/*.css</code></td><td class="tag-false">false</td></tr>
+  </tbody>
+</table>
+
+<h2>4. 예시 — 범위 한정 룰 (mybatis-oracle.md)</h2>
+<p><code>paths:</code> 를 <code>globs:</code> 로 바꾸고 <code>alwaysApply: false</code> 만 추가. 본문은 그대로.</p>
+<pre><code>---
+name: MyBatis / Oracle Rules
+description: MyBatis XML과 Oracle SQL 작성 규칙
+globs:
+  - "**/mapper/**/*.xml"
+  - "**/resources/mapper/**/*.xml"
+  - "**/db/oracle/**/*.sql"
+alwaysApply: false
+---
+
+# MyBatis / Oracle Rules
+
+- Oracle 19c 기준으로 작성한다.
+- 실제 DB Object 확인 없이 컬럼명을 확정하지 않는다.
+- `SELECT *`를 사용하지 않는다.
+(... 기존 본문 그대로 ...)</code></pre>
+
+<h2>5. 예시 — 공통 룰 (vcs.md)</h2>
+<p>frontmatter가 없던 파일은 <code>alwaysApply: true</code> 만 붙입니다.</p>
+<pre><code>---
+name: VCS / Commit Rules
+description: 버전관리 / 커밋 공통 규칙
+alwaysApply: true
+---
+
+# 버전관리 / 커밋 규칙
+
+- 커밋 전 `git status --short`로 변경 파일을 확인한다.
+(... 기존 본문 그대로 ...)</code></pre>
+
+<h2>6. 신규 — 00-core.md (CLAUDE.md 핵심 이관)</h2>
+<p>CLAUDE.md의 핵심 원칙·완료 판정·DB 안전은 Continue에 자동 로드되지 않으므로 항상 적용 룰로 옮깁니다.</p>
+<pre><code>---
+name: Core Principles
+description: 프로젝트 최상위 작업 원칙
+alwaysApply: true
+---
+
+# 핵심 원칙
+
+1. fallback 금지: 실패하면 원인을 수정한다.
+2. 우회/꼼수 금지, 에러 숨김 금지: 에러는 즉시 전파한다.
+3. 지시하지 않은 패턴/라이브러리 임의 도입 금지.
+4. 같은 에러 3회 반복 시 중단하고 원문·시도·추정원인을 보고한다.
+
+# 완료 판정
+- "완료"는 `mvn test` PASS + `mvn -DskipTests package` 성공일 때만 사용한다.
+- 미검증 상태는 "부분 완료"로 보고한다.
+
+# DB / 서버 안전
+- 운영 DB 작업은 사전 승인. 작업 전 active profile을 확인한다.
+- 비밀값은 코드/공용 문서에 두지 않는다 (.env.local, CLAUDE.local.md).</code></pre>
+
+<h2>7. 주의사항</h2>
+<div class="note"><strong>인코딩</strong> — 룰 본문이 한글이므로 파일을 반드시 <strong>UTF-8</strong>로 저장합니다. STS에서 새 파일 생성 시 인코딩을 확인하세요.</div>
+<ul>
+  <li><span class="pill">.gitignore</span> <code>.continue/</code> 를 형상관리할지 결정합니다. 팀 공유면 커밋, 개인 설정이면 ignore.</li>
+  <li><span class="pill">globs 기본 동작</span> <code>globs</code>만 있고 <code>alwaysApply</code>를 생략하면 "매칭 파일에만 적용"이 기본입니다. 명시적으로 <code>alwaysApply: false</code>를 적어 의도를 분명히 합니다.</li>
+  <li><span class="pill">testing.md</span> globs가 <code>**/*.java</code> 등 사실상 전 파일이라 거의 항상 걸립니다. 부담되면 <code>alwaysApply: true</code>로 바꿔도 결과는 비슷합니다.</li>
+  <li><span class="pill">config.yaml</span> Continue는 <code>.continue/config.yaml</code>에서 룰을 참조할 수도 있으나, 위처럼 <code>rules/</code> 폴더에 파일로 두는 방식이 <code>.claude/rules</code>와 1:1이라 유지보수가 쉽습니다.</li>
+</ul>
+
+<div class="tip"><strong>요약</strong> — 핵심은 <code>paths:</code> → <code>globs:</code> 한 줄 변환 + 공통 룰(project / vcs / core)에 <code>alwaysApply: true</code> 붙이기. 본문은 그대로 복붙하면 됩니다.</div>
+
+<footer>
+  sms-project-v3 · Continue 룰 이관 가이드 · 본 문서는 <code>docs/continue-rules-setup.html</code> 로 저장됨
+</footer>
+
+</div>
+</body>
+</html>

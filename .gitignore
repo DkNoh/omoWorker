@@ -1,0 +1,33 @@
+# Build
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.springBeans
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / local env
+.env.local
+.env
+*.local
+
+# Logs
+*.log
+logs/
+
+# Codegraph / agent tooling
+.codegraph/
+.omo/
+
+# OS temp
+*~

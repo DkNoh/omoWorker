@@ -1,0 +1,13 @@
+/* Query Scaffold page-only refinements. */
+.scaffold-page-subtitle {
+    color: var(--cui-secondary-color);
+    font-size: .875rem;
+    margin-left: .625rem;
+}
+
+.scaffold-result-content {
+    max-height: 520px;
+    overflow: auto;
+    font-size: 12px;
+    background: var(--cui-tertiary-bg);
+}

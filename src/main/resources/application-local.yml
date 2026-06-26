@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: ${SMS_DB_URL:jdbc:oracle:thin:@localhost:1521/SMS}
+    username: ${SMS_DB_USERNAME:SMS}
+    password: ${SMS_DB_PASSWORD:1234}
+
+sms:
+  auth:
+    mode: local
+  menu:
+    source: static
+    auth:
+      # local 전용 개발/확인 도구는 DB 메뉴 등록 전에도 접근할 수 있게 연다
+      exclude-paths: /system/scaffold,/system/scaffold/**,/system/menu-tree,/system/menu-tree/**
+  role:
+    source: static
+    static-default: ROLE_ADMIN
+
+logging:
+  level:
+    com.scbk.sms: DEBUG

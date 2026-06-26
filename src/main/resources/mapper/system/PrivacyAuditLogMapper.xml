@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.system.PrivacyAuditLogMapper">
+
+    <insert id="insertAuditLog" parameterType="com.scbk.sms.vo.system.PrivacyAuditLogVO">
+        INSERT INTO SMS.TB_PRIVACY_AUDIT_LOG (
+            EMP_ID,
+            DEP_ID,
+            EXECUTOR_IP,
+            REQUEST_URL,
+            ACTION_TYPE,
+            TARGET_DATA
+        ) VALUES (
+            #{empId},
+            #{depId},
+            #{executorIp},
+            #{requestUrl},
+            #{actionType},
+            #{targetData}
+        )
+    </insert>
+
+</mapper>

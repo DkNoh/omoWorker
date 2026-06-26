@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>메뉴 트리 확인</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+            <h2 class="mb-1">메뉴 트리 확인</h2>
+            <p class="text-body-secondary mb-0">local에서 현재 MenuSource가 반환하는 메뉴 구조를 확인합니다.</p>
+        </div>
+        <a th:href="@{/}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2">
+            <i data-lucide="home"></i><span>초기 메뉴</span>
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-body-secondary small mb-1">Profile</div>
+                    <strong th:text="${activeProfiles}">local</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-body-secondary small mb-1">Menu Source</div>
+                    <strong th:text="${menuSource}">static</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-body-secondary small mb-1">Role Source</div>
+                    <strong th:text="${roleSource}">static</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="text-body-secondary small mb-1">Menu Groups</div>
+                    <strong th:text="${menus != null ? #lists.size(menus) : 0}">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <span class="fw-medium">그룹 목록</span>
+                </div>
+                <div class="list-group list-group-flush" th:if="${menus != null and !#lists.isEmpty(menus)}">
+                    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                       th:each="parent : ${menus}"
+                       th:href="${'#menu-' + parent.menuId}">
+                        <span class="d-flex align-items-center gap-2">
+                            <i data-lucide="folder-tree"></i>
+                            <span th:text="${parent.menuNm}">메뉴 그룹</span>
+                        </span>
+                        <span class="badge text-bg-secondary" th:text="${#lists.size(parent.children)}">0</span>
+                    </a>
+                </div>
+                <div class="card-body text-body-secondary" th:if="${menus == null or #lists.isEmpty(menus)}">
+                    표시할 메뉴가 없습니다.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-8">
+            <div class="d-grid gap-3" th:if="${menus != null and !#lists.isEmpty(menus)}">
+                <section class="card shadow-sm border-0"
+                         th:each="parent : ${menus}"
+                         th:id="${'menu-' + parent.menuId}">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-medium" th:text="${parent.menuNm}">메뉴 그룹</span>
+                            <div class="text-body-secondary small" th:text="${parent.menuId}">MENU_ID</div>
+                        </div>
+                        <span class="badge text-bg-light" th:text="${#lists.size(parent.children)} + '개'">0개</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="text-center" style="width:70px;">순서</th>
+                                    <th scope="col">메뉴 ID</th>
+                                    <th scope="col">메뉴명</th>
+                                    <th scope="col">URL</th>
+                                    <th scope="col" class="text-center" style="width:90px;">타입</th>
+                                    <th scope="col" class="text-center" style="width:90px;">사용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="child : ${parent.children}">
+                                    <td class="text-center" th:text="${child.sortOrd}">10</td>
+                                    <td><code th:text="${child.menuId}">MENU_ID</code></td>
+                                    <td th:text="${child.menuNm}">메뉴명</td>
+                                    <td>
+                                        <a th:if="${child.menuUrl != null and !#strings.isEmpty(child.menuUrl)}"
+                                           th:href="@{${child.menuUrl}}"
+                                           th:text="${child.menuUrl}">/url</a>
+                                        <span th:unless="${child.menuUrl != null and !#strings.isEmpty(child.menuUrl)}"
+                                              class="text-body-secondary">-</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge text-bg-primary" th:text="${child.menuType}">M</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge"
+                                              th:classappend="${child.useYn == 'Y'} ? ' text-bg-success' : ' text-bg-secondary'"
+                                              th:text="${child.useYn}">Y</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(parent.children)}">
+                                    <td colspan="6" class="text-center text-body-secondary py-4">하위 메뉴가 없습니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+</main>
+</body>
+</html>

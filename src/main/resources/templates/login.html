@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SMS V3 로그인</title>
+    <!-- Design token layer first, then auth page styles. -->
+    <link rel="stylesheet" th:href="@{/css/admin-common.css}">
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body class="auth-page">
+<main class="login-shell">
+    <section class="login-panel" aria-labelledby="loginTitle">
+
+        <div class="brand-block">
+            <div class="brand-lockup">
+                <img th:src="@{/img/SC.png}" alt="SC 로고" width="36" height="36">
+                <span class="brand-name">SMS전송시스템</span>
+            </div>
+            <p class="eyebrow">SMS V3</p>
+            <h1 id="loginTitle">로그인</h1>
+        </div>
+
+        <div th:if="${param.error}" class="alert alert-error" role="alert">
+            사용자 정보를 확인할 수 없습니다.
+        </div>
+        <div th:if="${param.logout}" class="alert alert-success" role="status">
+            로그아웃되었습니다.
+        </div>
+
+        <form th:action="@{/login}" method="post" class="login-form" autocomplete="on">
+            <div>
+                <label for="empId">사번</label>
+                <input id="empId" name="empId" type="text" autocomplete="username"
+                       placeholder="사번을 입력하세요" required autofocus>
+            </div>
+
+            <th:block th:if="${localMode}">
+                <input name="password" type="hidden" value="LOCAL_ID_ONLY">
+            </th:block>
+
+            <th:block th:unless="${localMode}">
+                <div>
+                    <label for="password">비밀번호</label>
+                    <input id="password" name="password" type="password"
+                           autocomplete="current-password"
+                           placeholder="비밀번호를 입력하세요" required>
+                </div>
+            </th:block>
+
+            <button type="submit">로그인</button>
+        </form>
+
+        <p class="login-footer">
+            <span th:if="${localMode}">로컬 개발 모드 — 사번만으로 로그인합니다.</span>
+            <span th:unless="${localMode}">사내 계정으로 로그인하세요.</span>
+        </p>
+
+    </section>
+</main>
+</body>
+</html>

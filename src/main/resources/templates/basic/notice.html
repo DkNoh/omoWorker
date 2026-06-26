@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>공지사항관리</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>공지사항관리</h2>
+    </div>
+
+    <!-- 검색조건 카드 -->
+    <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+        <div class="card-body">
+            <div class="row align-items-center g-3">
+                <div class="col-auto"><label for="searchKeyword" class="col-form-label fw-bold">searchKeyword</label></div>
+                <div class="col-auto"><input type="text" id="searchKeyword" class="form-control scaffold-search-control"></div>
+                <div class="col-auto"><label for="noticeType" class="col-form-label fw-bold">noticeType</label></div>
+                <div class="col-auto"><input type="text" id="noticeType" class="form-control scaffold-search-control"></div>
+                <div class="col-auto"><label for="useYn" class="col-form-label fw-bold">useYn</label></div>
+                <div class="col-auto"><input type="text" id="useYn" class="form-control scaffold-search-control"></div>
+                <div class="col-auto"><label for="startDt" class="col-form-label fw-bold">startDt</label></div>
+                <div class="col-auto"><div class="scaffold-date-field scaffold-date-field-md"><div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input"><input type="text" id="startDt" data-search-type="date" autocomplete="off" aria-label="startDt"><span class="tui-ico-date"></span></div><div id="startDtPickerLayer" class="scaffold-date-picker-layer"></div></div></div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary px-3"><i data-lucide="plus"></i><span>등록</span></button>
+                    <button type="button" id="btn-search" class="btn btn-primary px-4"><i data-lucide="search"></i><span>조회</span></button>
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3"><i data-lucide="rotate-ccw"></i><span>초기화</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast UI Grid -->
+    <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/basic/notice.js}"></script>
+</th:block>
+</body>
+</html>

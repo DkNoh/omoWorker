@@ -1,0 +1,281 @@
+/* =====================================================================
+   omoWorker Admin Shell Layout
+   ---------------------------------------------------------------------
+   Admin shell layout (sidebar / header / content area). CoreUI owns
+   component visual styling; this file owns the SHELL GEOMETRY and
+   page-level typographic anchors. All values reference --sms-* tokens
+   declared in admin-common.css.
+   ===================================================================== */
+
+/* Layout shell geometry tokens (kept here — shell-specific). Color/type
+   tokens live in admin-common.css and must not be duplicated here. */
+:root {
+    --sms-header-height: 56px;
+    --sms-sidebar-width: 256px;
+    --sms-sidebar-collapsed-width: 64px;
+    --sms-content-padding: var(--sms-space-6);
+    --sms-avatar-md: 32px;
+}
+
+/* ---------------------------------------------------------------------
+   Admin shell — sidebar + main wrapper two-column layout
+   --------------------------------------------------------------------- */
+.admin-shell {
+    display: flex;
+    flex-direction: row;
+    min-height: 100vh;
+    overflow: hidden;
+    margin: 0;
+    background-color: var(--sms-bg-app);
+}
+
+.admin-shell .sidebar-brand {
+    min-height: var(--sms-header-height);
+}
+
+.admin-shell .sidebar {
+    position: relative !important;
+    height: 100vh !important;
+    flex-shrink: 0 !important;
+    width: var(--sms-sidebar-width) !important;
+    min-width: var(--sms-sidebar-width) !important;
+    max-width: var(--sms-sidebar-width) !important;
+    flex: 0 0 var(--sms-sidebar-width) !important;
+    transition:
+        width var(--sms-transition-base),
+        min-width var(--sms-transition-base),
+        max-width var(--sms-transition-base),
+        flex var(--sms-transition-base) !important;
+    --cui-sidebar-width: var(--sms-sidebar-width) !important;
+    /* Surface: clean white panel, hairline border, very subtle elevation */
+    background-color: var(--sms-bg-surface) !important;
+    border-right: 1px solid var(--sms-border-subtle) !important;
+    box-shadow: var(--sms-shadow-xs);
+}
+
+.admin-shell .sidebar.collapsed {
+    width: var(--sms-sidebar-collapsed-width) !important;
+    min-width: var(--sms-sidebar-collapsed-width) !important;
+    max-width: var(--sms-sidebar-collapsed-width) !important;
+    flex: 0 0 var(--sms-sidebar-collapsed-width) !important;
+    --cui-sidebar-width: var(--sms-sidebar-collapsed-width) !important;
+}
+
+.admin-shell .sidebar.collapsed .sidebar-brand-full,
+.admin-shell .sidebar.collapsed .nav-group-toggle span,
+.admin-shell .sidebar.collapsed .nav-item span {
+    display: none !important;
+}
+
+.admin-shell .sidebar.collapsed .sidebar-brand-narrow {
+    display: flex !important;
+    justify-content: center;
+    width: 100%;
+}
+
+.admin-shell .sidebar.collapsed .nav-group-items {
+    display: none !important;
+}
+
+.admin-shell .sidebar.collapsed .nav-icon.lucide {
+    margin-right: 0;
+}
+
+.admin-shell .main-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 100vh;
+    background-color: var(--sms-bg-app);
+}
+
+.admin-shell .content-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: var(--sms-content-padding);
+}
+
+/* ---------------------------------------------------------------------
+   Header bar
+   --------------------------------------------------------------------- */
+.admin-shell .header.app-header {
+    z-index: var(--sms-z-header);
+    background-color: var(--sms-bg-surface);
+    border-bottom: 1px solid var(--sms-border-subtle);
+    box-shadow: var(--sms-shadow-xs);
+}
+
+.admin-shell .header-bar {
+    min-height: var(--sms-header-height);
+}
+
+.admin-shell .header-toggle-btn {
+    color: var(--sms-text-muted);
+    text-decoration: none;
+    box-shadow: none;
+    transition: color var(--sms-transition-fast);
+}
+.admin-shell .header-toggle-btn:hover {
+    color: var(--sms-primary);
+}
+
+.admin-shell .header-title {
+    font-size: var(--sms-fs-body);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-text-strong);
+}
+
+.admin-shell .header-user-text {
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+}
+
+.admin-shell .header-avatar {
+    width: var(--sms-avatar-md);
+    height: var(--sms-avatar-md);
+    font-size: var(--sms-fs-body-sm);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-primary);
+    background-color: var(--sms-primary-soft);
+    border: 1px solid var(--sms-primary-soft) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-shell .header-logout-btn {
+    color: var(--sms-text-muted);
+    text-decoration: none;
+    transition: color var(--sms-transition-fast);
+}
+.admin-shell .header-logout-btn:hover {
+    color: var(--sms-danger);
+}
+
+/* ---------------------------------------------------------------------
+   Sidebar — brand & nav typography (token-based; replaces inline styles
+   that previously lived in sidebar.html)
+   --------------------------------------------------------------------- */
+.admin-shell .sidebar .sidebar-brand-full .text-dark,
+.admin-shell .sidebar .sidebar-brand-full span {
+    color: var(--sms-text-strong) !important;
+}
+
+/* Logged-in user info block under the brand */
+.admin-shell .sidebar .sidebar-userinfo {
+    padding: var(--sms-space-2) var(--sms-space-3);
+    background-color: var(--sms-bg-surface-alt);
+    border-bottom: 1px solid var(--sms-border-subtle);
+    font-size: var(--sms-fs-caption);
+    color: var(--sms-text-muted);
+    line-height: var(--sms-lh-body);
+}
+.admin-shell .sidebar .sidebar-userinfo strong {
+    color: var(--sms-text-body);
+    font-weight: var(--sms-fw-semibold);
+}
+
+/* Nav link tokens — CoreUI sidebar nav reads --cui-sidebar-nav-link-* */
+.admin-shell .sidebar {
+    --cui-sidebar-nav-link-color: var(--sms-text-body);
+    --cui-sidebar-nav-link-hover-color: var(--sms-primary);
+    --cui-sidebar-nav-link-active-color: var(--sms-primary);
+    --cui-sidebar-nav-link-icon-color: var(--sms-text-muted);
+    --cui-sidebar-nav-link-hover-icon-color: var(--sms-primary);
+    --cui-sidebar-nav-link-active-icon-color: var(--sms-primary);
+    --cui-sidebar-nav-link-hover-bg: var(--sms-primary-soft);
+    --cui-sidebar-nav-link-active-bg: var(--sms-primary-soft);
+}
+
+/* Empty-permission notice (replaces inline `text-danger` style) */
+.admin-shell .sidebar .sidebar-empty-auth {
+    padding: var(--sms-space-6) var(--sms-space-3);
+    text-align: center;
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-danger);
+    line-height: var(--sms-lh-body);
+    word-break: keep-all;
+}
+
+/* ---------------------------------------------------------------------
+   Page-level content anchors — `.content-header h2` had no styling
+   before. Establishes the page-title typographic role from DESIGN.md §3.
+   --------------------------------------------------------------------- */
+.content-header {
+    margin-bottom: var(--sms-space-5);
+    padding-bottom: var(--sms-space-3);
+    border-bottom: 1px solid var(--sms-border-subtle);
+}
+.content-header h2 {
+    margin: 0;
+    font-size: var(--sms-fs-page-title);
+    font-weight: var(--sms-fw-bold);
+    line-height: var(--sms-lh-tight);
+    color: var(--sms-text-strong);
+    letter-spacing: -0.01em;
+}
+.content-header .content-subtitle {
+    margin-top: var(--sms-space-1);
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+}
+
+/* ---------------------------------------------------------------------
+   Button feedback — physical press + smoother hover transition.
+   CoreUI still owns .btn structure; we layer tactile polish on top.
+   --------------------------------------------------------------------- */
+.btn {
+    transition:
+        background-color var(--sms-transition-fast),
+        border-color var(--sms-transition-fast),
+        color var(--sms-transition-fast),
+        box-shadow var(--sms-transition-fast),
+        transform var(--sms-transition-fast);
+    font-weight: var(--sms-fw-medium);
+    letter-spacing: -0.005em;
+}
+.btn:hover {
+    transform: translateY(-1px);
+}
+.btn:active {
+    transform: translateY(0);
+}
+.btn-primary,
+.btn-outline-primary {
+    --cui-btn-hover-bg: var(--sms-primary-hover);
+    --cui-btn-active-bg: var(--sms-primary-active);
+}
+.btn:focus-visible,
+.nav-link:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--sms-primary);
+    outline-offset: 2px;
+}
+
+/* Primary CTA — slightly stronger presence on the main action */
+.btn-primary {
+    box-shadow: 0 1px 2px rgba(var(--sms-primary-rgb), 0.18);
+}
+
+/* Skip-nav — visible only on focus */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--sms-primary);
+    color: #fff;
+    padding: var(--sms-space-2) var(--sms-space-4);
+    z-index: var(--sms-z-overlay);
+    text-decoration: none;
+    border-radius: 0 0 var(--sms-radius) var(--sms-radius);
+    font-size: var(--sms-fs-body-sm);
+    font-weight: var(--sms-fw-semibold);
+    transition: top var(--sms-transition-base);
+}
+.skip-link:focus {
+    top: 0;
+    color: #fff;
+}

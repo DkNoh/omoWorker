@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.system.CommonCodeMapper">
+
+    <!-- 부서 콤보. 활성 부서만 -->
+    <select id="selectDepartments" resultType="com.scbk.sms.vo.common.CommonCodeVO">
+        SELECT
+            D.DEP_ID AS code,
+            D.DEP_NM AS name
+        FROM SMS.DEP D
+        WHERE D.ACT_YN = 'Y'
+        <if test="keyword != null and keyword != ''">
+            AND (D.DEP_ID LIKE '%' || #{keyword} || '%'
+                 OR D.DEP_NM LIKE '%' || #{keyword} || '%')
+        </if>
+        ORDER BY D.DEP_NM, D.DEP_ID
+    </select>
+
+    <!-- 역할 콤보. 사용 중인 역할만 -->
+    <select id="selectRoles" resultType="com.scbk.sms.vo.common.CommonCodeVO">
+        SELECT
+            R.ROLE_CD AS code,
+            R.ROLE_NM AS name
+        FROM SMS.TB_ROLE R
+        WHERE R.USE_YN = 'Y'
+        <if test="keyword != null and keyword != ''">
+            AND (R.ROLE_CD LIKE '%' || #{keyword} || '%'
+                 OR R.ROLE_NM LIKE '%' || #{keyword} || '%')
+        </if>
+        ORDER BY R.SORT_ORD, R.ROLE_CD
+    </select>
+
+</mapper>

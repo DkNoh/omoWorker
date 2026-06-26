@@ -1,0 +1,252 @@
+/* =====================================================================
+   omoWorker Design Token Layer
+   ---------------------------------------------------------------------
+   Single source of truth for color / typography / spacing / radius /
+   shadow / motion. Loaded right after CoreUI so every CoreUI component
+   inherits the project palette via the --cui-* aliases below.
+
+   Layering philosophy (see DESIGN.md):
+     1. coreui.min.css          — base component library (CoreUI owns .btn, .card, .form-control, .modal, ...)
+     2. admin-common.css        — THIS FILE. --sms-* tokens + --cui-* aliases.
+     3. admin-layout.css        — admin shell layout, consumes --sms-* tokens.
+     4. admin-ui-bridge.css     — TUI grid / autocomplete / etc. bridges, consume --sms-* tokens.
+
+   Rule: project CSS / templates reference --sms-* only. Direct --cui-*
+   references are confined to this file (alias mapping) and the bridge
+   layer where strictly required.
+   ===================================================================== */
+
+:root {
+    /* ===== 2. Color — Surfaces ===== */
+    --sms-bg-app: #f5f7fa;
+    --sms-bg-surface: #ffffff;
+    --sms-bg-surface-alt: #f9fafc;
+    --sms-bg-muted: #eef1f6;
+
+    /* ===== 2. Color — Primary (deep corporate blue) ===== */
+    --sms-primary: #2557d6;
+    --sms-primary-hover: #1e47b0;
+    --sms-primary-active: #1a3e9c;
+    --sms-primary-soft: #e8efff;
+    --sms-primary-rgb: 37, 87, 214; /* for rgba() overlays (hover rows, focus glow) */
+
+    /* ===== 2. Color — Status ===== */
+    --sms-danger: #d93b3b;
+    --sms-danger-soft: #fdeaea;
+    --sms-danger-rgb: 217, 59, 59;
+
+    --sms-success: #1f8a4c;
+    --sms-success-soft: #e8f6ed;
+    --sms-success-rgb: 31, 138, 76;
+
+    --sms-warning: #c8780a;
+    --sms-warning-soft: #fdf3e0;
+    --sms-warning-rgb: 200, 120, 10;
+
+    --sms-info: #2a72c4;
+    --sms-info-soft: #e6effa;
+
+    /* ===== 2. Color — Text ===== */
+    --sms-text-strong: #0f1c2e;
+    --sms-text-body: #2a3a52;
+    --sms-text-muted: #6b7a90;
+    --sms-text-disabled: #a3acbd;
+
+    /* ===== 2. Color — Borders ===== */
+    --sms-border: #dfe3eb;
+    --sms-border-strong: #c4cbda;
+    --sms-border-subtle: #eef1f6;
+
+    /* ===== 3. Typography — Font stacks (closed-network: OS-bundled only) ===== */
+    --sms-font-sans: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR",
+        -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --sms-font-mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    /* ===== 3. Typography — Scale ===== */
+    --sms-fs-page-title: 1.25rem;     /* 20px — content-header h2 */
+    --sms-fs-section: 1rem;           /* 16px — card header */
+    --sms-fs-body: 0.9375rem;         /* 15px — default body, form label */
+    --sms-fs-body-sm: 0.8125rem;      /* 13px — table cell, secondary */
+    --sms-fs-caption: 0.75rem;        /* 12px — metadata, sidebar user info */
+    --sms-fs-overline: 0.6875rem;     /* 11px — eyebrow */
+    --sms-fs-display: 3rem;           /* 48px — error status code */
+
+    /* ===== 3. Typography — Weights / Line heights ===== */
+    --sms-fw-regular: 400;
+    --sms-fw-medium: 500;
+    --sms-fw-semibold: 600;
+    --sms-fw-bold: 700;
+
+    --sms-lh-tight: 1.3;              /* headings (CJK safe) */
+    --sms-lh-heading: 1.4;
+    --sms-lh-body: 1.55;              /* CJK readability floor */
+
+    /* ===== 4. Spacing — 4px grid ===== */
+    --sms-space-1: 4px;
+    --sms-space-2: 8px;
+    --sms-space-3: 12px;
+    --sms-space-4: 16px;
+    --sms-space-5: 20px;
+    --sms-space-6: 24px;
+    --sms-space-8: 32px;
+    --sms-space-10: 40px;
+    --sms-space-12: 48px;
+
+    /* ===== 4. Layout — Shell ===== */
+    --sms-header-height: 56px;
+    --sms-sidebar-width: 256px;
+    --sms-sidebar-collapsed-width: 64px;
+    --sms-content-padding: var(--sms-space-6);
+    --sms-control-height: 38px;
+    --sms-search-control-width: 160px;
+    --sms-page-size-width: 80px;
+    --sms-avatar-md: 32px;
+
+    /* ===== 4. Layout — Icon ===== */
+    --sms-icon-sm: 0.95rem;
+    --sms-icon-md: 1rem;
+    --sms-icon-lg: 1.1rem;
+
+    /* ===== 7. Radius ===== */
+    --sms-radius-sm: 4px;
+    --sms-radius: 6px;
+    --sms-radius-md: 8px;
+    --sms-radius-lg: 12px;
+    --sms-radius-pill: 999px;
+
+    /* ===== 7. Shadow / Elevation (tinted, not pure black) ===== */
+    --sms-shadow-xs: 0 1px 2px rgba(15, 28, 46, 0.04);
+    --sms-shadow-sm: 0 2px 6px rgba(15, 28, 46, 0.06);
+    --sms-shadow-md: 0 6px 18px rgba(15, 28, 46, 0.08);
+    --sms-shadow-lg: 0 16px 40px rgba(15, 28, 46, 0.10);
+
+    /* ===== 6. Motion ===== */
+    --sms-transition-fast: 120ms ease-out;
+    --sms-transition-base: 200ms ease-in-out;
+    --sms-transition-slow: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* ===== z-index scale (no magic 9999) ===== */
+    --sms-z-sidebar: 1020;
+    --sms-z-header: 1030;
+    --sms-z-dropdown: 1050;
+    --sms-z-popover: 1060;
+    --sms-z-modal: 1070;
+    --sms-z-toast: 1080;
+    --sms-z-overlay: 1100;
+    --sms-z-datepicker: 3000;
+
+    /* =====================================================================
+       CoreUI aliases — project tokens injected into CoreUI's variable layer.
+       CoreUI components read --cui-* and will pick these up automatically.
+       Kept here (not in admin-layout/bridge) so a single file owns the map.
+       ===================================================================== */
+    --cui-primary: var(--sms-primary);
+    --cui-primary-rgb: var(--sms-primary-rgb);
+    --cui-body-bg: var(--sms-bg-app);
+    --cui-body-color: var(--sms-text-body);
+    --cui-body-color-rgb: 42, 58, 82;
+    --cui-emphasis-color: var(--sms-text-strong);
+    --cui-secondary-color: var(--sms-text-muted);
+    --cui-tertiary-color: var(--sms-text-disabled);
+    --cui-border-color: var(--sms-border);
+    --cui-secondary-bg: var(--sms-bg-muted);
+    --cui-tertiary-bg: var(--sms-bg-surface-alt);
+    --cui-light-bg-subtle: var(--sms-bg-surface-alt);
+    --cui-body-bg-rgb: 245, 247, 250;
+    --cui-font-sans-serif: var(--sms-font-sans);
+    --cui-font-monospace: var(--sms-font-mono);
+    --cui-border-radius: var(--sms-radius);
+    --cui-border-radius-sm: var(--sms-radius-sm);
+    --cui-border-radius-lg: var(--sms-radius-md);
+    --cui-box-shadow: var(--sms-shadow-sm);
+    --cui-box-shadow-sm: var(--sms-shadow-xs);
+    --cui-box-shadow-lg: var(--sms-shadow-lg);
+
+    /* Status colors → CoreUI status slots (used by .text-danger, .btn-danger, etc.) */
+    --cui-danger: var(--sms-danger);
+    --cui-danger-rgb: var(--sms-danger-rgb);
+    --cui-success: var(--sms-success);
+    --cui-success-rgb: var(--sms-success-rgb);
+    --cui-warning: var(--sms-warning);
+    --cui-warning-rgb: var(--sms-warning-rgb);
+    --cui-info: var(--sms-info);
+}
+
+/* =====================================================================
+   Base element styling — applies globally to every page that loads
+   admin-common.css (defaultLayout, login, error, ...).
+   ===================================================================== */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--sms-font-sans);
+    font-size: var(--sms-fs-body);
+    line-height: var(--sms-lh-body);
+    color: var(--sms-text-body);
+    background-color: var(--sms-bg-app);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em; /* very slight tightness — readable on Korean too */
+}
+
+/* Numeric-heavy UI (tables, stats) — opt into tabular figures via utility */
+.nums,
+.tui-grid-cell,
+.tui-grid-cell-header {
+    font-variant-numeric: tabular-nums;
+}
+
+/* CJK-safe heading defaults — keep-all so Korean phrases don't break mid-word */
+h1, h2, h3, h4, h5, h6 {
+    line-height: var(--sms-lh-heading);
+    word-break: keep-all;
+    color: var(--sms-text-strong);
+}
+
+/* Links — primary accent only */
+a {
+    color: var(--sms-primary);
+    text-decoration: none;
+    transition: color var(--sms-transition-fast);
+}
+a:hover {
+    color: var(--sms-primary-hover);
+    text-decoration: underline;
+}
+
+/* =====================================================================
+   Page-level typography helpers (token-based replacements for the
+   inline `font-size: 0.85rem` patterns scattered across templates).
+   ===================================================================== */
+.text-caption {
+    font-size: var(--sms-fs-caption);
+    color: var(--sms-text-muted);
+}
+.text-body-sm {
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+}
+
+/* =====================================================================
+   Accessibility — visible focus ring for all interactive elements.
+   Token-driven; supersedes the legacy rule that lived in admin-ui-bridge.css.
+   ===================================================================== */
+:focus-visible {
+    outline: 2px solid var(--sms-primary);
+    outline-offset: 2px;
+    border-radius: var(--sms-radius-sm);
+}
+
+/* Honor reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

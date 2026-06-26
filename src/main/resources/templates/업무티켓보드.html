@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Board</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Ticket Board</p>
+        <h1>업무 티켓 보드</h1>
+        <p class="subtitle">추가, 수정, 삭제, 검색, 필터링, JSON 내보내기/가져오기까지 하나의 페이지에서 바로 사용할 수 있습니다.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn primary" id="addTicketBtn" type="button">+ 티켓 추가</button>
+        <button class="btn ghost" id="exportBtn" type="button">JSON 내보내기</button>
+        <label class="btn ghost upload-label" for="importFile">
+          JSON 가져오기
+          <input id="importFile" type="file" accept="application/json,.json" hidden />
+        </label>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="검색 및 필터">
+      <label class="field search-field">
+        <span>검색</span>
+        <input id="searchInput" type="search" placeholder="제목, 설명, 담당자, 태그 검색" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span>상태</span>
+        <select id="statusFilter">
+          <option value="all">전체 상태</option>
+          <option value="Backlog">Backlog</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Review">Review</option>
+          <option value="Done">Done</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>우선순위</span>
+        <select id="priorityFilter">
+          <option value="all">전체 우선순위</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </label>
+      <button class="btn subtle" id="clearFiltersBtn" type="button">필터 초기화</button>
+    </section>
+
+    <main class="board" aria-label="티켓 보드">
+      <section class="column backlog" data-status="Backlog">
+        <div class="column-head">
+          <h2>Backlog</h2>
+          <span class="count" data-count="Backlog">0</span>
+        </div>
+        <div class="ticket-list backlog-list"></div>
+      </section>
+      <section class="column progress" data-status="In Progress">
+        <div class="column-head">
+          <h2>In Progress</h2>
+          <span class="count" data-count="In Progress">0</span>
+        </div>
+        <div class="ticket-list progress-list"></div>
+      </section>
+      <section class="column review" data-status="Review">
+        <div class="column-head">
+          <h2>Review</h2>
+          <span class="count" data-count="Review">0</span>
+        </div>
+        <div class="ticket-list review-list"></div>
+      </section>
+      <section class="column done" data-status="Done">
+        <div class="column-head">
+          <h2>Done</h2>
+          <span class="count" data-count="Done">0</span>
+        </div>
+        <div class="ticket-list done-list"></div>
+      </section>
+    </main>
+
+    <section class="empty-state" id="emptyState" hidden>
+      <h2>표시할 티켓이 없습니다</h2>
+      <p>검색 조건을 바꾸거나 새 티켓을 추가해 보세요.</p>
+      <button class="btn primary" id="emptyAddBtn" type="button">+ 티켓 추가</button>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="ticketModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow" id="modalModeLabel">추가</p>
+          <h2 id="modalTitle">티켓 추가</h2>
+        </div>
+        <button class="icon-btn" id="closeModalBtn" type="button" aria-label="닫기">×</button>
+      </div>
+      <form id="ticketForm">
+        <input type="hidden" id="ticketId" />
+        <div class="form-grid">
+          <label class="field">
+            <span>제목</span>
+            <input id="ticketTitle" type="text" required maxlength="120" placeholder="예: 로그인 화면 개선" />
+          </label>
+          <label class="field">
+            <span>상태</span>
+            <select id="ticketStatus" required>
+              <option value="Backlog">Backlog</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Review">Review</option>
+              <option value="Done">Done</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>우선순위</span>
+            <select id="ticketPriority" required>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>담당자</span>
+            <input id="ticketAssignee" type="text" maxlength="80" placeholder="예: 김민수" />
+          </label>
+          <label class="field">
+            <span>태그</span>
+            <input id="ticketTags" type="text" maxlength="120" placeholder="예: frontend, bug" />
+          </label>
+          <label class="field">
+            <span>마감일</span>
+            <input id="ticketDueDate" type="date" />
+          </label>
+          <label class="field full">
+            <span>설명</span>
+            <textarea id="ticketDescription" rows="5" maxlength="1200" placeholder="작업 내용과 배경을 작성하세요" required></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn danger" id="deleteTicketBtn" type="button" hidden>삭제</button>
+          <button class="btn ghost" id="cancelModalBtn" type="button">취소</button>
+          <button class="btn primary" id="saveTicketBtn" type="submit">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="detailModal" hidden>
+    <div class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">상세 보기</p>
+          <h2 id="detailTitle">티켓 상세</h2>
+        </div>
+        <button class="icon-btn" id="closeDetailBtn" type="button" aria-label="닫기">×</button>
+      </div>
+      <div id="detailContent" class="detail-content"></div>
+      <div class="modal-actions">
+        <button class="btn primary" id="detailEditBtn" type="button">수정</button>
+        <button class="btn ghost" id="detailCloseBtn" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'ticket-board-single-page-v1';
+  const STATUSES = ['Backlog', 'In Progress', 'Review', 'Done'];
+  const PRIORITIES = ['High', 'Medium', 'Low'];
+  const VERSION = 1;
+
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+  const els = {
+    addTicketBtn: $('#addTicketBtn'),
+    emptyAddBtn: $('#emptyAddBtn'),
+    exportBtn: $('#exportBtn'),
+    importFile: $('#importFile'),
+    searchInput: $('#searchInput'),
+    statusFilter: $('#statusFilter'),
+    priorityFilter: $('#priorityFilter'),
+    clearFiltersBtn: $('#clearFiltersBtn'),
+    emptyState: $('#emptyState'),
+    ticketModal: $('#ticketModal'),
+    detailModal: $('#detailModal'),
+    ticketForm: $('#ticketForm'),
+    ticketId: $('#ticketId'),
+    ticketTitle: $('#ticketTitle'),
+    ticketDescription: $('#ticketDescription'),
+    ticketStatus: $('#ticketStatus'),
+    ticketPriority: $('#ticketPriority'),
+    ticketAssignee: $('#ticketAssignee'),
+    ticketTags: $('#ticketTags'),
+    ticketDueDate: $('#ticketDueDate'),
+    closeModalBtn: $('#closeModalBtn'),
+    cancelModalBtn: $('#cancelModalBtn'),
+    deleteTicketBtn: $('#deleteTicketBtn'),
+    saveTicketBtn: $('#saveTicketBtn'),
+    modalModeLabel: $('#modalModeLabel'),
+    modalTitle: $('#modalTitle'),
+    detailTitle: $('#detailTitle'),
+    detailContent: $('#detailContent'),
+    closeDetailBtn: $('#closeDetailBtn'),
+    detailCloseBtn: $('#detailCloseBtn'),
+    detailEditBtn: $('#detailEditBtn')
+  };
+
+  let tickets = [];
+  let editingId = null;
+  let lastFocusedElement = null;
+
+  const sampleTickets = [
+    {
+      id: makeId(),
+      title: '회원 로그인 화면 개선',
+      description: '비밀번호 재설정 링크와 입력 validation 상태를 명확히 개선합니다. 접근성 검사도 함께 진행합니다.',
+      status: 'In Progress',
+      priority: 'High',
+      assignee: '김민수',
+      tags: 'frontend, login, accessibility',
+      dueDate: '2026-06-20'
+    },
+    {
+      id: makeId(),
+      title: '관리자 대시보드 개선안 정리',
+      description: '사용자별 활동 추이와 이상 징후를 볼 수 있는 카드 구성을 정리합니다.',
+      status: 'Backlog',
+      priority: 'Medium',
+      assignee: '이서연',
+      tags: 'dashboard, design',
+      dueDate: '2026-06-28'
+    },
+    {
+      id: makeId(),
+      title: '결제 완료 이메일 테스트',
+      description: '테스트 계정에서 실제 결제 흐름을 따라가며 이메일 템플릿과 링크 상태를 확인합니다.',
+      status: 'Review',
+      priority: 'High',
+      assignee: '박지호',
+      tags: 'payment, email',
+      dueDate: '2026-06-18'
+    },
+    {
+      id: makeId(),
+      title: '프로토타입 기획서 초안 작성',
+      description: '핵심 기능 목록, 우선순위, 예상 작업량을 포함해 기획서 초안을 만듭니다.',
+      status: 'Done',
+      priority: 'Low',
+      assignee: '최유진',
+      tags: 'planning, prototype',
+      dueDate: '2026-06-12'
+    }
+  ];
+
+  function makeId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return window.crypto.randomUUID();
+    }
+    return `ticket-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function normalizeTags(value) {
+    return String(value || '')
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean);
+  }
+
+  function formatDate(dateString) {
+    if (!dateString) return '미정';
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateString;
+    return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function loadTickets() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return sampleTickets;
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return sampleTickets;
+
+      return parsed
+        .filter(ticket => ticket && ticket.id && ticket.title && ticket.description)
+        .map(ticket => ({
+          id: String(ticket.id),
+          title: String(ticket.title),
+          description: String(ticket.description),
+          status: STATUSES.includes(ticket.status) ? ticket.status : 'Backlog',
+          priority: PRIORITIES.includes(ticket.priority) ? ticket.priority : 'Medium',
+          assignee: String(ticket.assignee || ''),
+          tags: Array.isArray(ticket.tags) ? ticket.tags.join(', ') : String(ticket.tags || ''),
+          dueDate: ticket.dueDate || '',
+          createdAt: ticket.createdAt || new Date().toISOString(),
+          updatedAt: ticket.updatedAt || new Date().toISOString()
+        }));
+    } catch (error) {
+      console.warn('localStorage에서 티켓 데이터를 복원하지 못했습니다.', error);
+      return sampleTickets;
+    }
+  }
+
+  function saveTickets() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+    } catch (error) {
+      console.warn('localStorage 저장 실패', error);
+      alert('로컬 저장소에 저장하지 못했지만, 현재 화면에는 임시로 반영되었습니다. 브라우저 저장 권한을 확인하세요.');
+    }
+  }
+
+  function getFilteredTickets() {
+    const query = els.searchInput.value.trim().toLowerCase();
+    const status = els.statusFilter.value;
+    const priority = els.priorityFilter.value;
+
+    return tickets.filter(ticket => {
+      const searchable = [
+        ticket.title,
+        ticket.description,
+        ticket.assignee,
+        ticket.tags,
+        ticket.status,
+        ticket.priority
+      ].join(' ').toLowerCase();
+
+      const matchesQuery = !query || searchable.includes(query);
+      const matchesStatus = status === 'all' || ticket.status === status;
+      const matchesPriority = priority === 'all' || ticket.priority === priority;
+
+      return matchesQuery && matchesStatus && matchesPriority;
+    });
+  }
+
+  function renderTickets() {
+    const filteredTickets = getFilteredTickets();
+
+    $$('.ticket-list').forEach(list => {
+      const status = list.closest('.column')?.dataset.status;
+      const ticketsInColumn = filteredTickets.filter(ticket => ticket.status === status);
+      list.innerHTML = ticketsInColumn.map(ticket => renderTicketCard(ticket)).join('');
+    });
+
+    STATUSES.forEach(status => {
+      const count = $(`[data-count="${status}"]`);
+      if (count) count.textContent = tickets.filter(ticket => ticket.status === status).length;
+    });
+
+    const boardCount = $$('.ticket-list').reduce((total, list) => total + list.children.length, 0);
+    els.emptyState.hidden = boardCount !== 0;
+  }
+
+  function renderTicketCard(ticket) {
+    const tags = normalizeTags(ticket.tags);
+    const safeTitle = escapeHtml(ticket.title);
+    const safeDescription = escapeHtml(ticket.description);
+    const safeAssignee = escapeHtml(ticket.assignee || '미지정');
+    const safeStatusClass = escapeHtml(ticket.status).replaceAll(' ', '-');
+    const safeTags = tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+
+    return `
+      <article class="ticket-card" data-ticket-id="${escapeHtml(ticket.id)}">
+        <div>
+          <h3 class="ticket-title">${safeTitle}</h3>
+          <p class="ticket-desc">${safeDescription}</p>
+        </div>
+        <div class="ticket-meta">
+          <span class="badge ${safeStatusClass}">${escapeHtml(ticket.status)}</span>
+          <span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span>
+          <span class="badge">${safeAssignee}</span>
+          <span class="badge">${formatDate(ticket.dueDate)}</span>
+        </div>
+        <div class="detail-tags">${safeTags}</div>
+        <div class="ticket-actions">
+          <button class="card-btn" type="button" data-action="detail">상세</button>
+          <button class="card-btn" type="button" data-action="edit">수정</button>
+          <button class="card-btn danger" type="button" data-action="delete">삭제</button>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderTicketDetail(ticket) {
+    const tags = normalizeTags(ticket.tags);
+    const safeStatusClass = escapeHtml(ticket.status).replaceAll(' ', '-');
+    const safeTags = tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+
+    els.detailTitle.textContent = ticket.title;
+    els.detailContent.innerHTML = `
+      <div class="detail-row">
+        <div class="detail-label">상태</div>
+        <div class="detail-value"><span class="badge ${safeStatusClass}">${escapeHtml(ticket.status)}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">우선순위</div>
+        <div class="detail-value"><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">담당자</div>
+        <div class="detail-value">${escapeHtml(ticket.assignee || '미지정')}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">마감일</div>
+        <div class="detail-value">${formatDate(ticket.dueDate)}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">태그</div>
+        <div class="detail-tags">${safeTags}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">설명</div>
+        <div class="detail-value">${escapeHtml(ticket.description)}</div>
+      </div>
+    `;
+  }
+
+  function openModal() {
+    lastFocusedElement = document.activeElement;
+    els.ticketModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => els.ticketTitle.focus(), 0);
+  }
+
+  function closeModal() {
+    els.ticketModal.hidden = true;
+    document.body.style.overflow = '';
+    resetTicketForm();
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      lastFocusedElement.focus();
+    }
+  }
+
+  function openDetailModal(ticket) {
+    lastFocusedElement = document.activeElement;
+    renderTicketDetail(ticket);
+    els.detailModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => els.closeDetailBtn.focus(), 0);
+  }
+
+  function closeDetailModal() {
+    els.detailModal.hidden = true;
+    document.body.style.overflow = '';
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      lastFocusedElement.focus();
+    }
+  }
+
+  function resetTicketForm() {
+    editingId = null;
+    els.ticketForm.reset();
+    els.ticketId.value = '';
+    els.ticketStatus.value = 'Backlog';
+    els.ticketPriority.value = 'Medium';
+    els.deleteTicketBtn.hidden = true;
+    els.modalModeLabel.textContent = '추가';
+    els.modalTitle.textContent = '티켓 추가';
+    els.saveTicketBtn.textContent = '저장';
+  }
+
+  function openTicketForm(ticket = null) {
+    resetTicketForm();
+
+    if (ticket) {
+      editingId = ticket.id;
+      els.modalModeLabel.textContent = '수정';
+      els.modalTitle.textContent = '티켓 수정';
+      els.saveTicketBtn.textContent = '업데이트';
+      els.deleteTicketBtn.hidden = false;
+
+      els.ticketId.value = ticket.id;
+      els.ticketTitle.value = ticket.title;
+      els.ticketDescription.value = ticket.description;
+      els.ticketStatus.value = ticket.status;
+      els.ticketPriority.value = ticket.priority;
+      els.ticketAssignee.value = ticket.assignee;
+      els.ticketTags.value = ticket.tags;
+      els.ticketDueDate.value = ticket.dueDate || '';
+    }
+
+    openModal();
+  }
+
+  function createTicketFromForm() {
+    const now = new Date().toISOString();
+    const ticket = {
+      id: makeId(),
+      title: els.ticketTitle.value.trim(),
+      description: els.ticketDescription.value.trim(),
+      status: els.ticketStatus.value,
+      priority: els.ticketPriority.value,
+      assignee: els.ticketAssignee.value.trim(),
+      tags: normalizeTags(els.ticketTags.value).join(', '),
+      dueDate: els.ticketDueDate.value,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    tickets.unshift(ticket);
+    saveTickets();
+    closeModal();
+    renderTickets();
+  }
+
+  function updateTicketFromForm() {
+    const id = els.ticketId.value;
+    const targetIndex = tickets.findIndex(ticket => ticket.id === id);
+    if (targetIndex === -1) return;
+
+    tickets[targetIndex] = {
+      ...tickets[targetIndex],
+      title: els.ticketTitle.value.trim(),
+      description: els.ticketDescription.value.trim(),
+      status: els.ticketStatus.value,
+      priority: els.ticketPriority.value,
+      assignee: els.ticketAssignee.value.trim(),
+      tags: normalizeTags(els.ticketTags.value).join(', '),
+      dueDate: els.ticketDueDate.value,
+      updatedAt: new Date().toISOString()
+    };
+
+    saveTickets();
+    closeModal();
+    renderTickets();
+  }
+
+  function deleteTicket(id) {
+    const ticket = tickets.find(item => item.id === id);
+    if (!ticket) return;
+    const message = `정말 "${ticket.title}" 티켓을 삭제할까요?`;
+    if (!window.confirm(message)) return;
+
+    tickets = tickets.filter(item => item.id !== id);
+    saveTickets();
+    renderTickets();
+  }
+
+  function exportJson() {
+    const payload = {
+      version: VERSION,
+      exportedAt: new Date().toISOString(),
+      tickets
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-');
+    anchor.href = url;
+    anchor.download = `ticket-board-${stamp}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJson(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ''));
+        const importedTickets = Array.isArray(parsed) ? parsed : parsed.tickets;
+
+        if (!Array.isArray(importedTickets)) {
+          alert('JSON 파일에 tickets 배열이 없습니다.');
+          return;
+        }
+
+        const normalized = importedTickets
+          .filter(ticket => ticket && ticket.id && ticket.title && ticket.description)
+          .map(ticket => ({
+            id: String(ticket.id),
+            title: String(ticket.title),
+            description: String(ticket.description),
+            status: STATUSES.includes(ticket.status) ? ticket.status : 'Backlog',
+            priority: PRIORITIES.includes(ticket.priority) ? ticket.priority : 'Medium',
+            assignee: String(ticket.assignee || ''),
+            tags: Array.isArray(ticket.tags) ? ticket.tags.join(', ') : String(ticket.tags || ''),
+            dueDate: ticket.dueDate || '',
+            createdAt: ticket.createdAt || new Date().toISOString(),
+            updatedAt: ticket.updatedAt || new Date().toISOString()
+          }));
+
+        if (!normalized.length) {
+          alert('가져올 수 있는 티켓이 없습니다.');
+          return;
+        }
+
+        if (!window.confirm('현재 티켓 목록을 가져온 데이터로 교체할까요?')) return;
+
+        tickets = normalized;
+        saveTickets();
+        renderTickets();
+      } catch (error) {
+        console.warn('JSON 가져오기 실패', error);
+        alert('JSON 파일을 읽을 수 없습니다. 형식을 확인하세요.');
+      } finally {
+        els.importFile.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function bindEvents() {
+    els.addTicketBtn.addEventListener('click', () => openTicketForm());
+    els.emptyAddBtn.addEventListener('click', () => openTicketForm());
+    els.exportBtn.addEventListener('click', exportJson);
+    els.importFile.addEventListener('change', event => importJson(event.target.files[0]));
+
+    [els.searchInput, els.statusFilter, els.priorityFilter].forEach(control => {
+      control.addEventListener('input', renderTickets);
+      control.addEventListener('change', renderTickets);
+    });
+
+    els.clearFiltersBtn.addEventListener('click', () => {
+      els.searchInput.value = '';
+      els.statusFilter.value = 'all';
+      els.priorityFilter.value = 'all';
+      renderTickets();
+      els.searchInput.focus();
+    });
+
+    els.ticketForm.addEventListener('submit', event => {
+      event.preventDefault();
+      if (editingId) {
+        updateTicketFromForm();
+      } else {
+        createTicketFromForm();
+      }
+    });
+
+    els.closeModalBtn.addEventListener('click', closeModal);
+    els.cancelModalBtn.addEventListener('click', closeModal);
+    els.ticketModal.addEventListener('click', event => {
+      if (event.target === els.ticketModal) closeModal();
+    });
+
+    els.deleteTicketBtn.addEventListener('click', () => {
+      if (editingId) deleteTicket(editingId);
+    });
+
+    els.ticketModal.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeModal();
+    });
+
+    els.detailEditBtn.addEventListener('click', () => {
+      const id = els.detailContent.dataset.ticketId;
+      const ticket = tickets.find(item => item.id === id);
+      if (ticket) {
+        closeDetailModal();
+        openTicketForm(ticket);
+      }
+    });
+
+    els.closeDetailBtn.addEventListener('click', closeDetailModal);
+    els.detailCloseBtn.addEventListener('click', closeDetailModal);
+    els.detailModal.addEventListener('click', event => {
+      if (event.target === els.detailModal) closeDetailModal();
+    });
+    els.detailModal.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeDetailModal();
+    });
+
+    document.addEventListener('click', event => {
+      const card = event.target.closest('.ticket-card');
+      if (!card) return;
+
+      const actionButton = event.target.closest('[data-action]');
+      const id = card.dataset.ticketId;
+      const ticket = tickets.find(item => item.id === id);
+      if (!ticket) return;
+
+      if (actionButton) {
+        const action = actionButton.dataset.action;
+        if (action === 'detail') openDetailModal(ticket);
+        if (action === 'edit') openTicketForm(ticket);
+        if (action === 'delete') deleteTicket(id);
+        return;
+      }
+
+      openDetailModal(ticket);
+    });
+
+    window.addEventListener('keydown', event => {
+      if (event.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'SELECT') {
+        event.preventDefault();
+        els.searchInput.focus();
+      }
+    });
+  }
+
+  function init() {
+    tickets = loadTickets();
+    bindEvents();
+    renderTickets();
+  }
+
+  init();
+})();
+
+----
+:root {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --text: #152033;
+  --muted: #64748b;
+  --border: #dbe3ef;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --danger: #dc2626;
+  --danger-dark: #b91c1c;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+  --radius: 18px;
+  --column-width: 280px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 32rem),
+    linear-gradient(135deg, #f8fbff 0%, var(--bg) 100%);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.app-shell {
+  width: min(1440px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.hero,
+.toolbar,
+.column,
+.empty-state,
+.modal {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(219, 227, 239, 0.95);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border-radius: 28px;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  max-width: 760px;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.hero-actions,
+.toolbar,
+.modal-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-actions {
+  justify-content: flex-end;
+}
+
+.btn,
+.icon-btn {
+  border: 0;
+  border-radius: 999px;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.btn:hover,
+.icon-btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn.primary {
+  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+}
+
+.btn.primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn.ghost {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.btn.subtle {
+  min-height: 42px;
+  padding-inline: 14px;
+  background: #eef4ff;
+  border-color: #cfe0ff;
+  color: #1e40af;
+}
+
+.btn.danger {
+  color: #ffffff;
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn.danger:hover {
+  background: var(--danger-dark);
+}
+
+.upload-label {
+  position: relative;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(160px, 0.45fr) minmax(160px, 0.45fr) auto;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  margin-bottom: 20px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--text);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input,
+select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+textarea {
+  padding: 12px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #93b4ff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, var(--column-width));
+  gap: 16px;
+  align-items: start;
+}
+
+.column {
+  min-height: 520px;
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 12px;
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.ticket-list {
+  display: grid;
+  gap: 12px;
+  min-height: 430px;
+}
+
+.ticket-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  text-align: left;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.ticket-card:hover {
+  transform: translateY(-2px);
+  border-color: #b9c9df;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.10);
+}
+
+.ticket-card:focus-within {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+}
+
+.ticket-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.ticket-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ticket-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge,
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.badge {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.badge.High {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.badge.Medium {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.badge.Low {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.tag {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+.ticket-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.card-btn {
+  flex: 1;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  color: var(--text);
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.card-btn:hover {
+  background: #eef4ff;
+}
+
+.card-btn.danger {
+  color: var(--danger);
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.empty-state {
+  margin-top: 20px;
+  padding: 36px 20px;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.empty-state[hidden] {
+  display: none;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal {
+  width: min(720px, 100%);
+  max-height: min(92vh, 900px);
+  overflow: auto;
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  color: var(--text);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.modal-actions {
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.detail-modal {
+  width: min(680px, 100%);
+}
+
+.detail-content {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child {
+  border-bottom: 0;
+}
+
+.detail-label {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.detail-value {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 1020px) {
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar .btn {
+    width: 100%;
+  }
+
+  .board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .column {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    width: min(100% - 20px, 1440px);
+    padding-top: 12px;
+  }
+
+  .hero {
+    display: block;
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-actions {
+    justify-content: stretch;
+    margin-top: 16px;
+  }
+
+  .hero-actions .btn,
+  .hero-actions .upload-label {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .toolbar .field,
+  .toolbar .btn {
+    width: 100%;
+  }
+
+  .board {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 4px 2px 18px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .column {
+    width: min(88vw, 300px);
+    min-height: 560px;
+    scroll-snap-align: start;
+  }
+
+  .ticket-list {
+    min-height: 450px;
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 24px 24px 0 0;
+    padding: 18px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    gap: 8px;
+  }
+
+  .modal-actions .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-actions {
+    flex-direction: column;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

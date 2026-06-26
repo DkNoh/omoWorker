@@ -79,6 +79,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- SQL 로깅(local/dev 전용): p6spy. driver/url 교체는 application-local/dev.yml, 포매터는 P6SpyFormatter. prod(JNDI)는 사용 안 함. -->
+        <dependency>
+            <groupId>p6spy</groupId>
+            <artifactId>p6spy</artifactId>
+            <version>3.9.1</version>
+        </dependency>
+
         <!-- Observability -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,7 +1,7 @@
 spring:
   datasource:
-    driver-class-name: oracle.jdbc.OracleDriver
-    url: ${SMS_DB_URL:jdbc:oracle:thin:@localhost:1521/SMS}
+    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
+    url: ${SMS_DB_URL:jdbc:p6spy:oracle:thin:@localhost:1521/SMS}
     username: ${SMS_DB_USERNAME:SMS}
     password: ${SMS_DB_PASSWORD:1234}
 

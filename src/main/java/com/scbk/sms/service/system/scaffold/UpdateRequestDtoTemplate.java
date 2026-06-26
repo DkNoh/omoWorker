@@ -23,6 +23,7 @@ public final class UpdateRequestDtoTemplate {
     }
     sb.append("import lombok.Data;\n\n")
         .append("/**\n")
+        .append(" * Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다.\n")
         .append(" * 수정 가능한 필드만 선언하는 화이트리스트 DTO.\n")
         .append(" * TODO: 실제 수정을 허용할 필드만 남기고 제거한다.\n")
         .append(" *       REG_ID/REG_DTTM, 시스템 필드, 권한 필드는 선언하지 않는다.\n")

@@ -55,6 +55,7 @@ public final class ControllerTestTemplate {
     sb.append("import org.springframework.test.web.servlet.MockMvc;\n")
         .append("import org.springframework.test.web.servlet.setup.MockMvcBuilders;\n\n")
         .append("@ExtendWith(MockitoExtension.class)\n")
+        .append("/** Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다. */\n")
         .append("class ")
         .append(cls)
         .append("ControllerTest {\n\n")

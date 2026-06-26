@@ -17,6 +17,7 @@ public final class DtoTemplate {
         .append("import com.scbk.sms.dto.common.PageRequestDTO;\n")
         .append("import lombok.Data;\n")
         .append("import lombok.EqualsAndHashCode;\n\n")
+        .append("/** Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다. */\n")
         .append("@Data\n")
         .append("@EqualsAndHashCode(callSuper = true)\n")
         .append("public class ")

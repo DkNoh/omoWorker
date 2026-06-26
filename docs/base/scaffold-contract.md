@@ -12,7 +12,7 @@
 |---|---|---|
 | §1 생성 산출물 11~12종 | **현행** | `ScaffoldService.generateFiles` 검증됨 |
 | §1 `{Domain}Rules`(사용자 소유) 파일 | **목표(미구현)** | RulesTemplate 없음, 생성 안 됨 |
-| §2 소유/버전 마커 | **현행(일부)** | Service/Controller/MapperXml에 `Scaffold 생성(v1) — scaffold 소유` 마커 부착됨. 나머지 템플릿(DTO/VO/JS/HTML/MenuSql/Test 2종)은 목표 |
+| §2 소유/버전 마커 | **현행(완료)** | 전 12개 템플릿이 `Scaffold 생성(v1) — scaffold 소유` 마커 부착(Service/Controller/MapperXml/Dto/Vo/MapperInterface/UpdateRequestDto/Html/Js/MenuSql/ServiceTest/ControllerTest) |
 | §3 재생성 보증(사용자 영역 보존) | **목표(미구현)** | 현재 `ScaffoldFileApplier`는 **무조건 덮어쓰기**(내용 같을 때만 skip). 보존 로직 0 |
 | §4-A 선언 옵션(screenMode/includePrivacy/컬럼 옵션) | **현행(일부)** | 옵션은 존재. 단 `includePrivacy`/`maskType`은 `// TODO` 주석만, 실마스킹 아님 |
 | §4-A `@PrivacyLog` 자동 부착 | **현행** | ControllerTemplate가 /data·/excel에 부착(검증됨) |

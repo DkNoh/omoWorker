@@ -11,7 +11,8 @@ public final class MenuSqlTemplate {
     String cls = model.domainClass();
     String domainId = model.domainId();
 
-    return "-- ============================================================\n"
+        return "-- Scaffold 생성(v1) — scaffold 소유. 골격만 재생성 대상.\n"
+            + "-- ============================================================\n"
         + "-- 메뉴 등록 SQL ( "
         + model.domainName()
         + " )\n"

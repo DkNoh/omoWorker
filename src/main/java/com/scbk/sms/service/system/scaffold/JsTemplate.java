@@ -12,6 +12,7 @@ public final class JsTemplate {
     List<ScaffoldModel.ColumnConfig> columns = model.columnConfigs();
 
     StringBuilder sb = new StringBuilder();
+    sb.append("// Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다.\n");
     sb.append("document.addEventListener('DOMContentLoaded', function () {\n");
     sb.append("    const pageBuilder = new TuiPageBuilder({\n")
         .append("        el: 'grid',\n")

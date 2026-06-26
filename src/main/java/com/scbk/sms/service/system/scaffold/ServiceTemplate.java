@@ -1,5 +1,7 @@
 package com.scbk.sms.service.system.scaffold;
 
+import java.util.List;
+
 /** Service 생성. PageResponseDTO.of 계약 적용, plain Java. */
 public final class ServiceTemplate {
 
@@ -42,6 +44,9 @@ public final class ServiceTemplate {
       sb.append("import com.scbk.sms.util.ExcelUtil;\n")
           .append("import jakarta.servlet.http.HttpServletResponse;\n");
     }
+    if (model.includePrivacy()) {
+      sb.append("import com.scbk.sms.util.MaskingUtil;\n");
+    }
     sb.append("import java.util.List;\n");
     if (model.includeExcel()) {
       sb.append("import java.util.Map;\n");
@@ -77,9 +82,7 @@ public final class ServiceTemplate {
         .append("        List<")
         .append(cls)
         .append("VO> list = mapper.selectList(request);\n");
-    if (model.includePrivacy()) {
-      sb.append("        // TODO: 개인정보 컬럼을 MaskingUtil로 마스킹한다. (audit-masking-policy.md)\n");
-    }
+    sb.append(maskListColumns(model));
     sb.append("        return PageResponseDTO.of(list, request, totalCount);\n").append("    }\n");
 
     if (model.includeCreateUpdate()) {
@@ -177,15 +180,55 @@ public final class ServiceTemplate {
           .append(column.columnName())
           .append("\");\n")
           .append("            if (value != null) {\n")
-          .append("                // TODO: ")
-          .append(column.maskType())
-          .append(" 마스킹 정책에 맞게 MaskingUtil 적용\n")
           .append("                row.put(\"")
           .append(column.columnName())
-          .append("\", value.toString());\n")
+          .append("\", MaskingUtil.")
+          .append(maskingMethod(column.maskType()))
+          .append("(value.toString()));\n")
           .append("            }\n")
           .append("        }\n");
     }
     return sb.toString();
+  }
+
+  private static String maskListColumns(ScaffoldModel model) {
+    List<ScaffoldModel.ColumnConfig> masked =
+        model.columnConfigs().stream().filter(ScaffoldModel.ColumnConfig::hasMask).toList();
+    if (masked.isEmpty()) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("        list.forEach(vo -> {\n");
+    for (ScaffoldModel.ColumnConfig column : masked) {
+      String cap = capitalize(column.fieldName());
+      sb.append("            vo.set")
+          .append(cap)
+          .append("(MaskingUtil.")
+          .append(maskingMethod(column.maskType()))
+          .append("(vo.get")
+          .append(cap)
+          .append("()));\n");
+    }
+    sb.append("        });\n");
+    return sb.toString();
+  }
+
+  private static String maskingMethod(String maskType) {
+    if (maskType == null) {
+      return "maskPhone";
+    }
+    return switch (maskType.trim().toLowerCase()) {
+      case "name", "nm" -> "maskName";
+      case "rrn", "ssn" -> "maskRrn";
+      case "card", "bizno" -> "maskCard";
+      default -> "maskPhone";
+    };
+  }
+
+  private static String capitalize(String s) {
+    if (s == null || s.isEmpty()) {
+      return s;
+    }
+    return Character.toUpperCase(s.charAt(0)) + s.substring(1);
   }
 }

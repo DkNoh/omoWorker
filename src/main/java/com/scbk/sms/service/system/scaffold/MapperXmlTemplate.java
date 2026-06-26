@@ -52,10 +52,12 @@ public final class MapperXmlTemplate {
     }
     sb.append("        </where>\n").append("    </sql>\n\n");
 
+    sb.append("    <sql id=\"baseQuery\">\n").append(dynamicQuery).append("    </sql>\n\n");
+
     sb.append("    <select id=\"count\" resultType=\"int\">\n")
         .append(signature(cls, "count"))
         .append("        SELECT COUNT(1) FROM (\n")
-        .append(dynamicQuery)
+        .append("        <include refid=\"baseQuery\"/>\n")
         .append("        ) A\n")
         .append("        <include refid=\"searchConditions\"/>\n")
         .append("    </select>\n\n");
@@ -68,7 +70,7 @@ public final class MapperXmlTemplate {
         .append(signature(cls, "selectList"))
         .append("        SELECT A.*\n")
         .append("        FROM (\n")
-        .append(dynamicQuery)
+        .append("        <include refid=\"baseQuery\"/>\n")
         .append("        ) A\n")
         .append("        <include refid=\"searchConditions\"/>\n")
         .append("        ORDER BY ")
@@ -107,7 +109,7 @@ public final class MapperXmlTemplate {
           .append(signature(cls, "selectListForExcel"))
           .append("        SELECT A.*\n")
           .append("        FROM (\n")
-          .append(dynamicQuery)
+          .append("        <include refid=\"baseQuery\"/>\n")
           .append("        ) A\n")
           .append("        <include refid=\"searchConditions\"/>\n")
           .append("        ORDER BY ")

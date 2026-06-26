@@ -9,6 +9,19 @@ public final class UpdateRequestDtoTemplate {
     boolean hasLocalDate = model.getTypeMap().containsValue("LocalDate");
     boolean hasLocalDateTime = model.getTypeMap().containsValue("LocalDateTime");
     boolean hasBigDecimal = model.getTypeMap().containsValue("BigDecimal");
+    boolean hasRequiredNotBlank = false;
+    boolean hasRequiredNotNull = false;
+    for (ScaffoldModel.ColumnConfig column : model.columnConfigs()) {
+      if (column.editable()
+          && column.hasValidate()
+          && column.validate().toLowerCase().contains("required")) {
+        if ("String".equals(column.javaType())) {
+          hasRequiredNotBlank = true;
+        } else {
+          hasRequiredNotNull = true;
+        }
+      }
+    }
 
     StringBuilder sb = new StringBuilder();
     sb.append("package com.scbk.sms.dto.").append(model.moduleName()).append(";\n\n");
@@ -21,7 +34,14 @@ public final class UpdateRequestDtoTemplate {
     if (hasLocalDateTime) {
       sb.append("import java.time.LocalDateTime;\n");
     }
-    sb.append("import lombok.Data;\n\n")
+    sb.append("import lombok.Data;\n");
+    if (hasRequiredNotBlank) {
+      sb.append("import jakarta.validation.constraints.NotBlank;\n");
+    }
+    if (hasRequiredNotNull) {
+      sb.append("import jakarta.validation.constraints.NotNull;\n");
+    }
+    sb.append("\n")
         .append("/**\n")
         .append(" * Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다.\n")
         .append(" * 수정 가능한 필드만 선언하는 화이트리스트 DTO.\n")
@@ -53,6 +73,11 @@ public final class UpdateRequestDtoTemplate {
     for (ScaffoldModel.ColumnConfig column : model.columnConfigs()) {
       if (!column.editable()) {
         continue;
+      }
+      boolean required =
+          column.hasValidate() && column.validate().toLowerCase().contains("required");
+      if (required) {
+        sb.append("String".equals(column.javaType()) ? "    @NotBlank\n" : "    @NotNull\n");
       }
       sb.append("    private ")
           .append(column.javaType())

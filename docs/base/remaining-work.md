@@ -6,21 +6,16 @@
 
 ## 의도적으로 이번에 미룬 일
 
-### 1. 메뉴 권한 seed 최소 권한화
+### 1. 메뉴 권한 seed 최소 권한화 — 해결 (2026-06-27)
 
-현재 스캐폴드의 `메뉴등록.sql`은 `CAN_READ`, `CAN_CREATE`, `CAN_UPDATE`, `CAN_DELETE`, `CAN_APPROVE`, `CAN_CANCEL`, `CAN_DOWNLOAD`, `CAN_MASK_VIEW`를 모두 `Y`로 생성한다.
+MenuSqlTemplate가 screenMode 기준으로 CAN_* 기본값을 최소 권한으로 생성한다.
 
-사용자 결정: 메뉴 권한 정책은 우선 전체 권한으로 생성한 뒤 나중에 수정한다.
-
-남은 작업:
-
-- 화면 모드별 기본 권한을 나눈다.
-- `LIST`: `CAN_READ=Y`, 나머지 기본 `N`
-- `EXCEL`: `CAN_READ=Y`, `CAN_DOWNLOAD=Y`
-- `DETAIL`: `CAN_READ=Y`
-- `CRUD`: `CAN_READ/CREATE/UPDATE/DELETE=Y`
-- 개인정보 원문 조회가 필요한 화면만 `CAN_MASK_VIEW=Y`
-- 스캐폴드 화면에서 권한 체크박스를 직접 수정할 수 있게 할지 결정한다.
+- ✅ `LIST`: `CAN_READ=Y`, 나머지 `N`
+- ✅ `EXCEL`: `CAN_READ=Y`, `CAN_DOWNLOAD=Y`
+- ✅ `DETAIL`: `CAN_READ=Y`
+- ✅ `CRUD`: `CAN_READ/CREATE/UPDATE/DELETE=Y`
+- ✅ 개인정보 화면(`includePrivacy`): `CAN_MASK_VIEW=Y`
+- 스캐폴드 화면에서 권한 체크박스를 직접 수정할 수 있게 할지 결정한다. (미해결)
 
 ### 2. 개인정보 마스킹 실제 적용
 
@@ -89,7 +84,7 @@
 - 필수 NOT NULL 컬럼의 기본값/입력값을 DB 메타데이터로 표시할지 검토한다.
 - 코드성 컬럼은 create/update 모달에서 text가 아니라 select/radio로 렌더링하는 기능을 추가한다.
 - 날짜/시간 컬럼은 등록/수정 모달에서도 Toast UI DatePicker로 렌더링한다.
-- 서버 DTO에 `@NotNull`, `@Size`, `@Pattern` 같은 검증 어노테이션을 DB 메타 기반으로 생성할지 검토한다.
+- ~~서버 DTO에 `@NotNull`, `@Size`, `@Pattern` 같은 검증 어노테이션을 DB 메타 기반으로 생성할지 검토한다.~~ ✅ (`validate=required` → `@NotBlank`/`@NotNull` 구현. `@Size`/`@Pattern`은 후속)
 
 ### 7. 스캐폴드 SQL 분석 한계
 

@@ -37,6 +37,30 @@ class ScaffoldTemplateTest {
         Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
   }
 
+  private static final int GOLDEN_SCAFFOLD_HASH = 1918719249;
+
+  @Test
+  void 드리프트_게이트_스캐폴드_출력_변경_감지() {
+    ScaffoldModel m = model(true, true, true);
+    StringBuilder all = new StringBuilder();
+    all.append(DtoTemplate.generate(m));
+    all.append(UpdateRequestDtoTemplate.generate(m));
+    all.append(VoTemplate.generate(m));
+    all.append(MapperInterfaceTemplate.generate(m));
+    all.append(MapperXmlTemplate.generate(m));
+    all.append(ServiceTemplate.generate(m));
+    all.append(ControllerTemplate.generate(m));
+    all.append(ServiceTestTemplate.generate(m));
+    all.append(ControllerTestTemplate.generate(m));
+    all.append(HtmlTemplate.generate(m));
+    all.append(JsTemplate.generate(m));
+    all.append(MenuSqlTemplate.generate(m));
+    all.append(RulesTemplate.generate(m));
+    assertThat(all.toString().hashCode())
+        .as("스캐폴드 출력이 변경됨. 의도적이면 GOLDEN_SCAFFOLD_HASH 갱신.")
+        .isEqualTo(GOLDEN_SCAFFOLD_HASH);
+  }
+
   @Test
   void DTO는_PageRequestDTO를_상속하고_Lombok_기반으로_생성한다() {
     // when

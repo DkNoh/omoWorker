@@ -9,7 +9,7 @@ paths:
 
 - Oracle 19c 기준으로 작성한다.
 - 실제 DBObject 확인 없이 컬럼명을 확정하지 않는다.
-- `SELECT *`를 사용하지 않는다.
+- `SELECT *`를 사용하지 않는다. 단, 명시 컬럼을 가진 파생 테이블의 `SELECT A.*`는 허용한다 — 컬럼이 서브쿼리에서 통제되므로 "무제한 컬럼 인출 금지" 취지를 만족한다. (스캐폴드의 `SELECT A.* FROM (<rawQuery>) A` 패턴이 이에 해당. 테이블 직접 `SELECT * FROM TBL`은 여전히 금지.)
 - 조회 컬럼은 VO 필드와 alias를 명확히 맞춘다.
 - Oracle snake_case와 Java camelCase 매핑을 전제로 한다.
 - LIKE 조건은 `LIKE '%' || #{keyword} || '%'` 형식을 사용한다.

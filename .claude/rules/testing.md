@@ -12,7 +12,7 @@ paths:
 - 코드 변경 후 완료 조건은 `mvn test`와 `mvn -DskipTests package` 성공이다.
 - 테스트는 given / when / then 구조를 사용한다.
 - Service 단위 테스트는 Mapper를 Mockito로 mock 처리한다.
-- Mapper 테스트는 `@MybatisTest`를 사용하며 운영 DB를 사용하지 않는다.
+- Mapper(SQL) 계층은 현재 별도 `@MybatisTest` 없이, Service 단위 테스트에서 Mapper를 Mockito로 mock 처리해 간접 검증한다. `@MybatisTest` 기반 Mapper 전용 테스트 도입은 향후 과제다(운영 DB 사용 금지는 동일).
 - Controller 테스트는 `@Valid` 실패와 공통 `ApiResponse` 에러 포맷을 확인한다.
 - LDAP은 local에서 사용할 수 없으므로 테스트에서 mock 처리하거나 profile로 분리한다.
 - DB는 local Oracle에 직접 연결해 테스트할 수 있다. 운영 DB만 금지다.

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
  * defaultLayout(sidebar/header)이 모든 화면에서 사용하는 공통 모델을 채운다. 메뉴 렌더링은 Controller가 넘긴 메뉴 tree만 사용한다는 규칙의
  * 단일 적용 지점이다.
  */
-@ControllerAdvice
+@ControllerAdvice(annotations = Controller.class)
 public class GlobalModelAdvice {
 
   private final MenuSource menuSource;

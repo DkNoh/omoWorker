@@ -66,7 +66,8 @@ public class GlobalModelAdvice {
   }
 
   @SuppressWarnings("unchecked")
-  private List<MenuItemVO> getCachedMenuTree(SmsUserPrincipal principal, HttpServletRequest request) {
+  private List<MenuItemVO> getCachedMenuTree(
+      SmsUserPrincipal principal, HttpServletRequest request) {
     HttpSession session = request.getSession(false);
     if (session != null) {
       Object cached = session.getAttribute("menuTree");
@@ -85,7 +86,8 @@ public class GlobalModelAdvice {
     if (isLocalProfile()) {
       return PageAuth.all();
     }
-    String path = normalizePath(request.getRequestURI().substring(request.getContextPath().length()));
+    String path =
+        normalizePath(request.getRequestURI().substring(request.getContextPath().length()));
     HttpSession session = request.getSession(false);
     if (session != null) {
       PageAuth cached = getPageAuthCache(session).get(path);

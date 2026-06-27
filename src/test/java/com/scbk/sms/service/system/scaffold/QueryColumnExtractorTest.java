@@ -91,15 +91,15 @@ class QueryColumnExtractorTest {
 
   @Test
   void UNION_쿼리에서_컬럼을_추출한다() {
-    String query = "SELECT A.ID, A.NAME FROM SMS.TBL_A A UNION SELECT B.ID, B.NAME FROM SMS.TBL_B B";
+    String query =
+        "SELECT A.ID, A.NAME FROM SMS.TBL_A A UNION SELECT B.ID, B.NAME FROM SMS.TBL_B B";
     List<String> columns = QueryColumnExtractor.extractColumns(query);
     assertThat(columns).isNotEmpty();
   }
 
   @Test
   void WITH_CTE_쿼리에서_컬럼을_추출한다() {
-    String query =
-        "WITH cte AS (SELECT A.ID, A.NAME FROM SMS.TBL_A A) SELECT ID, NAME FROM cte";
+    String query = "WITH cte AS (SELECT A.ID, A.NAME FROM SMS.TBL_A A) SELECT ID, NAME FROM cte";
     List<String> columns = QueryColumnExtractor.extractColumns(query);
     assertThat(columns).isNotEmpty();
   }

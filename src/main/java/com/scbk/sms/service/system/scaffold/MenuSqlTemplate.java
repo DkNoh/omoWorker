@@ -21,7 +21,7 @@ public final class MenuSqlTemplate {
     String canMaskView = model.includePrivacy() ? "Y" : "N";
 
     return "-- Scaffold 생성(v1) — scaffold 소유. 골격만 재생성 대상.\n"
-            + "-- ============================================================\n"
+        + "-- ============================================================\n"
         + "-- 메뉴 등록 SQL ( "
         + model.domainName()
         + " )\n"
@@ -55,8 +55,24 @@ public final class MenuSqlTemplate {
         + "', '"
         + model.roleCode()
         + "',\n"
-        + "    '" + canRead + "', '" + canCreate + "', '" + canUpdate + "', '" + canDelete + "',\n"
-        + "    '" + canApprove + "', '" + canCancel + "', '" + canDownload + "', '" + canMaskView + "',\n"
+        + "    '"
+        + canRead
+        + "', '"
+        + canCreate
+        + "', '"
+        + canUpdate
+        + "', '"
+        + canDelete
+        + "',\n"
+        + "    '"
+        + canApprove
+        + "', '"
+        + canCancel
+        + "', '"
+        + canDownload
+        + "', '"
+        + canMaskView
+        + "',\n"
         + "    'Y', 'SYSTEM'\n"
         + ");\n\n"
         + "COMMIT;\n\n"

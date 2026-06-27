@@ -7,7 +7,9 @@ import com.scbk.sms.vo.menu.MenuItemVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.ui.Model;
@@ -82,8 +84,30 @@ public class GlobalModelAdvice {
     if (isLocalProfile()) {
       return PageAuth.all();
     }
-    String path = request.getRequestURI().substring(request.getContextPath().length());
-    return PageAuth.from(menuSource.getPermissions(normalizePath(path), principal.getRoleCodes()));
+    String path = normalizePath(request.getRequestURI().substring(request.getContextPath().length()));
+    HttpSession session = request.getSession(false);
+    if (session != null) {
+      PageAuth cached = getPageAuthCache(session).get(path);
+      if (cached != null) {
+        return cached;
+      }
+    }
+    PageAuth auth = PageAuth.from(menuSource.getPermissions(path, principal.getRoleCodes()));
+    if (session != null) {
+      getPageAuthCache(session).put(path, auth);
+    }
+    return auth;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, PageAuth> getPageAuthCache(HttpSession session) {
+    Object existing = session.getAttribute("pageAuthCache");
+    if (existing instanceof Map<?, ?> map) {
+      return (Map<String, PageAuth>) map;
+    }
+    Map<String, PageAuth> cache = new HashMap<>();
+    session.setAttribute("pageAuthCache", cache);
+    return cache;
   }
 
   private boolean isLocalProfile() {

@@ -83,8 +83,6 @@ public class ScaffoldFileApplier {
       relativePath = Paths.get("src/main/resources/mapper", moduleName, generatedName);
     } else if ((domainClass + "Service.java").equals(generatedName)) {
       relativePath = Paths.get("src/main/java/com/scbk/sms/service", moduleName, generatedName);
-    } else if ((domainClass + "Rules.java").equals(generatedName)) {
-      relativePath = Paths.get("src/main/java/com/scbk/sms/service", moduleName, generatedName);
     } else if ((domainClass + "Controller.java").equals(generatedName)) {
       relativePath = Paths.get("src/main/java/com/scbk/sms/controller", moduleName, generatedName);
     } else if ((domainClass + "ServiceTest.java").equals(generatedName)) {

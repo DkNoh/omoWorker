@@ -63,7 +63,7 @@ public final class ServiceTemplate {
         .append("import org.springframework.transaction.annotation.Transactional;\n\n")
         .append("/**\n")
         .append(" * Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다.\n")
-        .append(" * 업무 로직은 확장 슬롯에만 (scaffold-contract.md §4).\n")
+        .append(" * Scaffold 생성 코드. 업무 로직은 이 파일에 직접 추가한다.\n")
         .append(" */\n")
         .append("@Service\n")
         .append("@RequiredArgsConstructor\n")
@@ -73,11 +73,6 @@ public final class ServiceTemplate {
         .append("    private final ")
         .append(cls)
         .append("Mapper mapper;\n\n");
-    if (model.includeCreateUpdate()) {
-      sb.append("    private final ")
-          .append(cls)
-          .append("Rules rules;\n\n");
-    }
     sb.append("    @Transactional(readOnly = true)\n")
         .append("    public PageResponseDTO<")
         .append(cls)
@@ -97,14 +92,14 @@ public final class ServiceTemplate {
           .append("    public void create(")
           .append(cls)
           .append("UpdateRequestDTO request) {\n")
-          .append("        rules.validateOnCreate(request);\n")
+          .append("        // TODO: 등록 전 업무 규칙 검증(중복 체크, 필수값 보정 등)을 여기에 추가한다.\n")
           .append("        mapper.insert(request);\n")
           .append("    }\n\n")
           .append("    @Transactional\n")
           .append("    public void update(")
           .append(cls)
           .append("UpdateRequestDTO request) {\n")
-          .append("        rules.validateOnUpdate(request);\n")
+          .append("        // TODO: 수정 전 업무 규칙 검증(상태 전이, 권한 확인 등)을 여기에 추가한다.\n")
           .append("        int updated = mapper.update(request);\n")
           .append("        if (updated == 0) {\n")
           .append("            // 다른 사용자가 먼저 수정했거나(낙관적 잠금) 대상이 없다\n")

@@ -19,7 +19,6 @@ import com.scbk.sms.service.system.scaffold.ScaffoldMetadataReader;
 import com.scbk.sms.service.system.scaffold.ScaffoldModel;
 import com.scbk.sms.service.system.scaffold.ScaffoldTableMetadata;
 import com.scbk.sms.service.system.scaffold.ServiceTemplate;
-import com.scbk.sms.service.system.scaffold.RulesTemplate;
 import com.scbk.sms.service.system.scaffold.ServiceTestTemplate;
 import com.scbk.sms.service.system.scaffold.UpdateRequestDtoTemplate;
 import com.scbk.sms.service.system.scaffold.VoTemplate;
@@ -95,7 +94,6 @@ public class ScaffoldService {
     results.put(cls + "SearchRequestDTO.java", DtoTemplate.generate(model));
     if (model.includeCreateUpdate()) {
       results.put(cls + "UpdateRequestDTO.java", UpdateRequestDtoTemplate.generate(model));
-      results.put(cls + "Rules.java", RulesTemplate.generate(model));
     }
     results.put(cls + "VO.java", VoTemplate.generate(model));
     results.put(cls + "Mapper.java", MapperInterfaceTemplate.generate(model));

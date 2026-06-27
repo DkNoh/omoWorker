@@ -37,7 +37,7 @@ class ScaffoldTemplateTest {
         Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
   }
 
-  private static final int GOLDEN_SCAFFOLD_HASH = 556655004;
+  private static final int GOLDEN_SCAFFOLD_HASH = -131864380;
 
   @Test
   void 드리프트_게이트_스캐폴드_출력_변경_감지() {
@@ -55,7 +55,6 @@ class ScaffoldTemplateTest {
     all.append(HtmlTemplate.generate(m));
     all.append(JsTemplate.generate(m));
     all.append(MenuSqlTemplate.generate(m));
-    all.append(RulesTemplate.generate(m));
     assertThat(all.toString().hashCode())
         .as("스캐폴드 출력이 변경됨. 의도적이면 GOLDEN_SCAFFOLD_HASH 갱신.")
         .isEqualTo(GOLDEN_SCAFFOLD_HASH);

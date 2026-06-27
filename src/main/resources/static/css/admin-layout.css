@@ -203,8 +203,8 @@
    before. Establishes the page-title typographic role from DESIGN.md §3.
    --------------------------------------------------------------------- */
 .content-header {
-    margin-bottom: var(--sms-space-5);
-    padding-bottom: var(--sms-space-3);
+    margin-bottom: var(--sms-space-3);
+    padding-bottom: var(--sms-space-2);
     border-bottom: 1px solid var(--sms-border-subtle);
 }
 .content-header h2 {

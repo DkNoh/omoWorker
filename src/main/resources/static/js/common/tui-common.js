@@ -100,11 +100,11 @@ const TuiCommon = (() => {
     };
 
     const gridDefaults = {
-        rowHeight: 42,
-        bodyHeight: 420,
-        minBodyHeight: 300,
+        rowHeight: 38,
+        bodyHeight: 380,
+        minBodyHeight: 200,
         scrollX: true,
-        scrollY: true,
+        scrollY: false,
     };
 
     // v3 화면 골격 기준은 id="total-count"다 (screen-convention.md)

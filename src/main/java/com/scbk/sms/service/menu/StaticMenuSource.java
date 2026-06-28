@@ -205,6 +205,15 @@ public class StaticMenuSource implements MenuSource {
             MENU_TYPE_MENU));
     menus.add(
         menu("SYSTEM_HOURLY_STATS", "G_SYSTEM", "시간대별조회", "/sms/dept-stat", 2, 50, MENU_TYPE_MENU));
+    menus.add(
+        menu(
+            "SYSTEM_MENU_MANAGE",
+            "G_SYSTEM",
+            "메뉴관리",
+            "/system/menu-manage",
+            2,
+            60,
+            MENU_TYPE_MENU));
 
     menus.add(menu("G_ACCOUNT", null, "시스템관리 계정관리", null, 1, 50, MENU_TYPE_GROUP));
     menus.add(

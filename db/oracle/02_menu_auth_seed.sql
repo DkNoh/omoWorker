@@ -169,6 +169,7 @@ BEGIN
     upsert_menu('SYSTEM_KAKAO_TEMPLATE', 'G_SYSTEM', '카카오템플릿관리', '/system/kakao-template', 2, 30, 'M');
     upsert_menu('SYSTEM_AD_MESSAGE', 'G_SYSTEM', '광고성 메시지관리', '/system/ad-message', 2, 40, 'M');
     upsert_menu('SYSTEM_HOURLY_STATS', 'G_SYSTEM', '시간대별조회', '/sms/dept-stat', 2, 50, 'M');
+    upsert_menu('SYSTEM_MENU_MANAGE', 'G_SYSTEM', '메뉴관리', '/system/menu-manage', 2, 60, 'M', 'TB_MENU 관리');
 
     upsert_menu('G_ACCOUNT', NULL, '시스템관리 계정관리', NULL, 1, 50, 'G');
     upsert_menu('ACCOUNT_USER', 'G_ACCOUNT', '사용자관리', '/account/user-manage', 2, 10, 'M', 'EMP 기준');

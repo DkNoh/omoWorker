@@ -37,6 +37,15 @@ class StaticMenuSourceTest {
   }
 
   @Test
+  void 메뉴관리_URL에는_모든_권한을_부여한다() {
+    // when
+    Set<MenuPermission> permissions = provider.getPermissions("/system/menu-manage", ROLES);
+
+    // then
+    assertThat(permissions).containsExactlyInAnyOrder(MenuPermission.values());
+  }
+
+  @Test
   void baseline에_없는_URL에는_권한을_부여하지_않는다() {
     // when
     Set<MenuPermission> permissions = provider.getPermissions("/unknown/path", ROLES);

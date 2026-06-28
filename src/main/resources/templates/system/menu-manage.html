@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>메뉴관리</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h2>메뉴관리</h2>
+            <p class="content-subtitle mb-0">좌측 메뉴 트리에서 항목을 선택하면 상세 정보와 권한 매트릭스가 표시됩니다.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary">
+                <i data-lucide="plus"></i><span>신규 메뉴</span>
+            </button>
+            <button type="button" id="btn-refresh" class="btn btn-secondary">
+                <i data-lucide="rotate-cw"></i><span>트리 새로고침</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 menu-manage-layout">
+        <!-- 좌측 트리 -->
+        <div class="col-12 col-lg-4 col-xl-3">
+            <section class="card surface-card menu-tree-card h-100">
+                <header class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">메뉴 트리</span>
+                    <span class="badge text-bg-secondary" id="tree-count">0</span>
+                </header>
+                <div class="card-body menu-tree-body">
+                    <div class="menu-tree-filter mb-2">
+                        <input type="text" id="tree-filter" class="form-control form-control-sm"
+                               placeholder="메뉴 ID/명 검색" autocomplete="off">
+                    </div>
+                    <nav id="menu-tree" class="menu-tree" aria-label="메뉴 트리">
+                        <div class="menu-tree-empty" id="menu-tree-empty">
+                            <i data-lucide="folder-tree" class="empty-state-icon" aria-hidden="true"></i>
+                            <p class="empty-state-title">메뉴가 없습니다</p>
+                        </div>
+                    </nav>
+                </div>
+            </section>
+        </div>
+
+        <!-- 우측 상세 + 권한 -->
+        <div class="col-12 col-lg-8 col-xl-9">
+            <section class="card surface-card menu-detail-card" id="menu-detail-panel" hidden>
+                <header class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="settings-2" aria-hidden="true"></i>
+                        <span class="fw-semibold">메뉴 상세</span>
+                        <code class="menu-detail-id" id="detail-menu-id"></code>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" id="btn-save" th:if="${pageAuth.update}" class="btn btn-primary">
+                            <i data-lucide="save"></i><span>저장</span>
+                        </button>
+                        <button type="button" id="btn-delete" th:if="${pageAuth.delete}" class="btn btn-danger">
+                            <i data-lucide="trash-2"></i><span>삭제</span>
+                        </button>
+                    </div>
+                </header>
+                <div class="card-body">
+                    <form id="menu-detail-form" autocomplete="off" novalidate>
+                        <input type="hidden" name="menuId" id="f-menuId">
+                        <fieldset class="menu-detail-fields">
+                            <legend class="visually-hidden">메뉴 정보</legend>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="f-menuNm" class="form-label">메뉴명</label>
+                                    <input type="text" class="form-control" id="f-menuNm" name="menuNm" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-menuType" class="form-label">유형</label>
+                                    <select class="form-select" id="f-menuType" name="menuType">
+                                        <option value="G">G(그룹)</option>
+                                        <option value="M">M(메뉴)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-systemYn" class="form-label">시스템 여부</label>
+                                    <input type="text" class="form-control" id="f-systemYn" name="systemYn" readonly tabindex="-1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="f-parentMenuId" class="form-label">상위 메뉴 ID</label>
+                                    <select class="form-select" id="f-parentMenuId" name="parentMenuId">
+                                        <option value="">없음(최상위)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="f-menuUrl" class="form-label">URL</label>
+                                    <input type="text" class="form-control" id="f-menuUrl" name="menuUrl">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-menuLevel" class="form-label">레벨</label>
+                                    <input type="number" class="form-control" id="f-menuLevel" name="menuLevel" min="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-sortOrd" class="form-label">정렬순서</label>
+                                    <input type="number" class="form-control" id="f-sortOrd" name="sortOrd" min="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-iconNm" class="form-label">아이콘명</label>
+                                    <input type="text" class="form-control" id="f-iconNm" name="iconNm">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-displayYn" class="form-label">표시여부</label>
+                                    <select class="form-select" id="f-displayYn" name="displayYn">
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="f-useYn" class="form-label">사용여부</label>
+                                    <select class="form-select" id="f-useYn" name="useYn">
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label for="f-remark" class="form-label">비고</label>
+                                    <input type="text" class="form-control" id="f-remark" name="remark">
+                                </div>
+                            </div>
+                        </fieldset>
+                    </form>
+
+                    <!-- 권한 매트릭스 -->
+                    <div class="menu-auth-section mt-4" id="menu-auth-section">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h3 class="menu-auth-title mb-0">
+                                <i data-lucide="shield-check" aria-hidden="true"></i>
+                                <span>역할 권한 매트릭스</span>
+                            </h3>
+                            <small class="text-body-secondary" id="auth-row-count"></small>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0 menu-auth-table" id="menu-auth-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="text-start">역할</th>
+                                        <th scope="col" class="text-center">조회</th>
+                                        <th scope="col" class="text-center">등록</th>
+                                        <th scope="col" class="text-center">수정</th>
+                                        <th scope="col" class="text-center">삭제</th>
+                                        <th scope="col" class="text-center">승인</th>
+                                        <th scope="col" class="text-center">취소</th>
+                                        <th scope="col" class="text-center">다운로드</th>
+                                        <th scope="col" class="text-center">마스크</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="menu-auth-tbody">
+                                    <tr><td colspan="9" class="text-center text-body-secondary py-3">권한 정보가 없습니다.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="menu-auth-hint mt-2 mb-0">
+                            권한 행이 비어있으면 이 메뉴에 어떤 역할도 접근할 수 없습니다. 매트릭스를 편집한 뒤 <strong>저장</strong>을 눌러 반영하세요.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 미선택 상태 -->
+            <section class="card surface-card menu-empty-card" id="menu-empty-panel">
+                <div class="empty-state">
+                    <i data-lucide="mouse-pointer-click" class="empty-state-icon" aria-hidden="true"></i>
+                    <p class="empty-state-title">메뉴를 선택하세요</p>
+                    <p class="empty-state-hint">좌측 트리에서 메뉴 또는 그룹을 선택하면 상세 정보가 표시됩니다.</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/system/menu-manage.js}"></script>
+</th:block>
+</body>
+</html>

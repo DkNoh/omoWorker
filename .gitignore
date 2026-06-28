@@ -28,6 +28,7 @@ logs/
 # Codegraph / agent tooling
 .codegraph/
 .omo/
+.playwright-mcp/
 
 # OS temp
 *~

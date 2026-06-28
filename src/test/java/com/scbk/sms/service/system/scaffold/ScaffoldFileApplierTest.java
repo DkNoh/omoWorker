@@ -89,7 +89,7 @@ class ScaffoldFileApplierTest {
     Files.createDirectories(sameFile.getParent());
     Files.createDirectories(changedFile.getParent());
     Files.writeString(sameFile, "same");
-    Files.writeString(changedFile, "Scaffold 생성(v1) — scaffold 소유.\nold");
+    Files.writeString(changedFile, "old");
 
     Map<String, String> generatedFiles = new LinkedHashMap<>();
     generatedFiles.put("SmsHistoryVO.java", "same");
@@ -146,12 +146,12 @@ class ScaffoldFileApplierTest {
   }
 
   @Test
-  void 마커_없는_기존_파일은_사용자_소유로_간주해_덮어쓰지_않는다() throws Exception {
-    // given : scaffold 소유 마커가 없는 기존 파일 = 사용자가 편집 중인 파일
+  void 기존_파일은_마커_없이도_내용이_다르면_덮어쓴다() throws Exception {
+    // given : 철학 A에서는 생성 직후부터 개발자 소유지만, 명시 적용 시 기존 파일을 덮어쓴다.
     ScaffoldRequestDTO request = request("sms", "history", "SmsHistory");
-    Path userOwned = tempDir.resolve("src/main/resources/static/js/sms/history.js");
-    Files.createDirectories(userOwned.getParent());
-    Files.writeString(userOwned, "사용자가 손수 편집한 코드 (마커 없음)");
+    Path existing = tempDir.resolve("src/main/resources/static/js/sms/history.js");
+    Files.createDirectories(existing.getParent());
+    Files.writeString(existing, "기존 코드");
 
     Map<String, String> generatedFiles = new LinkedHashMap<>();
     generatedFiles.put("history.js", "새로 생성된 scaffold 내용");
@@ -162,9 +162,9 @@ class ScaffoldFileApplierTest {
     List<ScaffoldApplyFileResultDTO> preview = applier.preview(request, generatedFiles);
     applier.apply(request, generatedFiles);
 
-    // then : USER_OWNED 로 분류되고 실제 파일은 보존된다
-    assertThat(statusMap(preview)).containsEntry("history.js", "USER_OWNED");
-    assertThat(Files.readString(userOwned)).isEqualTo("사용자가 손수 편집한 코드 (마커 없음)");
+    // then : 기존 파일은 OVERWRITE로 분류되고 실제 파일도 적용 내용으로 교체된다.
+    assertThat(statusMap(preview)).containsEntry("history.js", "OVERWRITE");
+    assertThat(Files.readString(existing)).isEqualTo("새로 생성된 scaffold 내용");
   }
 
   private ScaffoldRequestDTO request(String moduleName, String domainId, String domainClass) {

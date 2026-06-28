@@ -25,7 +25,7 @@ public final class VoTemplate {
     if (model.includePrivacy()) {
       sb.append("// 개인정보 컬럼은 Service에서 MaskingUtil로 마스킹한 값을 담는다.\n");
     }
-    sb.append("/** Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다. */\n")
+    sb.append("/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */\n")
         .append("@Data\n")
         .append("public class ")
         .append(model.domainClass())

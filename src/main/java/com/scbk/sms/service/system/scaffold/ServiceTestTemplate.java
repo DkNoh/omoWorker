@@ -54,7 +54,7 @@ public final class ServiceTestTemplate {
         .append("import org.mockito.Mock;\n")
         .append("import org.mockito.junit.jupiter.MockitoExtension;\n\n")
         .append("@ExtendWith(MockitoExtension.class)\n")
-        .append("/** Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다. */\n")
+        .append("/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */\n")
         .append("class ")
         .append(cls)
         .append("ServiceTest {\n\n")

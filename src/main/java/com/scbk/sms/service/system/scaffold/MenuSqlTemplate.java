@@ -20,7 +20,7 @@ public final class MenuSqlTemplate {
     String canDownload = "EXCEL".equals(mode) ? "Y" : "N";
     String canMaskView = model.includePrivacy() ? "Y" : "N";
 
-    return "-- Scaffold 생성(v1) — scaffold 소유. 골격만 재생성 대상.\n"
+    return "-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.\n"
         + "-- ============================================================\n"
         + "-- 메뉴 등록 SQL ( "
         + model.domainName()

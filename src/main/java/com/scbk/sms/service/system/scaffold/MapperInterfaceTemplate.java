@@ -42,7 +42,7 @@ public final class MapperInterfaceTemplate {
       sb.append("import org.apache.ibatis.annotations.Param;\n");
     }
     sb.append("\n")
-        .append("/** Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다. */\n")
+        .append("/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */\n")
         .append("@Mapper\n")
         .append("public interface ")
         .append(cls)

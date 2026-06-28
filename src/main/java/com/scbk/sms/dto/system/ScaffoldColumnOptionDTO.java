@@ -16,4 +16,5 @@ public class ScaffoldColumnOptionDTO {
   private String maskType;
   private String inputMask;
   private String validate;
+  private String optionsText;
 }

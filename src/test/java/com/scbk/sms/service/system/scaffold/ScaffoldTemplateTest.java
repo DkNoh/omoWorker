@@ -37,7 +37,7 @@ class ScaffoldTemplateTest {
         Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
   }
 
-  private static final int GOLDEN_SCAFFOLD_HASH = -131864380;
+  private static final int GOLDEN_SCAFFOLD_HASH = -1048670706;
 
   @Test
   void 드리프트_게이트_스캐폴드_출력_변경_감지() {
@@ -874,5 +874,98 @@ class ScaffoldTemplateTest {
     option.setDateFormat(dateFormat);
     option.setMaskType(maskType);
     return option;
+  }
+
+  @Test
+  void ColumnConfig는_optionsText를_JS_라벨_객체로_변환한다() {
+    ScaffoldColumnOptionDTO option = new ScaffoldColumnOptionDTO();
+    option.setColumnName("STATUS");
+    option.setOptionsText("SUCCESS:성공,FAIL:실패,WAIT:대기");
+    ScaffoldRequestDTO request = basicRequest();
+    request.setColumnOptions(List.of(option));
+
+    ScaffoldModel model =
+        new ScaffoldModel(request, List.of("STATUS"), List.of(), Map.of("STATUS", "String"));
+
+    ScaffoldModel.ColumnConfig config = model.columnConfigs().get(0);
+    assertThat(config.hasOptions()).isTrue();
+    assertThat(config.optionsJsObject())
+        .isEqualTo("{ SUCCESS: '성공', FAIL: '실패', WAIT: '대기' }");
+  }
+
+  @Test
+  void ColumnConfig는_optionsText_작은따옴표를_이스케이프한다() {
+    ScaffoldColumnOptionDTO option = new ScaffoldColumnOptionDTO();
+    option.setColumnName("STATUS");
+    option.setOptionsText("USER_INPUT:User's input");
+    ScaffoldRequestDTO request = basicRequest();
+    request.setColumnOptions(List.of(option));
+
+    ScaffoldModel model =
+        new ScaffoldModel(request, List.of("STATUS"), List.of(), Map.of("STATUS", "String"));
+
+    assertThat(model.columnConfigs().get(0).optionsJsObject())
+        .isEqualTo("{ USER_INPUT: 'User\\'s input' }");
+  }
+
+  @Test
+  void JsTemplate는_optionsText_컬럼에_badgeByValue_formatter를_생성한다() {
+    ScaffoldColumnOptionDTO option = new ScaffoldColumnOptionDTO();
+    option.setColumnName("STATUS");
+    option.setOptionsText("SUCCESS:성공,FAIL:실패,WAIT:대기");
+    ScaffoldRequestDTO request = basicRequest();
+    request.setColumnOptions(List.of(option));
+    ScaffoldModel model =
+        new ScaffoldModel(request, List.of("STATUS"), List.of(), Map.of("STATUS", "String"));
+
+    String js = JsTemplate.generate(model);
+
+    assertThat(js)
+        .contains(
+            "formatter: TuiCommon.badgeByValue({ labels: { SUCCESS: '성공', FAIL: '실패', WAIT: '대기' } })");
+  }
+
+  @Test
+  void JsTemplate는_커스텀_dateFormat을_포맷_문자열로_전달한다() {
+    ScaffoldColumnOptionDTO option = new ScaffoldColumnOptionDTO();
+    option.setColumnName("SENT_AT");
+    option.setDateFormat("YYYY-MM-DD HH:mm");
+    ScaffoldRequestDTO request = basicRequest();
+    request.setColumnOptions(List.of(option));
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request, List.of("SENT_AT"), List.of(), Map.of("SENT_AT", "LocalDateTime"));
+
+    String js = JsTemplate.generate(model);
+
+    assertThat(js).contains("TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')");
+    assertThat(js).doesNotContain("TuiCommon.fmt.date");
+  }
+
+  @Test
+  void JsTemplate는_키워드_dateFormat은_여전히_대문자_정규화한다() {
+    ScaffoldColumnOptionDTO option = new ScaffoldColumnOptionDTO();
+    option.setColumnName("SENT_AT");
+    option.setDateFormat("datetime");
+    ScaffoldRequestDTO request = basicRequest();
+    request.setColumnOptions(List.of(option));
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request, List.of("SENT_AT"), List.of(), Map.of("SENT_AT", "LocalDateTime"));
+
+    String js = JsTemplate.generate(model);
+
+    assertThat(js).contains("TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')");
+  }
+
+  private ScaffoldRequestDTO basicRequest() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("history");
+    request.setDomainClass("SmsHistory");
+    request.setDomainName("발송이력조회");
+    request.setRawQuery("SELECT A.STATUS FROM DUAL A WHERE 1=1");
+    request.setOrderBy("A.STATUS");
+    return request;
   }
 }

@@ -12,7 +12,7 @@ public final class JsTemplate {
     List<ScaffoldModel.ColumnConfig> columns = model.columnConfigs();
 
     StringBuilder sb = new StringBuilder();
-    sb.append("// Scaffold 생성(v1) — scaffold 소유. 골격은 재생성 시 덮어쓴다.\n");
+    sb.append("// Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.\n");
     sb.append("document.addEventListener('DOMContentLoaded', function () {\n");
     sb.append("    const pageBuilder = new TuiPageBuilder({\n")
         .append("        el: 'grid',\n")
@@ -127,17 +127,33 @@ public final class JsTemplate {
           .append("')");
       return;
     }
-    if ("DATE".equals(column.dateFormat())) {
+    if (column.hasOptions()) {
+      sb.append(", formatter: TuiCommon.badgeByValue({ labels: ")
+          .append(column.optionsJsObject())
+          .append(" })");
+      return;
+    }
+    String dateFormat = column.dateFormat();
+    if ("NONE".equals(dateFormat)) {
+      return;
+    }
+    if ("DATE".equals(dateFormat)) {
       sb.append(", formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD')");
       return;
     }
-    if ("DATETIME".equals(column.dateFormat())) {
+    if ("DATETIME".equals(dateFormat)) {
       sb.append(", formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')");
       return;
     }
-    if (column.isDateColumn() && !"NONE".equals(column.dateFormat())) {
-      sb.append(", formatter: TuiCommon.fmt.date");
+    if ("AUTO".equals(dateFormat)) {
+      if (column.isDateColumn()) {
+        sb.append(", formatter: TuiCommon.fmt.date");
+      }
+      return;
     }
+    sb.append(", formatter: ({ value }) => TuiCommon.formatDate(value, '")
+        .append(escapeJs(dateFormat))
+        .append("')");
   }
 
   private static String escapeJs(String value) {

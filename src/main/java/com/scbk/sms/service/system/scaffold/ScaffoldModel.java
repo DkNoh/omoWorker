@@ -258,10 +258,7 @@ public class ScaffoldModel {
           option != null && StringUtils.hasText(option.getAlign())
               ? option.getAlign().trim().toLowerCase()
               : "center";
-      String dateFormat =
-          option != null && StringUtils.hasText(option.getDateFormat())
-              ? option.getDateFormat().trim().toUpperCase()
-              : (dateColumn ? "AUTO" : "NONE");
+      String dateFormat = resolveDateFormat(option, dateColumn);
       String maskType =
           option != null && StringUtils.hasText(option.getMaskType())
               ? option.getMaskType().trim().toUpperCase()
@@ -274,6 +271,7 @@ public class ScaffoldModel {
           option != null && StringUtils.hasText(option.getValidate())
               ? option.getValidate().trim()
               : "";
+      String optionsText = option != null ? option.getOptionsText() : null;
       boolean visible = option == null || option.isVisible();
       boolean modalVisible = option == null || option.isModalVisible();
       boolean editable =
@@ -293,7 +291,8 @@ public class ScaffoldModel {
               modalVisible,
               editable,
               inputMask,
-              validate));
+              validate,
+              optionsText));
     }
     return result;
   }
@@ -337,6 +336,18 @@ public class ScaffoldModel {
 
   private static String normalizeColumn(String column) {
     return StringUtils.hasText(column) ? column.trim().toUpperCase() : "";
+  }
+
+  private static String resolveDateFormat(ScaffoldColumnOptionDTO option, boolean dateColumn) {
+    if (option == null || !StringUtils.hasText(option.getDateFormat())) {
+      return dateColumn ? "AUTO" : "NONE";
+    }
+    String raw = option.getDateFormat().trim();
+    String upper = raw.toUpperCase();
+    if (upper.equals("AUTO") || upper.equals("DATE") || upper.equals("DATETIME") || upper.equals("NONE")) {
+      return upper;
+    }
+    return raw;
   }
 
   private static String normalizeTable(String table) {
@@ -396,7 +407,8 @@ public class ScaffoldModel {
       boolean modalVisible,
       boolean editable,
       String inputMask,
-      String validate) {
+      String validate,
+      String optionsText) {
     public boolean isDateColumn() {
       return "LocalDate".equals(javaType) || "LocalDateTime".equals(javaType);
     }
@@ -411,6 +423,54 @@ public class ScaffoldModel {
 
     public boolean hasValidate() {
       return validate != null && !validate.isEmpty();
+    }
+
+    public boolean hasOptions() {
+      return optionsText != null && !optionsText.isBlank();
+    }
+
+    public String optionsJsObject() {
+      if (!hasOptions()) {
+        return "{}";
+      }
+      StringBuilder sb = new StringBuilder("{ ");
+      String[] tokens = optionsText.split(",");
+      boolean first = true;
+      for (String raw : tokens) {
+        String token = raw.trim();
+        if (token.isEmpty()) {
+          continue;
+        }
+        int sep = indexOfOptionSeparator(token);
+        String value = sep < 0 ? token : token.substring(0, sep).trim();
+        String label = sep < 0 ? token : token.substring(sep + 1).trim();
+        if (value.isEmpty()) {
+          continue;
+        }
+        if (!first) {
+          sb.append(", ");
+        }
+        sb.append(value).append(": '").append(escapeJsString(label)).append("'");
+        first = false;
+      }
+      return sb.append(" }").toString();
+    }
+
+    private static int indexOfOptionSeparator(String token) {
+      for (int i = 0; i < token.length(); i++) {
+        char c = token.charAt(i);
+        if (c == ':' || c == '=') {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    private static String escapeJsString(String s) {
+      if (s == null) {
+        return "";
+      }
+      return s.replace("\\", "\\\\").replace("'", "\\'");
     }
   }
 }

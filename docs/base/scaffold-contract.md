@@ -44,12 +44,13 @@
 | 원문 상세 | includePrivacy -> /unmask endpoint + getUnmaskedDetail + @PrivacyLog |
 | 권한 | screenMode별 최소 CAN_* (LIST->READ, CRUD->CRUD 4종, privacy->+MASK_VIEW) |
 | SQL | 쿼리 시그니처(/* Mapper.method */), baseQuery DRY, searchConditions 공통화 |
-| 보존 | 마커 없는 기존 파일은 덮어쓰지 않음 (USER_OWNED). 안전망. |
+| 적용 | 미리보기는 신규/변경없음/덮어쓰기를 표시한다. 사용자가 적용을 확정하면 기존 파일은 생성 결과로 덮어쓴다. |
 
-## 4. 소유권 마커
+## 4. 생성 파일 소유권
 
-모든 생성 파일에 `Scaffold 생성(v1) — scaffold 소유` 헤더가 있다.
-개발자가 수정을 시작하면 이 마커는 참고용(이 파일이 스캐폴드 생성이었다는 표시).
+모든 생성 파일에는 `Scaffold 생성(v1)` 헤더가 있다.
+이 헤더는 생성 출처를 표시할 뿐이며, 파일은 생성 직후부터 개발자 소유다.
+개발자는 Service, Controller, Mapper, 화면 파일을 직접 수정한다.
 
 ## 5. screen-generation-guide.md가 핵심
 

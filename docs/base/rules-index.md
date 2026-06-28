@@ -32,6 +32,8 @@
 | **DB/SQL 작업** (Mapper/XML) | `.claude/rules/mybatis-oracle.md` |
 | **개인정보 포함 화면** | `docs/base/audit-masking-policy.md` (+ 위 화면 생성 세트) |
 | **메뉴/권한** (seed·DDL·인터셉터) | `.claude/rules/menu-authority.md`, `docs/base/menu-authority-table-design.md`, `docs/base/menu-source-policy.md`, `docs/base/v2-menu-baseline.md`, `docs/base/dba-request-menu-auth-ddl.md` |
+| **메뉴/권한 관리 화면 설계** | `.claude/rules/menu-authority.md`, `docs/base/menu-authority-table-design.md`, `docs/base/menu-source-policy.md`, `docs/메뉴.md` |
+| **승인 시스템 설계** | `.claude/rules/menu-authority.md`, `docs/메뉴.md`, `docs/승인.md` |
 | **Query Scaffold 작업** | `.claude/rules/scaffold-query.md`, `docs/base/query-scaffold-implementation.md`, `docs/base/v2-scaffold-reference.md` |
 | **인증/환경 작업** (profile/LDAP) | `.claude/rules/environment-auth.md`, `docs/base/environment-auth-policy.md` |
 | **테스트 작성** | `.claude/rules/testing.md`, `docs/base/test-automation-guide.md` |

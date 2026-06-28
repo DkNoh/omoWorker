@@ -147,7 +147,7 @@ const pageBuilder = new TuiPageBuilder({
 | 날짜 전송 형식 | Toast UI DatePicker 검색 input(`data-search-type="date"`) 값은 `-`가 제거된 `YYYYMMDD` 문자열로 전송된다 (datetime-local은 `YYYYMMDDHHMMSS`). DATE/TIMESTAMP 컬럼과 비교하는 SQL은 `TO_DATE(#{변수}, 'YYYYMMDD')`로 감싼다 |
 | 기간 검증 | input id가 정확히 `startDate`/`endDate`일 때만 시작일>종료일 검증이 동작한다 |
 | 날짜 컬럼 표시 | LocalDate/LocalDateTime 컬럼은 `formatter: TuiCommon.fmt.date`를 붙인다 (scaffold가 자동 부착) |
-| 상태/유형 badge | `TuiCommon.fmt.sendStatus`(SUCCESS/FAIL/WAIT), `fmt.sendType`(SMS/LMS/ALIMTALK), `fmt.resendYn` 사용. 상태값이 추가되면 `tui-common.js`도 함께 갱신한다 |
+| 상태/유형 badge | 컬럼 단위로 `formatter: TuiCommon.badgeByValue({ labels, tones })` 선언. `labels`=코드→표시라벨 매핑, `tones`=코드→고정 색(생략 시 라벨 해시 기반 자동 색). 도메인 코드값(SMS/LMS, SUCCESS/FAIL 등)은 공통 JS가 모르게 화면에서 선언한다 |
 | 데이터 통신 | **모든 HTTP 호출은 axios로 통일한다** (2026-06-12, fetch 사용처 제거). 전역 인터셉터가 스피너/언래핑/오류 모달을 일괄 담당하므로 화면 JS에서 fetch를 쓰지 않는다 |
 
 ## 상세폼 화면 규약 (조회 -> 수정 -> 저장)

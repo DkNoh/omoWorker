@@ -41,6 +41,8 @@ v3는 화면을 먼저 많이 만드는 프로젝트가 아니다. 먼저 폐쇄
 | `remaining-work.md` | 현재 미수정/미비 사항과 의도적으로 미룬 작업 목록 |
 | `deployment-checklist.md` | 폐쇄망 반입 체크리스트 (환경변수/DDL/소스 전환/검증) |
 | `test-automation-guide.md` | 테스트 자동화 3층 구조 (scaffold 생성/컨벤션/Jenkins) |
+| `../메뉴.md` | 메뉴/역할/권한 관리 화면 설계 메모와 Oracle DDL 예시 |
+| `../승인.md` | 메뉴 권한과 분리된 공통 승인 시스템 설계 메모와 Oracle DDL 예시 |
 
 ## 설계 방향
 

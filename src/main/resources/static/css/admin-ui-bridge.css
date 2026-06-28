@@ -638,3 +638,207 @@
    A11Y — keyboard focus indicator (kept here for legacy compatibility;
    the canonical rule lives in admin-common.css).
    --------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------
+   Menu management tree screen — token-driven scoped styles. Used only by
+   /system/menu-manage where the left tree + right detail/auth matrix is
+   rendered. All values reference --sms-* tokens (DESIGN.md §3-7).
+   --------------------------------------------------------------------- */
+.menu-manage-layout {
+    align-items: stretch;
+}
+
+.menu-tree-card,
+.menu-detail-card,
+.menu-empty-card {
+    min-width: 0;
+}
+
+.menu-tree-body {
+    padding: var(--sms-space-3);
+}
+
+.menu-tree-filter .form-control {
+    height: calc(var(--sms-control-height) - 6px);
+    font-size: var(--sms-fs-body-sm);
+}
+
+.menu-tree {
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-body);
+}
+
+.menu-tree-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sms-space-2);
+    padding: var(--sms-space-8) var(--sms-space-3);
+    color: var(--sms-text-muted);
+    text-align: center;
+}
+.menu-tree-empty .empty-state-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--sms-text-disabled);
+    stroke-width: 1.5;
+}
+
+.menu-node {
+    border-radius: var(--sms-radius-sm);
+    transition: background-color var(--sms-transition-fast);
+}
+.menu-node-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sms-space-1);
+    padding: var(--sms-space-1) var(--sms-space-2);
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: var(--sms-radius-sm);
+    user-select: none;
+}
+.menu-node-row:hover {
+    background-color: var(--sms-primary-soft);
+}
+.menu-node-row.is-selected {
+    background-color: var(--sms-primary-soft);
+    border-color: rgba(var(--sms-primary-rgb), 0.35);
+    color: var(--sms-text-strong);
+    font-weight: var(--sms-fw-semibold);
+}
+.menu-node-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--sms-text-muted);
+    cursor: pointer;
+    transition: transform var(--sms-transition-fast);
+}
+.menu-node-toggle.is-expanded {
+    transform: rotate(90deg);
+}
+.menu-node-toggle.is-leaf {
+    visibility: hidden;
+}
+.menu-node-toggle .lucide {
+    width: 14px;
+    height: 14px;
+    margin-right: 0;
+}
+.menu-node-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--sms-text-muted);
+    stroke-width: 2;
+}
+.menu-node-row.is-selected .menu-node-icon {
+    color: var(--sms-primary);
+}
+.menu-node-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.menu-node-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: var(--sms-fs-caption);
+    font-weight: var(--sms-fw-bold);
+    color: var(--sms-text-muted);
+    background-color: var(--sms-bg-muted);
+    border-radius: var(--sms-radius-sm);
+}
+.menu-node-row.is-selected .menu-node-type {
+    color: var(--sms-primary);
+    background-color: var(--sms-bg-surface);
+}
+.menu-node-children {
+    padding-left: var(--sms-space-3);
+}
+
+.menu-detail-id {
+    font-family: var(--sms-font-mono);
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+    background-color: var(--sms-bg-muted);
+    padding: 1px 6px;
+    border-radius: var(--sms-radius-sm);
+}
+
+.menu-auth-section {
+    border-top: 1px solid var(--sms-border-subtle);
+    padding-top: var(--sms-space-3);
+}
+.menu-auth-title {
+    display: flex;
+    align-items: center;
+    gap: var(--sms-space-2);
+    font-size: var(--sms-fs-section);
+    font-weight: var(--sms-fw-semibold);
+    color: var(--sms-text-strong);
+}
+.menu-auth-title .lucide {
+    width: 18px;
+    height: 18px;
+    margin-right: 0;
+    color: var(--sms-primary);
+}
+.menu-auth-table {
+    font-size: var(--sms-fs-body-sm);
+}
+.menu-auth-table thead th {
+    background-color: var(--sms-bg-surface-alt);
+    color: var(--sms-text-strong);
+    font-weight: var(--sms-fw-semibold);
+    font-size: var(--sms-fs-caption);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.menu-auth-table .auth-role-name {
+    color: var(--sms-text-body);
+    font-weight: var(--sms-fw-medium);
+}
+.menu-auth-table .auth-role-code {
+    color: var(--sms-text-muted);
+    font-size: var(--sms-fs-caption);
+    font-family: var(--sms-font-mono);
+    margin-left: var(--sms-space-2);
+}
+.menu-auth-table .form-check-input {
+    cursor: pointer;
+    margin-left: 0;
+}
+.menu-auth-table .form-check {
+    display: inline-flex;
+    margin: 0;
+}
+.menu-auth-hint {
+    font-size: var(--sms-fs-body-sm);
+    color: var(--sms-text-muted);
+    line-height: var(--sms-lh-body);
+    word-break: keep-all;
+}
+
+.menu-detail-fields legend {
+    display: none;
+}
+
+.menu-empty-card .card-body {
+    padding: 0;
+}

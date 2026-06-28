@@ -52,51 +52,14 @@ const TuiCommon = (() => {
             const pattern = String(val || '').length > 10 ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD';
             return formatDate(val, pattern);
         },
-
-        sendStatus: ({ value }) => {
-            const map = {
-                SUCCESS: ['bg-success', '성공'],
-                FAIL: ['bg-danger', '실패'],
-                WAIT: ['bg-warning text-dark', '대기'],
-            };
-            const clsAndLabel = map[value] || ['', value || '-'];
-            const cls = clsAndLabel[0];
-            const label = clsAndLabel[1];
-            return `<span class="badge ${cls}">${label}</span>`;
-        },
-
-        sendType: ({ value }) => {
-            const cls = { SMS: 'bg-primary', LMS: 'bg-info text-dark', ALIMTALK: 'bg-warning text-dark' };
-            const label = { SMS: 'SMS', LMS: 'LMS', ALIMTALK: '알림톡' };
-            return value
-                ? `<span class="badge ${cls[value] || 'bg-secondary'}">${label[value] || value}</span>`
-                : '-';
-        },
-
-        resendYn: ({ value }) =>
-            value === 'Y'
-                ? '<span class="badge bg-primary">Y</span>'
-                : '<span class="badge bg-secondary">N</span>',
-
-        // 값이 뭐가 오든 자동으로 색상을 다르게 뿌려주는 범용 배지 포매터.
-        // 값(또는 라벨)을 해시해 팔레트에서 색을 고른다. 같은 값은 항상 같은 색.
-        // 코드값→한글 라벨 매핑이 필요하면 TuiCommon.autoBadge({ APPR:'승인', ... }) 팩토리를 사용한다.
-        autoBadge: ({ value }) => {
-            const val = rawValue(value);
-            if (!val) return '-';
-            const label = String(val);
-            return `<span class="badge ${badgeColorFor(label)}">${label}</span>`;
-        },
     };
 
-    // autoBadge의 라벨 매핑 버전 (팩토리).
-    // 사용: formatter: TuiCommon.autoBadge({ APPR: '승인', REJ: '반려', REAPPR: '재승인' })
-    // 색은 라벨(한글) 기준으로 자동 할당되므로, 승인/반려/재승인은 각각 다른 색이 보장된다(팔레트 범위 내).
-    const autoBadge = (labels = {}) => ({ value }) => {
+    const badgeByValue = ({ labels = {}, tones = {} } = {}) => ({ value }) => {
         const code = rawValue(value);
         if (!code) return '-';
         const label = labels[code] || String(code);
-        return `<span class="badge ${badgeColorFor(label)}">${label}</span>`;
+        const cls = tones[code] || badgeColorFor(label);
+        return `<span class="badge ${cls}">${label}</span>`;
     };
 
     const gridDefaults = {
@@ -152,7 +115,7 @@ const TuiCommon = (() => {
 
     return {
         fmt,
-        autoBadge,
+        badgeByValue,
         formatDate,
         maskValue,
         gridDefaults,

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{defaultLayout}">
@@ -13,39 +14,36 @@
     </div>
 
     <!-- 검색조건 카드 -->
-    <section class="card mb-4 shadow-sm border-0 scaffold-search-card history-search-card" aria-label="발송이력 검색 조건">
+    <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
         <div class="card-body">
-            <div class="history-filters">
-                <div class="history-filter-group">
-                    <label for="sentAt" class="history-filter-label">발송일시</label>
-                    <div class="scaffold-date-field scaffold-date-field-md">
-                        <div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input">
-                            <input type="text" id="sentAt" data-search-type="date" autocomplete="off" aria-label="발송일시">
-                            <span class="tui-ico-date" aria-hidden="true"></span>
-                        </div>
-                        <div id="sentAtPickerLayer" class="scaffold-date-picker-layer"></div>
-                    </div>
+            <div class="row align-items-center g-3 flex-wrap">
+                <div class="col-auto"><label for="sendType" class="col-form-label fw-bold">sendType</label></div>
+                <div class="col-auto"><select id="sendType" class="form-select scaffold-search-control" aria-label="sendType">
+                        <option value="">전체</option>
+                        <option value="SMS">SMS</option>
+                        <option value="LMS">LMS</option>
+                        <option value="MMS">MMS</option>
+                        <option value="ALIMTALK">ALIMTALK</option>
+                    </select></div>
+                <div class="col-auto"><label for="sendStatus" class="col-form-label fw-bold">sendStatus</label></div>
+                <div class="col-auto"><select id="sendStatus" class="form-select scaffold-search-control" aria-label="sendStatus">
+                        <option value="">전체</option>
+                        <option value="SUCCESS">SUCCESS</option>
+                        <option value="FAIL">FAIL</option>
+                        <option value="SENT">SENT</option>
+                        <option value="CANCEL">CANCEL</option>
+                    </select></div>
+                <div class="col-auto"><label for="sentAt" class="col-form-label fw-bold">sentAt</label></div>
+                <div class="col-auto"><div class="scaffold-date-field scaffold-date-field-md"><div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input"><input type="text" id="sentAt" data-search-type="date" autocomplete="off" aria-label="sentAt"><span class="tui-ico-date" aria-hidden="true"></span></div><div id="sentAtPickerLayer" class="scaffold-date-picker-layer"></div></div></div>
+                <div class="col-auto"><label for="receiverNo" class="col-form-label fw-bold">receiverNo</label></div>
+                <div class="col-auto"><input type="text" id="receiverNo" class="form-control scaffold-search-control" aria-label="receiverNo"></div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
                 </div>
-                <div class="history-filter-group">
-                    <label for="receiverNo" class="history-filter-label">수신번호</label>
-                    <input type="text" id="receiverNo" class="form-control scaffold-search-control" aria-label="수신번호">
-                </div>
-                <div class="history-filter-group">
-                    <label for="sendStatus" class="history-filter-label">발송상태</label>
-                    <input type="text" id="sendStatus" class="form-control scaffold-search-control" aria-label="발송상태">
-                </div>
-                <div class="history-filter-group">
-                    <label for="sendType" class="history-filter-label">발송유형</label>
-                    <input type="text" id="sendType" class="form-control scaffold-search-control" aria-label="발송유형">
-                </div>
-            </div>
-            <div class="history-filter-actions">
-                <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary px-3" aria-label="신규 등록"><i data-lucide="plus" aria-hidden="true"></i><span>등록</span></button>
-                <button type="button" id="btn-reset" class="btn btn-ghost px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
-                <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- Toast UI Grid -->
     <div th:replace="~{fragments/toast-grid :: gridCard}"></div>

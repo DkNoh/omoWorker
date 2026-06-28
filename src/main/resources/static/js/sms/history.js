@@ -1,8 +1,9 @@
+// Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
 document.addEventListener('DOMContentLoaded', function () {
     const pageBuilder = new TuiPageBuilder({
         el: 'grid',
         apiUrl: '/sms/history/data',
-        searchInputs: ['sentAt', 'receiverNo', 'sendStatus', 'sendType'],
+        searchInputs: ['sendType', 'sendStatus', 'sentAt', 'receiverNo'],
         searchDefaults: {},
         rowHeaders: ['rowNum'],
         columns: [
@@ -11,22 +12,23 @@ document.addEventListener('DOMContentLoaded', function () {
             { header: 'SENT_AT', name: 'sentAt', align: 'center', width: 150, editable: true, formatter: TuiCommon.fmt.date },
             { header: 'RECEIVER_NO', name: 'receiverNo', align: 'center', width: 150, editable: true },
             { header: 'SENDER_NO', name: 'senderNo', align: 'center', width: 150, editable: true },
-            { header: 'SEND_TYPE', name: 'sendType', align: 'center', width: 150, editable: true },
-            { header: 'SEND_STATUS', name: 'sendStatus', align: 'center', width: 150, editable: true },
+	            { header: 'SEND_TYPE', name: 'sendType', align: 'center', width: 150, editable: true,
+	              formatter: TuiCommon.badgeByValue({
+	                  labels: { SMS: 'SMS', LMS: 'LMS', MMS: 'MMS', ALIMTALK: '알림톡' },
+	                  tones: {
+	                      SMS: 'bg-primary-subtle text-primary-emphasis border border-primary-subtle',
+	                      LMS: 'bg-info-subtle text-info-emphasis border border-info-subtle',
+	                      MMS: 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle',
+	                      ALIMTALK: 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'
+	                  }
+	              }) },
+            { header: 'SEND_STATUS', name: 'sendStatus', align: 'center', width: 150, editable: true,
+              formatter: TuiCommon.badgeByValue({
+                  labels: { SUCCESS: '성공', FAIL: '실패', WAIT: '대기' },
+                  tones: { SUCCESS: 'bg-success', FAIL: 'bg-danger', WAIT: 'bg-warning text-dark' }
+              }) },
             { header: 'RESULT_CD', name: 'resultCd', align: 'center', width: 150, editable: true },
-            { header: 'RESULT_MSG', name: 'resultMsg', align: 'center', width: 150, editable: true },
-            { header: 'UPD_DTTM', name: 'updDttm', align: 'center', width: 150, formatter: TuiCommon.fmt.date }
-        ],
-        autoModal: true,
-        autoModalTitle: '발송이력조회 상세',
-        modalActions: {
-            createUrl: '/sms/history/create',
-            updateUrl: '/sms/history/update',
-            deleteUrl: '/sms/history/delete',
-            pkFields: ['smsHistoryId'],
-            lockField: 'updDttm',
-            beforeLockField: 'beforeUpdDttm',
-            editable: true
-        }
+            { header: 'RESULT_MSG', name: 'resultMsg', align: 'center', width: 150, editable: true }
+        ]
     });
 });

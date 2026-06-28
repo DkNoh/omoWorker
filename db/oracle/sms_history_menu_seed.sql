@@ -1,3 +1,4 @@
+-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
 -- ============================================================
 -- 메뉴 등록 SQL ( 발송이력조회 )
 -- 폐쇄망 반입 전에는 parentMenuId/menuId/roleCode 값을 수동 확인한다.
@@ -18,8 +19,8 @@ INSERT INTO SMS.TB_MENU_AUTH (
     USE_YN, REG_ID
 ) VALUES (
     'SMS_HISTORY', 'ROLE_ADMIN',
-    'Y', 'Y', 'Y', 'Y',
-    'Y', 'Y', 'Y', 'Y',
+    'Y', 'N', 'N', 'N',
+    'N', 'N', 'N', 'N',
     'Y', 'SYSTEM'
 );
 

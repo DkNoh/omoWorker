@@ -5,124 +5,60 @@
 
 <mapper namespace="com.scbk.sms.mapper.sms.SmsHistoryMapper">
 
-    <!--
-        발송이력(SMS_HISTORY) 조회/Excel/상세/CRUD.
-        - 검색 조건은 searchConditions에 한 곳으로 모아 count/selectList/selectListForExcel이 공유한다.
-        - 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다(TuiPageBuilder 규약).
-          단일 날짜 = 조건은 당일 00:00:00 이상 ~ 다음날 00:00:00 미만 범위로 변환한다.
-        - map-underscore-to-camel-case=true 이므로 alias 없이 컬럼명 그대로 매핑한다.
-        - 페이지 조회는 결정적 정렬(SENT_AT DESC, SMS_HISTORY_ID DESC)을 둔다(ConventionTest).
-    -->
-
-    <sql id="columns">
-        A.SMS_HISTORY_ID,
-        A.REQUEST_ID,
-        A.SENT_AT,
-        A.RECEIVER_NO,
-        A.SENDER_NO,
-        A.SEND_TYPE,
-        A.SEND_STATUS,
-        A.RESULT_CD,
-        A.RESULT_MSG,
-        A.UPD_DTTM
-    </sql>
+    <!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->
+    <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).
+         비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,
+         단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->
 
     <sql id="searchConditions">
-        <if test="sentAt != null and sentAt != ''">
-            AND A.SENT_AT <![CDATA[ >= ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS')
-            AND A.SENT_AT <![CDATA[ < ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY
-        </if>
-        <if test="receiverNo != null and receiverNo != ''">
-            AND A.RECEIVER_NO LIKE '%' || #{receiverNo} || '%'
-        </if>
-        <if test="sendStatus != null and sendStatus != ''">
-            AND A.SEND_STATUS = #{sendStatus}
-        </if>
-        <if test="sendType != null and sendType != ''">
-            AND A.SEND_TYPE = #{sendType}
-        </if>
+        <where>
+        </where>
+    </sql>
+
+    <sql id="baseQuery">
+            SELECT                                                                                                                                                                                              
+                     A.SMS_HISTORY_ID AS SMS_HISTORY_ID,                                                                                                                                                             
+                     A.REQUEST_ID AS REQUEST_ID,                                                                                                                                                                     
+                     A.SENT_AT AS SENT_AT,                                                                                                                                                                           
+                     A.RECEIVER_NO AS RECEIVER_NO,                                                                                                                                                                   
+                     A.SENDER_NO AS SENDER_NO,                                                                                                                                                                       
+                     A.SEND_TYPE AS SEND_TYPE,                                                                                                                                                                       
+                     A.SEND_STATUS AS SEND_STATUS,                                                                                                                                                                   
+                     A.RESULT_CD AS RESULT_CD,                                                                                                                                                                       
+                     A.RESULT_MSG AS RESULT_MSG                                                                                                                                                                      
+                 FROM SMS.SMS_HISTORY A                                                                                                                                                                              
+                 WHERE 1=1                                                                                                                                                                                           
+                <if test="sendType != null and sendType != ''">
+                    AND A.SEND_TYPE = #{sendType}
+                </if>
+                <if test="sendStatus != null and sendStatus != ''">
+                    AND A.SEND_STATUS = #{sendStatus}
+                </if>
+                <if test="sentAt != null and sentAt != ''">
+                    AND A.SENT_AT <![CDATA[ >= ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') AND A.SENT_AT <![CDATA[ < ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY
+                </if>
+                <if test="receiverNo != null and receiverNo != ''">
+                    AND A.RECEIVER_NO LIKE '%' || #{receiverNo} || '%'
+                </if>
     </sql>
 
     <select id="count" resultType="int">
         /* SmsHistoryMapper.count */
-        SELECT COUNT(1)
-        FROM SMS.SMS_HISTORY A
-        WHERE 1 = 1
+        SELECT COUNT(1) FROM (
+        <include refid="baseQuery"/>
+        ) A
         <include refid="searchConditions"/>
     </select>
 
     <select id="selectList" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
         /* SmsHistoryMapper.selectList */
-        SELECT <include refid="columns"/>
-        FROM SMS.SMS_HISTORY A
-        WHERE 1 = 1
+        SELECT A.*
+        FROM (
+        <include refid="baseQuery"/>
+        ) A
         <include refid="searchConditions"/>
-        ORDER BY A.SENT_AT DESC, A.SMS_HISTORY_ID DESC
+        ORDER BY A.SMS_HISTORY_ID
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
     </select>
-
-    <!-- 엑셀 다운로드용. 검색 조건은 동일하되 페이징 제외. 대량 OOM 방지를 위해 상한(FETCH NEXT)을 둔다. -->
-    <select id="selectListForExcel" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
-        /* SmsHistoryMapper.selectListForExcel */
-        SELECT <include refid="columns"/>
-        FROM SMS.SMS_HISTORY A
-        WHERE 1 = 1
-        <include refid="searchConditions"/>
-        ORDER BY A.SENT_AT DESC, A.SMS_HISTORY_ID DESC
-        FETCH NEXT 50000 ROWS ONLY
-    </select>
-
-    <!-- 원문 상세 조회(CAN_MASK_VIEW 전용). 마스킹은 서비스에서 하지 않고 원문을 그대로 내린다. -->
-    <select id="selectDetail" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
-        /* SmsHistoryMapper.selectDetail */
-        SELECT <include refid="columns"/>
-        FROM SMS.SMS_HISTORY A
-        WHERE A.SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
-    </select>
-
-    <insert id="insert">
-        /* SmsHistoryMapper.insert */
-        INSERT INTO SMS.SMS_HISTORY (
-            SENT_AT,
-            RECEIVER_NO,
-            SENDER_NO,
-            SEND_TYPE,
-            SEND_STATUS,
-            RESULT_CD,
-            RESULT_MSG,
-            UPD_DTTM
-        ) VALUES (
-            #{sentAt,jdbcType=TIMESTAMP},
-            #{receiverNo,jdbcType=VARCHAR},
-            #{senderNo,jdbcType=VARCHAR},
-            #{sendType,jdbcType=VARCHAR},
-            #{sendStatus,jdbcType=VARCHAR},
-            #{resultCd,jdbcType=VARCHAR},
-            #{resultMsg,jdbcType=VARCHAR},
-            SYSTIMESTAMP
-        )
-    </insert>
-
-    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
-    <update id="update">
-        /* SmsHistoryMapper.update */
-        UPDATE SMS.SMS_HISTORY
-           SET SENT_AT = #{sentAt,jdbcType=TIMESTAMP},
-               RECEIVER_NO = #{receiverNo,jdbcType=VARCHAR},
-               SENDER_NO = #{senderNo,jdbcType=VARCHAR},
-               SEND_TYPE = #{sendType,jdbcType=VARCHAR},
-               SEND_STATUS = #{sendStatus,jdbcType=VARCHAR},
-               RESULT_CD = #{resultCd,jdbcType=VARCHAR},
-               RESULT_MSG = #{resultMsg,jdbcType=VARCHAR},
-               UPD_DTTM = SYSTIMESTAMP
-         WHERE SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
-           AND (UPD_DTTM = #{beforeUpdDttm,jdbcType=TIMESTAMP}
-                OR (UPD_DTTM IS NULL AND #{beforeUpdDttm,jdbcType=TIMESTAMP} IS NULL))
-    </update>
-
-    <delete id="delete">
-        /* SmsHistoryMapper.delete */
-        DELETE FROM SMS.SMS_HISTORY WHERE SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
-    </delete>
 
 </mapper>

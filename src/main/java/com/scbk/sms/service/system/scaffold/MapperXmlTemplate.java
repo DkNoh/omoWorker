@@ -13,6 +13,12 @@ public final class MapperXmlTemplate {
   private static final Pattern SEARCH_VAR_PATTERN = Pattern.compile("\\$([a-zA-Z0-9_]+)");
   private static final Pattern COLUMN_COMPARE_PATTERN =
       Pattern.compile("([A-Za-z0-9_\\.]+)\\s*(<>|>=|<=|=|>|<)\\s*\\$([a-zA-Z0-9_]+)");
+  // BETWEEN $a AND $b 패턴. 비교 연산자 패턴이 BETWEEN을 잡지 못하므로 별도 처리한다.
+  // 하한($a)은 000000, 상한($b)은 235959 suffix로 변환해 당일 inclusive 범위를 만든다.
+  private static final Pattern COLUMN_BETWEEN_PATTERN =
+      Pattern.compile(
+          "([A-Za-z0-9_\\.]+)\\s+BETWEEN\\s+\\$([a-zA-Z0-9_]+)\\s+AND\\s+\\$([a-zA-Z0-9_]+)",
+          Pattern.CASE_INSENSITIVE);
 
   private MapperXmlTemplate() {}
 
@@ -182,7 +188,9 @@ public final class MapperXmlTemplate {
 
   private static String replaceBindVariables(
       ScaffoldModel model, Map<String, ScaffoldModel.SearchParam> paramMap, String line) {
-    Matcher compareMatcher = COLUMN_COMPARE_PATTERN.matcher(line);
+    String betweenHandled = replaceBetweenClauses(model, paramMap, line);
+
+    Matcher compareMatcher = COLUMN_COMPARE_PATTERN.matcher(betweenHandled);
     StringBuffer buffer = new StringBuffer();
     while (compareMatcher.find()) {
       String columnRef = compareMatcher.group(1);
@@ -198,6 +206,23 @@ public final class MapperXmlTemplate {
     return SEARCH_VAR_PATTERN
         .matcher(buffer.toString())
         .replaceAll(match -> "#{" + QueryColumnExtractor.toCamelCase(match.group(1)) + "}");
+  }
+
+  private static String replaceBetweenClauses(
+      ScaffoldModel model, Map<String, ScaffoldModel.SearchParam> paramMap, String line) {
+    Matcher betweenMatcher = COLUMN_BETWEEN_PATTERN.matcher(line);
+    StringBuffer buffer = new StringBuffer();
+    while (betweenMatcher.find()) {
+      String columnRef = betweenMatcher.group(1);
+      String fromField = QueryColumnExtractor.toCamelCase(betweenMatcher.group(2));
+      String toField = QueryColumnExtractor.toCamelCase(betweenMatcher.group(3));
+      String lower = bindExpression(model, paramMap.get(fromField), columnRef, ">=", fromField);
+      String upper = bindExpression(model, paramMap.get(toField), columnRef, "<=", toField);
+      String replacement = columnRef + " BETWEEN " + lower + " AND " + upper;
+      betweenMatcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+    }
+    betweenMatcher.appendTail(buffer);
+    return buffer.toString();
   }
 
   private static String compareReplacement(

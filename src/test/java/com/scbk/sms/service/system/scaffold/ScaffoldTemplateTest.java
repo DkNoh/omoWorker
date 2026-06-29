@@ -489,6 +489,140 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void MapperXml은_BETWEEN_TIMESTAMP_조건을_상하한_TO_TIMESTAMP로_변환한다() {
+    // given : notice 등록일시 REG_DTTM을 startDate/endDate 범위로 조회
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("notice");
+    request.setDomainClass("Notice");
+    request.setDomainName("공지사항");
+    request.setRawQuery(
+        """
+            SELECT A.NOTICE_ID, A.REG_DTTM
+            FROM SMS.NOTICE A
+            WHERE 1=1
+            AND A.REG_DTTM BETWEEN $start_date AND $end_date
+            """);
+    request.setOrderBy("A.REG_DTTM DESC, A.NOTICE_ID DESC");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("NOTICE_ID", "REG_DTTM"),
+            List.of("startDate", "endDate"),
+            Map.of("NOTICE_ID", "Long", "REG_DTTM", "LocalDateTime"));
+
+    // when
+    String xml = MapperXmlTemplate.generate(model);
+
+    // then : 하한은 000000, 상한은 235959 suffix로 당일 inclusive 범위
+    assertThat(xml)
+        .contains(
+            "A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')");
+    assertThat(xml)
+        .contains(
+            "<if test=\"startDate != null and startDate != '' and endDate != null and endDate != ''\">");
+    assertThat(xml).doesNotContain("$start_date");
+    assertThat(xml).doesNotContain("$end_date");
+  }
+
+  @Test
+  void MapperXml은_BETWEEN_LOCALDATE_조건을_TO_DATE_상하한으로_변환한다() {
+    // given : notice 노출기간 START_DT(LocalDate)를 startDate/endDate로 조회
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("notice");
+    request.setDomainClass("Notice");
+    request.setDomainName("공지사항");
+    request.setRawQuery(
+        """
+            SELECT A.NOTICE_ID, A.START_DT
+            FROM SMS.NOTICE A
+            WHERE 1=1
+            AND A.START_DT BETWEEN $start_date AND $end_date
+            """);
+    request.setOrderBy("A.START_DT DESC");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("NOTICE_ID", "START_DT"),
+            List.of("startDate", "endDate"),
+            Map.of("NOTICE_ID", "Long", "START_DT", "LocalDate"));
+
+    // when
+    String xml = MapperXmlTemplate.generate(model);
+
+    // then : LocalDate는 TO_DATE로 양끝을 모두 당일 inclusive로 변환
+    assertThat(xml)
+        .contains(
+            "A.START_DT BETWEEN TO_DATE(#{startDate}, 'YYYYMMDD') AND TO_DATE(#{endDate}, 'YYYYMMDD')");
+    assertThat(xml).doesNotContain("$start_date");
+    assertThat(xml).doesNotContain("$end_date");
+  }
+
+  @Test
+  void 사용자_시나리오_notice_START_END_이름으로_FROM_TO_피커가_생성된다() {
+    // given : 사용자가 scaffold UI에 입력한 그대로의 rawQuery. 변수는 snake_case.
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("notice");
+    request.setDomainClass("Notice");
+    request.setDomainName("공지사항");
+    request.setRawQuery(
+        """
+            SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN, A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM
+            FROM SMS.NOTICE A
+            WHERE 1=1
+              AND A.TITLE LIKE '%' || $search_keyword || '%'
+              AND A.NOTICE_TYPE = $notice_type
+              AND A.USE_YN = $use_yn
+              AND A.REG_DTTM BETWEEN $start_date AND $end_date
+            """);
+    request.setOrderBy("A.REG_DTTM DESC, A.NOTICE_ID DESC");
+
+    // when : 실제 ScaffoldService와 동일 경로로 searchVars/columns 추출
+    List<String> searchVars = QueryColumnExtractor.extractSearchVars(request.getRawQuery());
+    List<String> columns = QueryColumnExtractor.extractColumns(request.getRawQuery());
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            columns,
+            searchVars,
+            Map.ofEntries(
+                Map.entry("NOTICE_ID", "Long"),
+                Map.entry("TITLE", "String"),
+                Map.entry("NOTICE_TYPE", "String"),
+                Map.entry("USE_YN", "String"),
+                Map.entry("START_DT", "LocalDate"),
+                Map.entry("END_DT", "LocalDate"),
+                Map.entry("VIEW_CNT", "Integer"),
+                Map.entry("REG_DTTM", "LocalDateTime")));
+
+    // then 1 : 변수 추출이 startDate/endDate 짝으로 되어야 FROM-TO 매칭이 된다
+    assertThat(searchVars).containsExactly("searchKeyword", "noticeType", "useYn", "startDate", "endDate");
+
+    // then 2 : HtmlTemplate는 start*/end* 규칙으로 FROM-TO picker 2개 + ~ 구분자를 생성
+    String html = HtmlTemplate.generate(model);
+    assertThat(html).contains("id=\"startDate\" data-search-type=\"date\"");
+    assertThat(html).contains("id=\"endDate\" data-search-type=\"date\"");
+    assertThat(html).contains("id=\"startDatePickerLayer\"");
+    assertThat(html).contains("id=\"endDatePickerLayer\"");
+    assertThat(html).contains("<span>~</span>");
+    assertThat(html).doesNotContain("id=\"startDt\"");
+
+    // then 3 : DTO도 startDate/endDate 두 필드
+    String dto = DtoTemplate.generate(model);
+    assertThat(dto).contains("private String startDate;");
+    assertThat(dto).contains("private String endDate;");
+    assertThat(dto).doesNotContain("private String startDt;");
+
+    // then 4 : MapperXml는 BETWEEN을 TO_TIMESTAMP 범위로 변환
+    String xml = MapperXmlTemplate.generate(model);
+    assertThat(xml)
+        .contains(
+            "A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')");
+  }
+
+  @Test
   void 컬럼옵션은_숨김_헤더_너비_정렬_날짜포맷_마스킹을_JS에_반영한다() {
     // given
     ScaffoldRequestDTO request = requestWithOptions();
@@ -889,8 +1023,7 @@ class ScaffoldTemplateTest {
 
     ScaffoldModel.ColumnConfig config = model.columnConfigs().get(0);
     assertThat(config.hasOptions()).isTrue();
-    assertThat(config.optionsJsObject())
-        .isEqualTo("{ SUCCESS: '성공', FAIL: '실패', WAIT: '대기' }");
+    assertThat(config.optionsJsObject()).isEqualTo("{ SUCCESS: '성공', FAIL: '실패', WAIT: '대기' }");
   }
 
   @Test

@@ -344,7 +344,10 @@ public class ScaffoldModel {
     }
     String raw = option.getDateFormat().trim();
     String upper = raw.toUpperCase();
-    if (upper.equals("AUTO") || upper.equals("DATE") || upper.equals("DATETIME") || upper.equals("NONE")) {
+    if (upper.equals("AUTO")
+        || upper.equals("DATE")
+        || upper.equals("DATETIME")
+        || upper.equals("NONE")) {
       return upper;
     }
     return raw;

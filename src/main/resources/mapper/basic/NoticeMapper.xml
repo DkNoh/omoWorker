@@ -12,6 +12,18 @@
 
     <sql id="searchConditions">
         <where>
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND A.TITLE LIKE '%' || #{searchKeyword} || '%'
+            </if>
+            <if test="noticeType != null and noticeType != ''">
+                AND A.NOTICE_TYPE = #{noticeType}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND A.USE_YN = #{useYn}
+            </if>
+            <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+                AND A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')
+            </if>
         </where>
     </sql>
 
@@ -19,19 +31,6 @@
             SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN,
                    A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM
             FROM SMS.NOTICE A
-            WHERE 1=1
-                <if test="searchKeyword != null and searchKeyword != ''">
-                    AND A.TITLE LIKE '%' || #{searchKeyword} || '%'
-                </if>
-                <if test="noticeType != null and noticeType != ''">
-                    AND A.NOTICE_TYPE = #{noticeType}
-                </if>
-                <if test="useYn != null and useYn != ''">
-                    AND A.USE_YN = #{useYn}
-                </if>
-                <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
-                    AND A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')
-                </if>
     </sql>
 
     <select id="count" resultType="int">

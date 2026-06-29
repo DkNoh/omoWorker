@@ -161,7 +161,7 @@ class ConventionTest {
   // 같이 재생성 + apply해야 게이트를 통과한다. 마커가 없는 mapper xml(scaffold 이전 파일)은 제외.
 
   @Test
-  void Scaffold_산출물_MapperXML은_baseQuery_include_패턴을_사용한다() throws IOException {
+  void Scaffold_산출물_MapperXML은_baseQuery에_WHERE와_if가_없다() throws IOException {
     List<String> violations = new ArrayList<>();
     try (Stream<Path> files = Files.walk(MAPPER_DIR)) {
       files
@@ -172,17 +172,23 @@ class ConventionTest {
                 if (!content.contains(SCAFFOLD_MARKER)) {
                   return;
                 }
-                boolean hasSql = content.contains("<sql id=\"baseQuery\">");
-                boolean hasInclude = content.contains("<include refid=\"baseQuery\"/>");
-                if (!hasSql || !hasInclude) {
-                  violations.add(p + " (sql=" + hasSql + ", include=" + hasInclude + ")");
+                int start = content.indexOf("<sql id=\"baseQuery\">");
+                int end = content.indexOf("</sql>", start);
+                if (start < 0 || end < 0) {
+                  violations.add(p + " (baseQuery 블록 없음)");
+                  return;
+                }
+                String baseQuery = content.substring(start, end);
+                if (baseQuery.contains("WHERE") || baseQuery.contains("<if")) {
+                  violations.add(
+                      p + " (baseQuery에 WHERE 또는 <if>가 있음. 검색조건은 searchConditions로 이동해야 함)");
                 }
               });
     }
     assertThat(violations)
         .as(
-            "Scaffold 산출물 MapperXML은 baseQuery를 <sql>로 정의하고 <include>로 참조해야 한다 "
-                + "(scaffold-contract.md §3). 템플릿 개선 시 기존 산출물도 재생성+apply 필요.")
+            "Scaffold 산출물 baseQuery는 SELECT/FROM만 포함해야 한다. WHERE/검색조건은 searchConditions로. "
+                + "(scaffold-contract.md §3)")
         .isEmpty();
   }
 

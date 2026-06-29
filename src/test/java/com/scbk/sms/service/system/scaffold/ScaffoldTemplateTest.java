@@ -37,7 +37,7 @@ class ScaffoldTemplateTest {
         Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
   }
 
-  private static final int GOLDEN_SCAFFOLD_HASH = -1048670706;
+  private static final int GOLDEN_SCAFFOLD_HASH = -1183568586;
 
   @Test
   void 드리프트_게이트_스캐폴드_출력_변경_감지() {
@@ -489,6 +489,53 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void MapperXml은_baseQuery와_searchConditions를_분리한다() {
+    // given : WHERE 1=1과 검색 조건이 있는 rawQuery. baseQuery는 SELECT/FROM, searchConditions는 WHERE 이하.
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("notice");
+    request.setDomainClass("Notice");
+    request.setDomainName("공지사항");
+    request.setRawQuery(
+        """
+            SELECT A.NOTICE_ID, A.TITLE
+            FROM SMS.NOTICE A
+            WHERE 1=1
+              AND A.TITLE LIKE '%' || $search_keyword || '%'
+            """);
+    request.setOrderBy("A.NOTICE_ID DESC");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("NOTICE_ID", "TITLE"),
+            List.of("searchKeyword"),
+            Map.of("NOTICE_ID", "Long", "TITLE", "String"));
+
+    // when
+    String xml = MapperXmlTemplate.generate(model);
+
+    // then 1 : baseQuery 블록은 SELECT/FROM만. WHERE와 <if>가 없어야 한다.
+    int baseQueryStart = xml.indexOf("<sql id=\"baseQuery\">");
+    int baseQueryEnd = xml.indexOf("</sql>", baseQueryStart);
+    String baseQuery = xml.substring(baseQueryStart, baseQueryEnd);
+    assertThat(baseQuery).contains("SELECT").contains("FROM SMS.NOTICE");
+    assertThat(baseQuery).doesNotContain("WHERE");
+    assertThat(baseQuery).doesNotContain("<if");
+
+    // then 2 : searchConditions 블록은 <where>+<if>. 조건은 AND로 시작한다.
+    int scStart = xml.indexOf("<sql id=\"searchConditions\">");
+    int scEnd = xml.indexOf("</sql>", scStart);
+    String searchConditions = xml.substring(scStart, scEnd);
+    assertThat(searchConditions).contains("<where>");
+    assertThat(searchConditions).contains("<if test=\"searchKeyword != null");
+    assertThat(searchConditions).contains("AND A.TITLE LIKE '%' || #{searchKeyword} || '%'");
+
+    // then 3 : count/selectList는 두 include를 모두 사용
+    assertThat(xml).contains("<include refid=\"baseQuery\"/>");
+    assertThat(xml).contains("<include refid=\"searchConditions\"/>");
+  }
+
+  @Test
   void MapperXml은_BETWEEN_TIMESTAMP_조건을_상하한_TO_TIMESTAMP로_변환한다() {
     // given : notice 등록일시 REG_DTTM을 startDate/endDate 범위로 조회
     ScaffoldRequestDTO request = new ScaffoldRequestDTO();
@@ -598,7 +645,8 @@ class ScaffoldTemplateTest {
                 Map.entry("REG_DTTM", "LocalDateTime")));
 
     // then 1 : 변수 추출이 startDate/endDate 짝으로 되어야 FROM-TO 매칭이 된다
-    assertThat(searchVars).containsExactly("searchKeyword", "noticeType", "useYn", "startDate", "endDate");
+    assertThat(searchVars)
+        .containsExactly("searchKeyword", "noticeType", "useYn", "startDate", "endDate");
 
     // then 2 : HtmlTemplate는 start*/end* 규칙으로 FROM-TO picker 2개 + ~ 구분자를 생성
     String html = HtmlTemplate.generate(model);

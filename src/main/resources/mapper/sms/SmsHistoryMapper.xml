@@ -12,34 +12,33 @@
 
     <sql id="searchConditions">
         <where>
+            <if test="sendType != null and sendType != ''">
+                AND A.SEND_TYPE = #{sendType}
+            </if>
+            <if test="sendStatus != null and sendStatus != ''">
+                AND A.SEND_STATUS = #{sendStatus}
+            </if>
+            <if test="sentAt != null and sentAt != ''">
+                AND A.SENT_AT <![CDATA[ >= ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') AND A.SENT_AT <![CDATA[ < ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY
+            </if>
+            <if test="receiverNo != null and receiverNo != ''">
+                AND A.RECEIVER_NO LIKE '%' || #{receiverNo} || '%'
+            </if>
         </where>
     </sql>
 
     <sql id="baseQuery">
-            SELECT                                                                                                                                                                                              
-                     A.SMS_HISTORY_ID AS SMS_HISTORY_ID,                                                                                                                                                             
-                     A.REQUEST_ID AS REQUEST_ID,                                                                                                                                                                     
-                     A.SENT_AT AS SENT_AT,                                                                                                                                                                           
-                     A.RECEIVER_NO AS RECEIVER_NO,                                                                                                                                                                   
-                     A.SENDER_NO AS SENDER_NO,                                                                                                                                                                       
-                     A.SEND_TYPE AS SEND_TYPE,                                                                                                                                                                       
-                     A.SEND_STATUS AS SEND_STATUS,                                                                                                                                                                   
-                     A.RESULT_CD AS RESULT_CD,                                                                                                                                                                       
-                     A.RESULT_MSG AS RESULT_MSG                                                                                                                                                                      
-                 FROM SMS.SMS_HISTORY A                                                                                                                                                                              
-                 WHERE 1=1                                                                                                                                                                                           
-                <if test="sendType != null and sendType != ''">
-                    AND A.SEND_TYPE = #{sendType}
-                </if>
-                <if test="sendStatus != null and sendStatus != ''">
-                    AND A.SEND_STATUS = #{sendStatus}
-                </if>
-                <if test="sentAt != null and sentAt != ''">
-                    AND A.SENT_AT <![CDATA[ >= ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') AND A.SENT_AT <![CDATA[ < ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY
-                </if>
-                <if test="receiverNo != null and receiverNo != ''">
-                    AND A.RECEIVER_NO LIKE '%' || #{receiverNo} || '%'
-                </if>
+            SELECT
+                     A.SMS_HISTORY_ID AS SMS_HISTORY_ID,
+                     A.REQUEST_ID AS REQUEST_ID,
+                     A.SENT_AT AS SENT_AT,
+                     A.RECEIVER_NO AS RECEIVER_NO,
+                     A.SENDER_NO AS SENDER_NO,
+                     A.SEND_TYPE AS SEND_TYPE,
+                     A.SEND_STATUS AS SEND_STATUS,
+                     A.RESULT_CD AS RESULT_CD,
+                     A.RESULT_MSG AS RESULT_MSG
+                 FROM SMS.SMS_HISTORY A
     </sql>
 
     <select id="count" resultType="int">

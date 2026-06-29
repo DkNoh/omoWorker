@@ -25,7 +25,6 @@ public final class MapperXmlTemplate {
   public static String generate(ScaffoldModel model) {
     String cls = model.domainClass();
     String module = model.moduleName();
-    String dynamicQuery = convertToDynamicSql(model, "            ");
     String targetTable = model.targetTable();
     if (model.includeCreateUpdate() && targetTable.isEmpty()) {
       throw new IllegalStateException(
@@ -48,18 +47,17 @@ public final class MapperXmlTemplate {
         .append("         비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,\n")
         .append("         단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->\n\n");
 
-    sb.append("    <sql id=\"searchConditions\">\n").append("        <where>\n");
-    if (model.getSearchVars().isEmpty() && !model.getColumns().isEmpty()) {
-      String firstColumn = model.getColumns().get(0).trim().toUpperCase();
-      sb.append("            <if test=\"searchKeyword != null and searchKeyword != ''\">\n")
-          .append("                AND A.")
-          .append(firstColumn)
-          .append(" LIKE '%' || #{searchKeyword} || '%'\n")
-          .append("            </if>\n");
-    }
-    sb.append("        </where>\n").append("    </sql>\n\n");
+    // searchConditions가 <where>+<if>로 검색 조건을 담당하고 baseQuery는 SELECT/FROM만 담당한다.
+    // mybatis <where>가 첫 AND를 WHERE로 자동 변환하므로 모든 조건은 AND로 시작한다.
+    sb.append("    <sql id=\"searchConditions\">\n")
+        .append("        <where>\n")
+        .append(buildSearchConditionIfs(model, "            "))
+        .append("        </where>\n")
+        .append("    </sql>\n\n");
 
-    sb.append("    <sql id=\"baseQuery\">\n").append(dynamicQuery).append("    </sql>\n\n");
+    sb.append("    <sql id=\"baseQuery\">\n")
+        .append(buildBaseQuerySql(model, "            "))
+        .append("    </sql>\n\n");
 
     sb.append("    <select id=\"count\" resultType=\"int\">\n")
         .append(signature(cls, "count"))
@@ -148,16 +146,78 @@ public final class MapperXmlTemplate {
     return sb.toString();
   }
 
-  private static String convertToDynamicSql(ScaffoldModel model, String indent) {
+  // rawQuery를 SELECT/FROM 부분(baseQuery용)과 WHERE 이하 부분(searchConditions용)으로 분리한다.
+  // 분리 기준은 top-level WHERE (괄호 깊이 0에서 첫 등장). 보통 "WHERE 1=1" 형태.
+  private static String[] splitRawQuery(String rawQuery) {
+    String lower = rawQuery.toLowerCase();
+    int depth = 0;
+    boolean inSingle = false;
+    for (int i = 0; i < lower.length(); i++) {
+      char c = lower.charAt(i);
+      if (c == '\'' && !inSingle) {
+        inSingle = true;
+      } else if (c == '\'' && inSingle) {
+        inSingle = false;
+      } else if (!inSingle) {
+        if (c == '(') depth++;
+        else if (c == ')') depth--;
+        else if (depth == 0
+            && i + 5 <= lower.length()
+            && lower.substring(i, i + 5).equals("where")
+            && (i == 0 || !Character.isLetterOrDigit(lower.charAt(i - 1)))
+            && (i + 5 == lower.length() || !Character.isLetterOrDigit(lower.charAt(i + 5)))) {
+          return new String[] {rawQuery.substring(0, i), rawQuery.substring(i + 5)};
+        }
+      }
+    }
+    return new String[] {rawQuery, ""};
+  }
+
+  // baseQuery: SELECT/FROM 부분만. WHERE/조건은 searchConditions로 이동했다.
+  private static String buildBaseQuerySql(ScaffoldModel model, String indent) {
+    String[] parts = splitRawQuery(model.rawQuery());
+    StringBuilder sb = new StringBuilder();
+    for (String line : parts[0].split("\n")) {
+      if (!line.trim().isEmpty()) {
+        sb.append(indent).append(escapeSqlText(line)).append("\n");
+      }
+    }
+    return sb.toString();
+  }
+
+  // searchConditions 내용: WHERE 이하 줄들을 <if> 래핑. $변수 없는 줄은 평문 AND로.
+  // "1=1" no-op 줄은 스킵. mybatis <where>가 자동으로 첫 AND를 WHERE로 변환한다.
+  private static String buildSearchConditionIfs(ScaffoldModel model, String indent) {
     Map<String, ScaffoldModel.SearchParam> paramMap = new HashMap<>();
     for (ScaffoldModel.SearchParam param : model.searchParams()) {
       paramMap.put(param.name(), param);
     }
 
-    StringBuilder sql = new StringBuilder();
-    for (String line : model.rawQuery().split("\n")) {
+    String[] parts = splitRawQuery(model.rawQuery());
+    StringBuilder sb = new StringBuilder();
+    if (parts[1].trim().isEmpty()
+        && model.getSearchVars().isEmpty()
+        && !model.getColumns().isEmpty()) {
+      String firstColumn = model.getColumns().get(0).trim().toUpperCase();
+      sb.append(indent)
+          .append("<if test=\"searchKeyword != null and searchKeyword != ''\">\n")
+          .append(indent)
+          .append("    AND A.")
+          .append(firstColumn)
+          .append(" LIKE '%' || #{searchKeyword} || '%'\n")
+          .append(indent)
+          .append("</if>\n");
+      return sb.toString();
+    }
+
+    for (String line : parts[1].split("\n")) {
+      String trimmed = line.trim();
+      if (trimmed.isEmpty()) continue;
+      if (trimmed.replace(" ", "").equalsIgnoreCase("1=1")) continue;
+
       if (!line.contains("$")) {
-        sql.append(indent).append(escapeSqlText(line)).append("\n");
+        String normalized = trimmed.toUpperCase().startsWith("AND ") ? trimmed : "AND " + trimmed;
+        sb.append(indent).append(escapeSqlText(normalized)).append("\n");
         continue;
       }
 
@@ -167,23 +227,22 @@ public final class MapperXmlTemplate {
         lineVars.add(QueryColumnExtractor.toCamelCase(matcher.group(1)));
       }
 
-      sql.append(indent).append("    <if test=\"");
+      sb.append(indent).append("<if test=\"");
       for (int i = 0; i < lineVars.size(); i++) {
-        if (i > 0) {
-          sql.append(" and ");
-        }
-        sql.append(lineVars.get(i))
-            .append(" != null and ")
-            .append(lineVars.get(i))
-            .append(" != ''");
+        if (i > 0) sb.append(" and ");
+        sb.append(lineVars.get(i)).append(" != null and ").append(lineVars.get(i)).append(" != ''");
       }
-      sql.append("\">\n");
+      sb.append("\">\n");
 
       String replacedLine = replaceBindVariables(model, paramMap, line);
-      sql.append(indent).append("        ").append(replacedLine.trim()).append("\n");
-      sql.append(indent).append("    </if>\n");
+      String normalized = replacedLine.trim();
+      if (!normalized.toUpperCase().startsWith("AND ")) {
+        normalized = "AND " + normalized;
+      }
+      sb.append(indent).append("    ").append(normalized).append("\n");
+      sb.append(indent).append("</if>\n");
     }
-    return sql.toString();
+    return sb.toString();
   }
 
   private static String replaceBindVariables(

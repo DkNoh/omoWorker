@@ -9,11 +9,11 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.never;
 
+import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.dto.system.MenuAuthRowDTO;
 import com.scbk.sms.dto.system.MenuDetailResponseDTO;
 import com.scbk.sms.dto.system.MenuSearchRequestDTO;
 import com.scbk.sms.dto.system.MenuUpdateRequestDTO;
-import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.exception.CustomException;
 import com.scbk.sms.exception.ErrorCode;
 import com.scbk.sms.mapper.system.MenuManageMapper;
@@ -60,7 +60,8 @@ class MenuManageServiceTest {
   @Test
   void 트리는_평탄_목록을_그대로_반환한다() {
     // given
-    given(mapper.selectTree()).willReturn(List.of(menu("G_BASIC", null, "G"), menu("M1", "G_BASIC", "M")));
+    given(mapper.selectTree())
+        .willReturn(List.of(menu("G_BASIC", null, "G"), menu("M1", "G_BASIC", "M")));
 
     // when
     List<MenuManageVO> tree = service.getTree();

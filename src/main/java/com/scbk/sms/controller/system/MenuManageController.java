@@ -1,10 +1,10 @@
 package com.scbk.sms.controller.system;
 
 import com.scbk.sms.dto.common.ApiResponse;
+import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.dto.system.MenuDetailResponseDTO;
 import com.scbk.sms.dto.system.MenuSearchRequestDTO;
 import com.scbk.sms.dto.system.MenuUpdateRequestDTO;
-import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.service.system.MenuManageService;
 import com.scbk.sms.vo.system.MenuManageVO;
 import jakarta.validation.Valid;
@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
- * 시스템관리 > 메뉴관리(TB_MENU). 트리 UI 화면과 상세/권한 매트릭스 데이터를 제공한다. 등록/수정/삭제는
- * MenuAuthInterceptor가 /create·/update·/delete suffix 권한으로 검증한다. /tree·/detail·/data는 READ.
+ * 시스템관리 > 메뉴관리(TB_MENU). 트리 UI 화면과 상세/권한 매트릭스 데이터를 제공한다. 등록/수정/삭제는 MenuAuthInterceptor가
+ * /create·/update·/delete suffix 권한으로 검증한다. /tree·/detail·/data는 READ.
  */
 @Controller
 @RequiredArgsConstructor
@@ -46,14 +46,13 @@ public class MenuManageController {
   /** 선택 메뉴 상세(메뉴 + 활성 역할 + 현재 권한 행). */
   @ResponseBody
   @GetMapping("/detail")
-  public ResponseEntity<ApiResponse<MenuDetailResponseDTO>> getDetail(
-      @RequestParam String menuId) {
+  public ResponseEntity<ApiResponse<MenuDetailResponseDTO>> getDetail(@RequestParam String menuId) {
     return ResponseEntity.ok(ApiResponse.success(service.getDetail(menuId)));
   }
 
   /**
-   * 기존 v1 그리드 조회 호환 엔드포인트. 트리 UI 도입 이후 화면이 사용하지 않더라도 READ 접미사로
-   * 권한이 열려 있으므로, 다른 클라이언트/테스트가 영향받지 않도록 유지한다.
+   * 기존 v1 그리드 조회 호환 엔드포인트. 트리 UI 도입 이후 화면이 사용하지 않더라도 READ 접미사로 권한이 열려 있으므로, 다른 클라이언트/테스트가 영향받지 않도록
+   * 유지한다.
    */
   @ResponseBody
   @GetMapping("/data")

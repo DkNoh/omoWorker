@@ -23,7 +23,8 @@ public enum ErrorCode {
   DUPLICATE_USER(HttpStatus.CONFLICT, "U002", "이미 존재하는 사용자입니다."),
   DUPLICATE_MENU_URL(HttpStatus.CONFLICT, "M001", "이미 같은 URL을 사용하는 메뉴가 존재합니다."),
   SYSTEM_MENU_PROTECTED(HttpStatus.BAD_REQUEST, "M002", "시스템 메뉴는 삭제하거나 URL을 변경할 수 없습니다."),
-  MENU_TYPE_URL_INVALID(HttpStatus.BAD_REQUEST, "M003", "그룹(G) 메뉴는 URL을 가질 수 없고, 메뉴(M)는 URL이 필수입니다."),
+  MENU_TYPE_URL_INVALID(
+      HttpStatus.BAD_REQUEST, "M003", "그룹(G) 메뉴는 URL을 가질 수 없고, 메뉴(M)는 URL이 필수입니다."),
   DUPLICATE_MENU_ID(HttpStatus.CONFLICT, "M004", "이미 존재하는 메뉴 ID입니다."),
   MENU_HAS_CHILDREN(HttpStatus.BAD_REQUEST, "M005", "하위 메뉴가 있어 삭제할 수 없습니다.");
 

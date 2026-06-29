@@ -85,15 +85,16 @@ public class MenuManageService {
     if (mapper.selectByMenuId(request.getMenuId()) != null) {
       throw new CustomException(ErrorCode.DUPLICATE_MENU_ID);
     }
-    if (hasUrl(request) && mapper.countByUrlExceptMenuId(request.getMenuUrl(), request.getMenuId()) > 0) {
+    if (hasUrl(request)
+        && mapper.countByUrlExceptMenuId(request.getMenuUrl(), request.getMenuId()) > 0) {
       throw new CustomException(ErrorCode.DUPLICATE_MENU_URL);
     }
     mapper.insert(request);
   }
 
   /**
-   * 메뉴 수정. {@code authRows}가 {@code null}이 아니면 메뉴 수정 직후 동일 트랜잭션에서 권한 행을
-   * 전부 지우고 다시 채운다(replace). {@code null}이면 권한 행은 그대로 둔다.
+   * 메뉴 수정. {@code authRows}가 {@code null}이 아니면 메뉴 수정 직후 동일 트랜잭션에서 권한 행을 전부 지우고 다시 채운다(replace).
+   * {@code null}이면 권한 행은 그대로 둔다.
    */
   @Transactional
   public void update(MenuUpdateRequestDTO request) {
@@ -106,7 +107,8 @@ public class MenuManageService {
       throw new CustomException(ErrorCode.SYSTEM_MENU_PROTECTED);
     }
     validateMenuTypeUrlRule(request);
-    if (hasUrl(request) && mapper.countByUrlExceptMenuId(request.getMenuUrl(), request.getMenuId()) > 0) {
+    if (hasUrl(request)
+        && mapper.countByUrlExceptMenuId(request.getMenuUrl(), request.getMenuId()) > 0) {
       throw new CustomException(ErrorCode.DUPLICATE_MENU_URL);
     }
     int updated = mapper.update(request);
@@ -117,8 +119,8 @@ public class MenuManageService {
   }
 
   /**
-   * 메뉴 삭제. 자식이 있으면 삭제를 거부하고, 시스템 메뉴도 거부한다. 허용 시 TB_MENU_AUTH 행을 먼저
-   * 지우고(FK 참조가 살아있어도 메뉴 행 삭제에 방해가 되지 않도록) TB_MENU 행을 지운다.
+   * 메뉴 삭제. 자식이 있으면 삭제를 거부하고, 시스템 메뉴도 거부한다. 허용 시 TB_MENU_AUTH 행을 먼저 지우고(FK 참조가 살아있어도 메뉴 행 삭제에 방해가 되지
+   * 않도록) TB_MENU 행을 지운다.
    */
   @Transactional
   public void delete(String menuId) {
@@ -155,9 +157,8 @@ public class MenuManageService {
   }
 
   /**
-   * authRows가 null이면 아무 것도 하지 않는다(메뉴 정보만 수정). not-null이면(빈 리스트 포함) 해당
-   * 메뉴의 기존 권한 행을 전부 지우고 이 목록으로 채운다. 자식 DTO의 menuId는 부모 menuId로 덮어쓴다.
-   * CAN_* 값이 null/blank면 'N'으로 normalize 한다.
+   * authRows가 null이면 아무 것도 하지 않는다(메뉴 정보만 수정). not-null이면(빈 리스트 포함) 해당 메뉴의 기존 권한 행을 전부 지우고 이 목록으로
+   * 채운다. 자식 DTO의 menuId는 부모 menuId로 덮어쓴다. CAN_* 값이 null/blank면 'N'으로 normalize 한다.
    */
   private void replaceAuthRowsIfPresent(MenuUpdateRequestDTO request) {
     List<MenuAuthRowDTO> rows = request.getAuthRows();

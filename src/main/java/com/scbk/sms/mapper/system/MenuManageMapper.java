@@ -18,14 +18,12 @@ public interface MenuManageMapper {
   List<MenuManageVO> selectList(MenuSearchRequestDTO request);
 
   /**
-   * 메뉴 관리 트리용 평탄 목록. 클라이언트가 트리로 조립하며 페이지네이션 없이 전체를 반환한다.
-   * MENU_LEVEL/PARENT_MENU_ID/SORT_ORD/MENU_ID 결정적 정렬을 보장한다.
+   * 메뉴 관리 트리용 평탄 목록. 클라이언트가 트리로 조립하며 페이지네이션 없이 전체를 반환한다. MENU_LEVEL/PARENT_MENU_ID/SORT_ORD/MENU_ID
+   * 결정적 정렬을 보장한다.
    */
   List<MenuManageVO> selectTree();
 
-  /**
-   * 단건 조회. 시스템 메뉴 보호 판정과 삭제/수정 대상 존재 여부 확인에 사용한다.
-   */
+  /** 단건 조회. 시스템 메뉴 보호 판정과 삭제/수정 대상 존재 여부 확인에 사용한다. */
   MenuManageVO selectByMenuId(@Param("menuId") String menuId);
 
   /** URL 중복 검사(본인 제외). MENU_TYPE='M'만 URL을 가지므로 menuUrl이 비어있으면 호출하지 않는다. */
@@ -37,9 +35,7 @@ public interface MenuManageMapper {
   /** USE_YN='Y' 역할 전체. 매트릭스의 행 기준이며 SORT_ORD/ROLE_CD 정렬을 보장한다. */
   List<MenuRoleVO> selectActiveRoles();
 
-  /**
-   * 메뉴 1건의 권한 행을 ROLE_NM과 함께 조회. 존재하지 않으면 빈 목록.
-   */
+  /** 메뉴 1건의 권한 행을 ROLE_NM과 함께 조회. 존재하지 않으면 빈 목록. */
   List<MenuAuthDetailVO> selectMenuAuthDetails(@Param("menuId") String menuId);
 
   int insert(MenuUpdateRequestDTO request);

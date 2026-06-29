@@ -7,9 +7,8 @@ import lombok.Data;
 /**
  * TB_MENU_AUTH 1행 화이트리스트 DTO.
  *
- * <p>메뉴 수정(/system/menu-manage/update) 요청이 {@code authRows}를 포함하면, Service는 해당 메뉴의
- * 기존 권한 행을 전부 지우고 이 목록으로 교체(replace)한다. {@code menuId}는 부모 DTO의 menuId로
- * 강제 덮어쓴다(자식 행이 다른 메뉴를 가리키는 것을 방지).
+ * <p>메뉴 수정(/system/menu-manage/update) 요청이 {@code authRows}를 포함하면, Service는 해당 메뉴의 기존 권한 행을 전부 지우고
+ * 이 목록으로 교체(replace)한다. {@code menuId}는 부모 DTO의 menuId로 강제 덮어쓴다(자식 행이 다른 메뉴를 가리키는 것을 방지).
  *
  * <p>각 CAN_* 플래그는 미입력 시 'N'으로 간주한다(Service가 normalize).
  */

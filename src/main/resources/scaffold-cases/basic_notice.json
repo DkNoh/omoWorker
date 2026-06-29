@@ -1,0 +1,28 @@
+{
+  "request": {
+    "moduleName": "basic",
+    "domainId": "notice",
+    "domainClass": "Notice",
+    "domainName": "공지사항",
+    "rawQuery": "SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN,\n       A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM\nFROM SMS.NOTICE A\nWHERE 1=1\n  AND A.TITLE LIKE '%' || $search_keyword || '%'\n  AND A.NOTICE_TYPE = $notice_type\n  AND A.USE_YN = $use_yn\n  AND A.REG_DTTM BETWEEN $start_date AND $end_date",
+    "orderBy": "A.NOTICE_ID",
+    "includeCreateUpdate": false,
+    "includeExcel": false,
+    "includeModal": false,
+    "includePrivacy": false,
+    "screenMode": "LIST"
+  },
+  "columns": ["NOTICE_ID", "TITLE", "NOTICE_TYPE", "USE_YN", "START_DT", "END_DT", "VIEW_CNT", "REG_DTTM"],
+  "searchVars": ["searchKeyword", "noticeType", "useYn", "startDate", "endDate"],
+  "typeMap": {
+    "NOTICE_ID": "Integer",
+    "TITLE": "String",
+    "NOTICE_TYPE": "String",
+    "USE_YN": "String",
+    "START_DT": "LocalDateTime",
+    "END_DT": "LocalDateTime",
+    "VIEW_CNT": "Integer",
+    "REG_DTTM": "LocalDateTime"
+  },
+  "dialect": "ORACLE"
+}

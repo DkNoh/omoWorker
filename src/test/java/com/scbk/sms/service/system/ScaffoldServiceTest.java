@@ -6,9 +6,11 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scbk.sms.config.ScaffoldProperties;
 import com.scbk.sms.dto.system.ScaffoldRequestDTO;
 import com.scbk.sms.service.system.scaffold.ColumnTypeInferrer;
+import com.scbk.sms.service.system.scaffold.ScaffoldCaseStore;
 import com.scbk.sms.service.system.scaffold.ScaffoldFileApplier;
 import com.scbk.sms.service.system.scaffold.ScaffoldMetadataReader;
 import com.scbk.sms.service.system.scaffold.ScaffoldTableMetadata;
@@ -36,7 +38,11 @@ class ScaffoldServiceTest {
   void setUp() {
     service =
         new ScaffoldService(
-            columnTypeInferrer, scaffoldFileApplier, metadataReader, new ScaffoldProperties());
+            columnTypeInferrer,
+            scaffoldFileApplier,
+            metadataReader,
+            new ScaffoldProperties(),
+            new ScaffoldCaseStore(new ObjectMapper()));
     given(columnTypeInferrer.inferTypes(anyString(), anyList()))
         .willReturn(
             Map.of(

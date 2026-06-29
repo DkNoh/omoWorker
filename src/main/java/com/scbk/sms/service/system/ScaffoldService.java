@@ -2,6 +2,7 @@ package com.scbk.sms.service.system;
 
 import com.scbk.sms.config.ScaffoldProperties;
 import com.scbk.sms.dto.system.ScaffoldApplyFileResultDTO;
+import com.scbk.sms.dto.system.ScaffoldCaseRecord;
 import com.scbk.sms.dto.system.ScaffoldRequestDTO;
 import com.scbk.sms.service.system.scaffold.ColumnTypeInferrer;
 import com.scbk.sms.service.system.scaffold.ControllerTemplate;
@@ -13,6 +14,7 @@ import com.scbk.sms.service.system.scaffold.MapperInterfaceTemplate;
 import com.scbk.sms.service.system.scaffold.MapperXmlTemplate;
 import com.scbk.sms.service.system.scaffold.MenuSqlTemplate;
 import com.scbk.sms.service.system.scaffold.QueryColumnExtractor;
+import com.scbk.sms.service.system.scaffold.ScaffoldCaseStore;
 import com.scbk.sms.service.system.scaffold.ScaffoldDialect;
 import com.scbk.sms.service.system.scaffold.ScaffoldFileApplier;
 import com.scbk.sms.service.system.scaffold.ScaffoldMetadataReader;
@@ -37,16 +39,19 @@ public class ScaffoldService {
   private final ScaffoldFileApplier scaffoldFileApplier;
   private final ScaffoldMetadataReader metadataReader;
   private final ScaffoldProperties scaffoldProperties;
+  private final ScaffoldCaseStore caseStore;
 
   public ScaffoldService(
       ColumnTypeInferrer columnTypeInferrer,
       ScaffoldFileApplier scaffoldFileApplier,
       ScaffoldMetadataReader metadataReader,
-      ScaffoldProperties scaffoldProperties) {
+      ScaffoldProperties scaffoldProperties,
+      ScaffoldCaseStore caseStore) {
     this.columnTypeInferrer = columnTypeInferrer;
     this.scaffoldFileApplier = scaffoldFileApplier;
     this.metadataReader = metadataReader;
     this.scaffoldProperties = scaffoldProperties;
+    this.caseStore = caseStore;
   }
 
   public Map<String, String> generate(ScaffoldRequestDTO request) {
@@ -73,6 +78,17 @@ public class ScaffoldService {
   }
 
   public List<ScaffoldApplyFileResultDTO> apply(ScaffoldRequestDTO request) {
+    List<String> columns = QueryColumnExtractor.extractColumns(request.getRawQuery());
+    List<String> searchVars = QueryColumnExtractor.extractSearchVars(request.getRawQuery());
+    Map<String, String> typeMap = columnTypeInferrer.inferTypes(request.getRawQuery(), columns);
+    ScaffoldCaseRecord record = new ScaffoldCaseRecord();
+    record.setRequest(request);
+    record.setColumns(columns);
+    record.setSearchVars(searchVars);
+    record.setTypeMap(typeMap);
+    record.setDialect(scaffoldProperties.dialect().name());
+    caseStore.save(record);
+
     Map<String, String> generatedFiles = generateFiles(request);
     return scaffoldFileApplier.apply(request, generatedFiles);
   }

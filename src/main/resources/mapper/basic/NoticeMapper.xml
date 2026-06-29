@@ -5,6 +5,7 @@
 
 <mapper namespace="com.scbk.sms.mapper.basic.NoticeMapper">
 
+    <!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->
     <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).
          비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,
          단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->
@@ -14,10 +15,9 @@
         </where>
     </sql>
 
-    <select id="count" resultType="int">
-        /* NoticeMapper.count */
-        SELECT COUNT(1) FROM (
-            SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN, A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM
+    <sql id="baseQuery">
+            SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN,
+                   A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM
             FROM SMS.NOTICE A
             WHERE 1=1
                 <if test="searchKeyword != null and searchKeyword != ''">
@@ -29,9 +29,15 @@
                 <if test="useYn != null and useYn != ''">
                     AND A.USE_YN = #{useYn}
                 </if>
-                <if test="startDt != null and startDt != ''">
-                    AND A.REG_DTTM <![CDATA[ >= ]]> TO_TIMESTAMP(#{startDt} || '000000', 'YYYYMMDDHH24MISS')
+                <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+                    AND A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')
                 </if>
+    </sql>
+
+    <select id="count" resultType="int">
+        /* NoticeMapper.count */
+        SELECT COUNT(1) FROM (
+        <include refid="baseQuery"/>
         ) A
         <include refid="searchConditions"/>
     </select>
@@ -40,64 +46,11 @@
         /* NoticeMapper.selectList */
         SELECT A.*
         FROM (
-            SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN, A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM
-            FROM SMS.NOTICE A
-            WHERE 1=1
-                <if test="searchKeyword != null and searchKeyword != ''">
-                    AND A.TITLE LIKE '%' || #{searchKeyword} || '%'
-                </if>
-                <if test="noticeType != null and noticeType != ''">
-                    AND A.NOTICE_TYPE = #{noticeType}
-                </if>
-                <if test="useYn != null and useYn != ''">
-                    AND A.USE_YN = #{useYn}
-                </if>
-                <if test="startDt != null and startDt != ''">
-                    AND A.REG_DTTM <![CDATA[ >= ]]> TO_TIMESTAMP(#{startDt} || '000000', 'YYYYMMDDHH24MISS')
-                </if>
+        <include refid="baseQuery"/>
         ) A
         <include refid="searchConditions"/>
-        ORDER BY A.REG_DTTM DESC, A.NOTICE_ID DESC
+        ORDER BY A.NOTICE_ID
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
     </select>
-
-    <insert id="insert">
-        /* NoticeMapper.insert */
-        INSERT INTO SMS.NOTICE (
-            TITLE,
-            NOTICE_TYPE,
-            USE_YN,
-            START_DT,
-            END_DT,
-            VIEW_CNT,
-            REG_DTTM
-        ) VALUES (
-            #{title,jdbcType=VARCHAR},
-            #{noticeType,jdbcType=VARCHAR},
-            #{useYn,jdbcType=VARCHAR},
-            #{startDt,jdbcType=TIMESTAMP},
-            #{endDt,jdbcType=TIMESTAMP},
-            #{viewCnt,jdbcType=NUMERIC},
-            SYSTIMESTAMP
-        )
-    </insert>
-
-    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
-    <update id="update">
-        /* NoticeMapper.update */
-        UPDATE SMS.NOTICE
-           SET TITLE = #{title,jdbcType=VARCHAR},
-               NOTICE_TYPE = #{noticeType,jdbcType=VARCHAR},
-               USE_YN = #{useYn,jdbcType=VARCHAR},
-               START_DT = #{startDt,jdbcType=TIMESTAMP},
-               END_DT = #{endDt,jdbcType=TIMESTAMP},
-               VIEW_CNT = #{viewCnt,jdbcType=NUMERIC}
-         WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
-    </update>
-
-    <delete id="delete">
-        /* NoticeMapper.delete */
-        DELETE FROM SMS.NOTICE WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
-    </delete>
 
 </mapper>

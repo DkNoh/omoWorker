@@ -1,8 +1,9 @@
+// Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
 document.addEventListener('DOMContentLoaded', function () {
     const pageBuilder = new TuiPageBuilder({
         el: 'grid',
         apiUrl: '/basic/notice/data',
-        searchInputs: ['searchKeyword', 'noticeType', 'useYn', 'startDt'],
+        searchInputs: ['searchKeyword', 'noticeType', 'useYn', 'startDate', 'endDate'],
         searchDefaults: {},
         rowHeaders: ['rowNum'],
         columns: [
@@ -14,15 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
             { header: 'END_DT', name: 'endDt', align: 'center', width: 150, editable: true, formatter: TuiCommon.fmt.date },
             { header: 'VIEW_CNT', name: 'viewCnt', align: 'center', width: 150, editable: true },
             { header: 'REG_DTTM', name: 'regDttm', align: 'center', width: 150, formatter: TuiCommon.fmt.date }
-        ],
-        autoModal: true,
-        autoModalTitle: '공지사항관리 상세',
-        modalActions: {
-            createUrl: '/basic/notice/create',
-            updateUrl: '/basic/notice/update',
-            deleteUrl: '/basic/notice/delete',
-            pkFields: ['noticeId'],
-            editable: true
-        }
+        ]
     });
 });

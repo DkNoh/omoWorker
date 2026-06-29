@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
- * 수정 가능한 필드만 선언하는 화이트리스트 DTO. TODO: 실제 수정을 허용할 필드만 남기고 제거한다. REG_ID/REG_DTTM, 시스템 필드, 권한 필드는 선언하지
- * 않는다.
+ * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. 수정 가능한 필드만 선언하는 화이트리스트 DTO. TODO: 실제 수정을 허용할 필드만 남기고
+ * 제거한다. REG_ID/REG_DTTM, 시스템 필드, 권한 필드는 선언하지 않는다.
  */
 @Data
 public class NoticeUpdateRequestDTO {

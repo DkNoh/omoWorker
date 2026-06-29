@@ -7,12 +7,12 @@ import lombok.Data;
 @Data
 public class NoticeVO {
 
-    private Integer noticeId;
-    private String title;
-    private String noticeType;
-    private String useYn;
-    private LocalDateTime startDt;
-    private LocalDateTime endDt;
-    private Integer viewCnt;
-    private LocalDateTime regDttm;
+  private Integer noticeId;
+  private String title;
+  private String noticeType;
+  private String useYn;
+  private LocalDateTime startDt;
+  private LocalDateTime endDt;
+  private Integer viewCnt;
+  private LocalDateTime regDttm;
 }

@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface NoticeMapper {
 
-    int count(NoticeSearchRequestDTO request);
+  int count(NoticeSearchRequestDTO request);
 
-    List<NoticeVO> selectList(NoticeSearchRequestDTO request);
+  List<NoticeVO> selectList(NoticeSearchRequestDTO request);
 }

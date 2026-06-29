@@ -20,6 +20,10 @@ class ConventionTest {
   private static final Path JAVA_MAIN = Path.of("src", "main", "java");
   private static final Path MAPPER_DIR = Path.of("src", "main", "resources", "mapper");
 
+  // Scaffold 산출물에만 붙는 헤더 마커. 마커가 있는 파일만 현재 scaffold 템플릿 규칙을 따라야 한다.
+  // scaffold-contract.md §3의 산출물 품질 기준을 산출물 파일 자체로 검증하기 위한 필터.
+  private static final String SCAFFOLD_MARKER = "Scaffold 생성(v1)";
+
   private static final Pattern SELECT_STAR = Pattern.compile("SELECT\\s+\\*");
   private static final Pattern REQUEST_BODY_VO = Pattern.compile("@RequestBody\\s+\\w*VO\\b");
 
@@ -150,6 +154,89 @@ class ConventionTest {
               });
     }
     assertThat(violations).as("신규 도메인 DTO/VO는 Lombok @Data를 사용한다 (project.md)").isEmpty();
+  }
+
+  // 아래 3개 테스트는 scaffold 템플릿 구조가 개선되어도 기존 산출물이 자동 갱신되지 않는
+  // 드리프트를 감지한다. 템플릿이 구조를 바꾸면(예: baseQuery include 도입) 기존 산출물도
+  // 같이 재생성 + apply해야 게이트를 통과한다. 마커가 없는 mapper xml(scaffold 이전 파일)은 제외.
+
+  @Test
+  void Scaffold_산출물_MapperXML은_baseQuery_include_패턴을_사용한다() throws IOException {
+    List<String> violations = new ArrayList<>();
+    try (Stream<Path> files = Files.walk(MAPPER_DIR)) {
+      files
+          .filter(p -> p.toString().endsWith(".xml"))
+          .forEach(
+              p -> {
+                String content = read(p);
+                if (!content.contains(SCAFFOLD_MARKER)) {
+                  return;
+                }
+                boolean hasSql = content.contains("<sql id=\"baseQuery\">");
+                boolean hasInclude = content.contains("<include refid=\"baseQuery\"/>");
+                if (!hasSql || !hasInclude) {
+                  violations.add(p + " (sql=" + hasSql + ", include=" + hasInclude + ")");
+                }
+              });
+    }
+    assertThat(violations)
+        .as(
+            "Scaffold 산출물 MapperXML은 baseQuery를 <sql>로 정의하고 <include>로 참조해야 한다 "
+                + "(scaffold-contract.md §3). 템플릿 개선 시 기존 산출물도 재생성+apply 필요.")
+        .isEmpty();
+  }
+
+  @Test
+  void Scaffold_산출물_MapperXML은_searchConditions_include_패턴을_사용한다() throws IOException {
+    List<String> violations = new ArrayList<>();
+    try (Stream<Path> files = Files.walk(MAPPER_DIR)) {
+      files
+          .filter(p -> p.toString().endsWith(".xml"))
+          .forEach(
+              p -> {
+                String content = read(p);
+                if (!content.contains(SCAFFOLD_MARKER)) {
+                  return;
+                }
+                boolean hasSql = content.contains("<sql id=\"searchConditions\">");
+                boolean hasInclude = content.contains("<include refid=\"searchConditions\"/>");
+                if (!hasSql || !hasInclude) {
+                  violations.add(p + " (sql=" + hasSql + ", include=" + hasInclude + ")");
+                }
+              });
+    }
+    assertThat(violations)
+        .as(
+            "Scaffold 산출물 MapperXML은 searchConditions를 <sql>로 정의하고 <include>로 참조해야 한다 "
+                + "(scaffold-contract.md §3)")
+        .isEmpty();
+  }
+
+  @Test
+  void Scaffold_산출물_MapperXML은_쿼리_시그니처를_가진다() throws IOException {
+    List<String> violations = new ArrayList<>();
+    try (Stream<Path> files = Files.walk(MAPPER_DIR)) {
+      files
+          .filter(p -> p.toString().endsWith(".xml"))
+          .forEach(
+              p -> {
+                String content = read(p);
+                if (!content.contains(SCAFFOLD_MARKER)) {
+                  return;
+                }
+                // 패턴: /* SomeMapper.method */
+                boolean hasSignature =
+                    content.matches("(?s).*?/\\*\\s*\\w+Mapper\\.\\w+\\s*\\*/.*");
+                if (!hasSignature) {
+                  violations.add(p.toString());
+                }
+              });
+    }
+    assertThat(violations)
+        .as(
+            "Scaffold 산출물 MapperXML은 각 쿼리에 /* Mapper.method */ 시그니처를 포함해야 한다 "
+                + "(mybatis-oracle.md, scaffold-contract.md §3)")
+        .isEmpty();
   }
 
   private String read(Path path) {

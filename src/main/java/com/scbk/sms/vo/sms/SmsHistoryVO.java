@@ -7,13 +7,13 @@ import lombok.Data;
 @Data
 public class SmsHistoryVO {
 
-    private Integer smsHistoryId;
-    private String requestId;
-    private LocalDateTime sentAt;
-    private String receiverNo;
-    private String senderNo;
-    private String sendType;
-    private String sendStatus;
-    private String resultCd;
-    private String resultMsg;
+  private Integer smsHistoryId;
+  private String requestId;
+  private LocalDateTime sentAt;
+  private String receiverNo;
+  private String senderNo;
+  private String sendType;
+  private String sendStatus;
+  private String resultCd;
+  private String resultMsg;
 }

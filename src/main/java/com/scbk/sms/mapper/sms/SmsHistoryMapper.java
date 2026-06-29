@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface SmsHistoryMapper {
 
-    int count(SmsHistorySearchRequestDTO request);
+  int count(SmsHistorySearchRequestDTO request);
 
-    List<SmsHistoryVO> selectList(SmsHistorySearchRequestDTO request);
+  List<SmsHistoryVO> selectList(SmsHistorySearchRequestDTO request);
 }

@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
             domainName: document.querySelector('#domainName').value.trim(),
             rawQuery: document.querySelector('#rawQuery').value,
             orderBy: document.querySelector('#orderBy').value.trim(),
-            includeCreateUpdate: screenMode === 'CRUD',
+            includeCreateUpdate: screenMode === 'CRUD' || screenMode === 'CRUD_PANEL',
             includeExcel: screenMode === 'EXCEL',
             includeModal: document.querySelector('#includeModal').checked,
             includePrivacy: document.querySelector('#includePrivacy').checked,

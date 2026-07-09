@@ -87,7 +87,9 @@ public class ScaffoldModel {
   }
 
   public boolean includeCreateUpdate() {
-    return "CRUD".equals(screenMode()) || request.isIncludeCreateUpdate();
+    return "CRUD".equals(screenMode())
+        || "CRUD_PANEL".equals(screenMode())
+        || request.isIncludeCreateUpdate();
   }
 
   public boolean includeExcel() {

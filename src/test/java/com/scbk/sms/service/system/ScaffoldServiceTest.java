@@ -1,5 +1,6 @@
 package com.scbk.sms.service.system;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -71,6 +72,20 @@ class ScaffoldServiceTest {
 
     // when / then
     assertThatCode(() -> service.generate(request())).doesNotThrowAnyException();
+  }
+
+  @Test
+  void CRUD_PANEL은_CRUD_검증과_UpdateDTO_생성을_같이_사용한다() {
+    given(metadataReader.read("SMS.SMS_HISTORY"))
+        .willReturn(new ScaffoldTableMetadata(List.of("SMS_HISTORY_ID"), nullableMap(true)));
+    ScaffoldRequestDTO request = request();
+    request.setScreenMode("CRUD_PANEL");
+
+    Map<String, String> files = service.generate(request);
+
+    assertThat(files).containsKey("SmsHistoryUpdateRequestDTO.java");
+    assertThat(files.get("history.js")).contains("ApiClient.post(API.create, payload)");
+    assertThat(files.get("history.js")).doesNotContain("autoModal");
   }
 
   @Test

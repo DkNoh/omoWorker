@@ -8,8 +8,6 @@ import com.scbk.sms.service.system.scaffold.ColumnTypeInferrer;
 import com.scbk.sms.service.system.scaffold.ControllerTemplate;
 import com.scbk.sms.service.system.scaffold.ControllerTestTemplate;
 import com.scbk.sms.service.system.scaffold.DtoTemplate;
-import com.scbk.sms.service.system.scaffold.HtmlTemplate;
-import com.scbk.sms.service.system.scaffold.JsTemplate;
 import com.scbk.sms.service.system.scaffold.MapperInterfaceTemplate;
 import com.scbk.sms.service.system.scaffold.MapperXmlTemplate;
 import com.scbk.sms.service.system.scaffold.MenuSqlTemplate;
@@ -19,6 +17,7 @@ import com.scbk.sms.service.system.scaffold.ScaffoldDialect;
 import com.scbk.sms.service.system.scaffold.ScaffoldFileApplier;
 import com.scbk.sms.service.system.scaffold.ScaffoldMetadataReader;
 import com.scbk.sms.service.system.scaffold.ScaffoldModel;
+import com.scbk.sms.service.system.scaffold.ScaffoldPageRenderers;
 import com.scbk.sms.service.system.scaffold.ScaffoldTableMetadata;
 import com.scbk.sms.service.system.scaffold.ServiceTemplate;
 import com.scbk.sms.service.system.scaffold.ServiceTestTemplate;
@@ -118,8 +117,7 @@ public class ScaffoldService {
     results.put(cls + "Controller.java", ControllerTemplate.generate(model));
     results.put(cls + "ServiceTest.java", ServiceTestTemplate.generate(model));
     results.put(cls + "ControllerTest.java", ControllerTestTemplate.generate(model));
-    results.put(model.domainId() + ".html", HtmlTemplate.generate(model));
-    results.put(model.domainId() + ".js", JsTemplate.generate(model));
+    results.putAll(ScaffoldPageRenderers.render(model));
     results.put("메뉴등록.sql", MenuSqlTemplate.generate(model));
     return results;
   }

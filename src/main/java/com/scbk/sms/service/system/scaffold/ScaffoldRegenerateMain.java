@@ -65,8 +65,7 @@ public class ScaffoldRegenerateMain {
     results.put(cls + "Controller.java", ControllerTemplate.generate(model));
     results.put(cls + "ServiceTest.java", ServiceTestTemplate.generate(model));
     results.put(cls + "ControllerTest.java", ControllerTestTemplate.generate(model));
-    results.put(model.domainId() + ".html", HtmlTemplate.generate(model));
-    results.put(model.domainId() + ".js", JsTemplate.generate(model));
+    results.putAll(ScaffoldPageRenderers.render(model));
     results.put("메뉴등록.sql", MenuSqlTemplate.generate(model));
     return results;
   }

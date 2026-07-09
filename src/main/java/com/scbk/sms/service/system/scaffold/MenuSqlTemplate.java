@@ -11,10 +11,11 @@ public final class MenuSqlTemplate {
     String cls = model.domainClass();
     String domainId = model.domainId();
     String mode = model.screenMode();
+    boolean crudMode = "CRUD".equals(mode) || "CRUD_PANEL".equals(mode);
     String canRead = "Y";
-    String canCreate = "CRUD".equals(mode) ? "Y" : "N";
-    String canUpdate = "CRUD".equals(mode) ? "Y" : "N";
-    String canDelete = "CRUD".equals(mode) ? "Y" : "N";
+    String canCreate = crudMode ? "Y" : "N";
+    String canUpdate = crudMode ? "Y" : "N";
+    String canDelete = crudMode ? "Y" : "N";
     String canApprove = "N";
     String canCancel = "N";
     String canDownload = "EXCEL".equals(mode) ? "Y" : "N";

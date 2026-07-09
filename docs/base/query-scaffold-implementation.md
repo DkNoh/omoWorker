@@ -20,7 +20,7 @@ QuerySpec(조회 SQL + `$변수`)에서 화면 1세트의 복사용 코드와 �
 | domainId (3단계 URL) | v2 baseline 중 `/campaign/sms/register`처럼 3단계 URL인 화면은 `domainId`에 내부 슬래시 1개를 허용해 `sms/register`로 입력한다. `screenUrl`은 `/{moduleName}/{domainId}`이므로 그대로 `/campaign/sms/register`가 된다 |
 | rawQuery | `$변수` 검색조건 규약 포함 SQL |
 | orderBy | `A.SEND_DT DESC, A.HIST_ID DESC` — 결정적 정렬 입력 필수 (v2에 없던 신규 입력) |
-| screenMode | `LIST`, `EXCEL`, `DETAIL`, `CRUD` |
+| screenMode | `LIST`, `EXCEL`, `DETAIL`, `CRUD`, `CRUD_PANEL` |
 | targetTable | CRUD 기준 수정 대상 테이블. 미입력 시 `FROM`의 첫 테이블을 서버에서 추론 |
 | includeModal | `LIST`/`EXCEL`에서도 상세 자동 모달을 사용할지 여부. `DETAIL`/`CRUD`는 자동 활성화 |
 | includePrivacy | 개인정보 포함 시 `@PrivacyLog` 생성 |
@@ -85,6 +85,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
   - `editable=false`: 상세 모달에는 읽기전용으로 표시할 수 있지만 update payload와 `*UpdateRequestDTO`에는 포함하지 않는다.
 - `screenMode`는 목록 조회만, 목록+엑셀, 목록+상세 모달, 목록+등록/수정/삭제를 분리한다.
 - 상세 모달은 `TuiPageBuilder.autoModal` 공통 기능을 사용한다. CRUD 모드에서는 같은 모달 footer에 수정/삭제 버튼을 생성하고 `/update`, `/delete` endpoint를 호출한다. 실제 권한 판정은 기존 `MenuAuthInterceptor`의 URL suffix 권한 규칙을 따른다.
+- `CRUD_PANEL`은 기존 `CRUD` 모달 방식을 보존한 채 추가된 패널형 CRUD 모드다. 목록은 `TuiPageBuilder`를 유지하고, 행 클릭으로 상세 패널을 바인딩하며, 생성 JS는 `ApiClient`/`FormBinder`/`querySelector` 규약을 따른다. CSRF와 오류 처리는 `common-utils.js` axios 인터셉터가 계속 담당한다.
 - CRUD 모드는 실제 DB 메타데이터의 PK를 기본값으로 사용한다. 단일 PK와 복합 PK를 모두 `pkColumns`로 다루며, 조회 SQL 결과에 모든 PK 컬럼이 없으면 생성을 막는다.
 - PK가 없는 테이블은 CRUD 생성을 막고 LIST/EXCEL/DETAIL 조회 전용만 허용한다. 임의 `_ID` 컬럼을 PK처럼 추정하지 않는다.
 - 선택한 `lockColumn`은 낙관적 잠금 조건으로 사용한다. 조회 SQL 결과와 targetTable 메타데이터에 포함되어야 하며, PK 컬럼은 lockColumn으로 선택할 수 없다. nullable 컬럼은 null-safe WHERE 조건으로 생성한다.

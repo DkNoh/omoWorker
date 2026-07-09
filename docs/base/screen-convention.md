@@ -16,7 +16,7 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 | 엑셀 | xlsx — `static/lib/xlsx.full.min.js` |
 | 아이콘 | lucide 로컬 번들 — `static/lib/lucide.js`, `data-lucide` 속성으로 렌더링 |
 | 공통 CSS | `static/css/admin-common.css` |
-| 공통 JS | `static/js/common/common-utils.js`, `tui-common.js`, `tui-page-builder.js` |
+| 공통 JS | `static/js/common/notify.js`, `http-client.js`, `modal-manager.js`, `common-utils.js`, `form-binder.js`, `field-format.js`, `tui-common.js`, `tui-page-builder.js` (의존 순서대로 로드) |
 | 날짜 라이브러리 | day.js — `static/lib/dayjs.min.js` + `ko.js` (한국어 locale 전역 활성화: `dayjs.locale('ko')`) |
 
 폐쇄망 기준이므로 CDN 참조를 금지한다. 모든 라이브러리는 `static/lib`, `static/vendor` 로컬 파일만 사용한다.
@@ -237,6 +237,49 @@ CommonUtils.toast('저장되었습니다.', 'success');
 - `defaultLayout.html`을 거치지 않는 업무 화면 금지 (login.html은 예외).
 - 화면에서 권한을 임의 계산하지 않는다. 메뉴/버튼 권한은 서버가 내려준 값만 사용한다.
 - 개인정보는 마스킹된 값만 화면에 표시한다.
+
+## 수동 모달 표준 (ModalManager + modal-base.html)
+
+scaffold DETAIL/CRUD screenMode가 생성하는 모달 화면과 개발자가 수동으로 추가하는 비즈니스 모달은 공통 표준을 따른다.
+
+**Fragment** (`fragments/modal-base.html`):
+```html
+<th:block th:replace="~{fragments/modal-base :: layout(
+    modalId=' biz-modal',
+    title='제목',
+    size='modal-lg',
+    bodyContent=~{::#modal-body},
+    footerContent=null
+)}">
+    <div id="modal-body">
+        <form id="detail-form" class="row g-3" autocomplete="off" novalidate>
+            <!-- 폼 필드 -->
+        </form>
+    </div>
+</th:block>
+```
+
+**DOM id 규약** (modal-manager.js와 계약):
+- 모달 컨테이너: `id="${modalId}"`
+- 저장 버튼: `id="${modalId}-btn-save"`
+- 삭제 버튼: `id="${modalId}-btn-delete"`
+- 제목: `id="${modalId}-title"`
+
+**JS 초기화** (`static/js/common/modal-manager.js`):
+```javascript
+ModalManager.init('biz-modal', {
+    onMount:    () => {},
+    beforeOpen: () => true,
+    onOpen:     () => {},
+    onSubmit:   () => { /* 저장 로직 */ },
+    onDelete:   () => { /* 삭제 로직 */ },
+    onClose:    () => {}
+});
+ModalManager.open('biz-modal');
+ModalManager.close('biz-modal');
+```
+
+CoreUI Modal 인스턴스는 `getOrCreateInstance`로 중앙 관리된다. `new coreui.Modal(...)` 직접 생성을 금지한다. `JustValidate`는 선택적으로 `validateRules` 옵션으로 사용할 수 있으며, 기본 검증은 `FieldFormat.validateForm`을 따른다.
 
 ## 공통 자산 이식 상태
 

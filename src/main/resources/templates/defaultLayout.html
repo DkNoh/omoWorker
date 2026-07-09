@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CSRF: axios 요청 인터셉터(common-utils.js)가 이 메타 값을 헤더로 싣는다 -->
+    <!-- CSRF: axios 요청 인터셉터(http-client.js)가 이 메타 값을 헤더로 싣는다 -->
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}" />
     <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}" />
     <title>SMS전송시스템</title>
@@ -36,11 +36,15 @@
     <!-- Project shell/bridge CSS: consumes --sms-* tokens, CoreUI component styling stays in CoreUI. -->
     <link rel="stylesheet" th:href="@{/css/admin-layout.css}" />
     <link rel="stylesheet" th:href="@{/css/admin-ui-bridge.css}" />
+    <!-- 공통 JS — 의존 순서대로 로드: notify → http-client → modal-manager → common-utils → form/field → tui 계열 -->
+    <script th:src="@{/js/common/notify.js}"></script>
+    <script th:src="@{/js/common/http-client.js}"></script>
+    <script th:src="@{/js/common/modal-manager.js}"></script>
     <script th:src="@{/js/common/common-utils.js}"></script>
-    <script th:src="@{/js/common/tui-common.js}"></script>
-    <script th:src="@{/js/common/tui-page-builder.js}"></script>
     <script th:src="@{/js/common/form-binder.js}"></script>
     <script th:src="@{/js/common/field-format.js}"></script>
+    <script th:src="@{/js/common/tui-common.js}"></script>
+    <script th:src="@{/js/common/tui-page-builder.js}"></script>
 
     <!-- 로그인 사용자 정보를 자바스크립트 전역 변수로 노출. 사용자 식별은 EMP_ID + DEP_ID -->
     <script th:inline="javascript">

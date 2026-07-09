@@ -1,0 +1,173 @@
+{
+  "request" : {
+    "moduleName" : "basic",
+    "domainId" : "audit-log",
+    "domainClass" : "AuditLog",
+    "domainName" : "감사로그",
+    "rawQuery" : "SELECT\n    A.NOTICE_ID     AS NOTICE_ID,\n    A.TITLE         AS TITLE,\n    A.NOTICE_TYPE   AS NOTICE_TYPE,\n    A.USE_YN        AS USE_YN,\n    A.VIEW_CNT      AS VIEW_CNT,\n    A.REG_ID        AS REG_ID,\n    A.REG_DTTM      AS REG_DTTM,\n    A.UPD_ID        AS UPD_ID,\n    A.UPD_DTTM      AS UPD_DTTM\nFROM SMS.NOTICE A\nWHERE 1 = 1\n    AND A.REG_DTTM >= $startDate\n    AND A.REG_DTTM <  $endDate\n    AND A.REG_ID = $regId",
+    "orderBy" : "REG_DTTM DESC",
+    "includeCreateUpdate" : false,
+    "includeExcel" : true,
+    "includeModal" : false,
+    "includePrivacy" : false,
+    "screenMode" : "EXCEL",
+    "targetTable" : "SMS.NOTICE",
+    "pkColumn" : "NOTICE_ID",
+    "pkColumns" : [ "NOTICE_ID" ],
+    "lockColumn" : "",
+    "searchParamOptions" : [ {
+      "name" : "startdate",
+      "inputType" : "DATE",
+      "defaultValue" : "RECENT_7_DAYS",
+      "optionsText" : ""
+    }, {
+      "name" : "enddate",
+      "inputType" : "DATE",
+      "defaultValue" : "TODAY",
+      "optionsText" : ""
+    }, {
+      "name" : "regid",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    } ],
+    "columnOptions" : [ {
+      "columnName" : "NOTICE_ID",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "ID",
+      "width" : 100,
+      "align" : "center",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "TITLE",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "제목",
+      "width" : 250,
+      "align" : "left",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "NOTICE_TYPE",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "유형",
+      "width" : 100,
+      "align" : "center",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "USE_YN",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "사용",
+      "width" : 80,
+      "align" : "center",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "VIEW_CNT",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "조회수",
+      "width" : 100,
+      "align" : "right",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "REG_ID",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "등록자",
+      "width" : 120,
+      "align" : "center",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "REG_DTTM",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "등록일시",
+      "width" : 170,
+      "align" : "center",
+      "dateFormat" : "DATETIME",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "UPD_ID",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "수정자",
+      "width" : 120,
+      "align" : "center",
+      "dateFormat" : "NONE",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "UPD_DTTM",
+      "visible" : true,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "수정일시",
+      "width" : 170,
+      "align" : "center",
+      "dateFormat" : "DATETIME",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    } ],
+    "menuOption" : {
+      "menuId" : "BASIC_AUDIT_LOG",
+      "parentMenuId" : "",
+      "roleCode" : "ROLE_ADMIN",
+      "sortOrd" : 99
+    }
+  },
+  "columns" : [ "NOTICE_ID", "TITLE", "NOTICE_TYPE", "USE_YN", "VIEW_CNT", "REG_ID", "REG_DTTM", "UPD_ID", "UPD_DTTM" ],
+  "searchVars" : [ "startdate", "enddate", "regid" ],
+  "typeMap" : {
+    "NOTICE_ID" : "Integer",
+    "TITLE" : "String",
+    "NOTICE_TYPE" : "String",
+    "USE_YN" : "String",
+    "VIEW_CNT" : "Integer",
+    "REG_ID" : "String",
+    "REG_DTTM" : "LocalDateTime",
+    "UPD_ID" : "String",
+    "UPD_DTTM" : "LocalDateTime"
+  },
+  "dialect" : "ORACLE"
+}

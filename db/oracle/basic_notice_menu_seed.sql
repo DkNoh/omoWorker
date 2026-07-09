@@ -19,7 +19,7 @@ INSERT INTO SMS.TB_MENU_AUTH (
     USE_YN, REG_ID
 ) VALUES (
     'BASIC_NOTICE', 'ROLE_ADMIN',
-    'Y', 'N', 'N', 'N',
+    'Y', 'Y', 'Y', 'Y',
     'N', 'N', 'N', 'N',
     'Y', 'SYSTEM'
 );

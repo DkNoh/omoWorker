@@ -12,24 +12,37 @@
 
     <sql id="searchConditions">
         <where>
-            <if test="searchKeyword != null and searchKeyword != ''">
-                AND A.TITLE LIKE '%' || #{searchKeyword} || '%'
+            <if test="noticetype != null and noticetype != ''">
+                AND A.NOTICE_TYPE = #{noticetype}
             </if>
-            <if test="noticeType != null and noticeType != ''">
-                AND A.NOTICE_TYPE = #{noticeType}
+            <if test="useyn != null and useyn != ''">
+                AND A.USE_YN = #{useyn}
             </if>
-            <if test="useYn != null and useYn != ''">
-                AND A.USE_YN = #{useYn}
+            <if test="searchkeyword != null and searchkeyword != ''">
+                AND A.TITLE LIKE '%' || #{searchkeyword} || '%'
             </if>
-            <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
-                AND A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')
+            <if test="startdt != null and startdt != ''">
+                AND A.REG_DTTM <![CDATA[ >= ]]> TO_TIMESTAMP(#{startdt} || '000000', 'YYYYMMDDHH24MISS')
+            </if>
+            <if test="enddt != null and enddt != ''">
+                AND A.REG_DTTM <![CDATA[ < ]]> TO_TIMESTAMP(#{enddt} || '235959', 'YYYYMMDDHH24MISS')
             </if>
         </where>
     </sql>
 
     <sql id="baseQuery">
-            SELECT A.NOTICE_ID, A.TITLE, A.NOTICE_TYPE, A.USE_YN,
-                   A.START_DT, A.END_DT, A.VIEW_CNT, A.REG_DTTM
+            SELECT
+                A.NOTICE_ID     AS NOTICE_ID,
+                A.TITLE         AS TITLE,
+                A.NOTICE_TYPE   AS NOTICE_TYPE,
+                A.USE_YN        AS USE_YN,
+                A.START_DT      AS START_DT,
+                A.END_DT        AS END_DT,
+                A.VIEW_CNT      AS VIEW_CNT,
+                A.REG_ID        AS REG_ID,
+                A.REG_DTTM      AS REG_DTTM,
+                A.UPD_ID        AS UPD_ID,
+                A.UPD_DTTM      AS UPD_DTTM
             FROM SMS.NOTICE A
     </sql>
 
@@ -48,8 +61,52 @@
         <include refid="baseQuery"/>
         ) A
         <include refid="searchConditions"/>
-        ORDER BY A.NOTICE_ID
+        ORDER BY NOTICE_ID
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
     </select>
+
+    <insert id="insert">
+        /* NoticeMapper.insert */
+        INSERT INTO SMS.NOTICE (
+            TITLE,
+            NOTICE_TYPE,
+            USE_YN,
+            START_DT,
+            END_DT,
+            VIEW_CNT,
+            REG_DTTM,
+            UPD_DTTM
+        ) VALUES (
+            #{title,jdbcType=VARCHAR},
+            #{noticeType,jdbcType=VARCHAR},
+            #{useYn,jdbcType=VARCHAR},
+            #{startDt,jdbcType=TIMESTAMP},
+            #{endDt,jdbcType=TIMESTAMP},
+            #{viewCnt,jdbcType=NUMERIC},
+            SYSTIMESTAMP,
+            SYSTIMESTAMP
+        )
+    </insert>
+
+    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
+    <update id="update">
+        /* NoticeMapper.update */
+        UPDATE SMS.NOTICE
+           SET TITLE = #{title,jdbcType=VARCHAR},
+               NOTICE_TYPE = #{noticeType,jdbcType=VARCHAR},
+               USE_YN = #{useYn,jdbcType=VARCHAR},
+               START_DT = #{startDt,jdbcType=TIMESTAMP},
+               END_DT = #{endDt,jdbcType=TIMESTAMP},
+               VIEW_CNT = #{viewCnt,jdbcType=NUMERIC},
+               UPD_DTTM = SYSTIMESTAMP
+         WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
+           AND (UPD_DTTM = #{beforeUpdDttm,jdbcType=TIMESTAMP}
+                OR (UPD_DTTM IS NULL AND #{beforeUpdDttm,jdbcType=TIMESTAMP} IS NULL))
+    </update>
+
+    <delete id="delete">
+        /* NoticeMapper.delete */
+        DELETE FROM SMS.NOTICE WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
+    </delete>
 
 </mapper>

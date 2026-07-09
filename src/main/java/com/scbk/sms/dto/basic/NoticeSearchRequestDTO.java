@@ -9,9 +9,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class NoticeSearchRequestDTO extends PageRequestDTO {
 
-  private String searchKeyword;
-  private String noticeType;
-  private String useYn;
-  private String startDate;
-  private String endDate;
+    private String noticetype;
+    private String useyn;
+    private String searchkeyword;
+    private String startdt;
+    private String enddt;
 }

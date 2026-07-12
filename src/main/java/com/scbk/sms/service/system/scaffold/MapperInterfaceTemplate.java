@@ -1,30 +1,44 @@
 package com.scbk.sms.service.system.scaffold;
 
-/** Mapper interface 생성. */
+import java.util.Map;
+
+/** Mapper interface 생성. mapper-interface.java.tpl 리소스를 치환한다. */
 public final class MapperInterfaceTemplate {
+
+  private static final String TEMPLATE = "scaffold-templates/mapper-interface.java.tpl";
 
   private MapperInterfaceTemplate() {}
 
   public static String generate(ScaffoldModel model) {
     String cls = model.domainClass();
+    return ResourceTemplateRenderer.render(
+        TEMPLATE,
+        Map.of(
+            "MODULE_NAME", model.moduleName(),
+            "DOMAIN_CLASS", cls,
+            "IMPORTS", imports(model, cls),
+            "DETAIL_METHOD", detailMethod(model, cls),
+            "CRUD_METHODS", crudMethods(model, cls),
+            "EXCEL_METHOD", excelMethod(model, cls)));
+  }
+
+  private static String imports(ScaffoldModel model, String cls) {
+    String module = model.moduleName();
     StringBuilder sb = new StringBuilder();
-    sb.append("package com.scbk.sms.mapper.")
-        .append(model.moduleName())
-        .append(";\n\n")
-        .append("import com.scbk.sms.dto.")
-        .append(model.moduleName())
+    sb.append("import com.scbk.sms.dto.")
+        .append(module)
         .append(".")
         .append(cls)
         .append("SearchRequestDTO;\n");
     if (model.includeCreateUpdate()) {
       sb.append("import com.scbk.sms.dto.")
-          .append(model.moduleName())
+          .append(module)
           .append(".")
           .append(cls)
           .append("UpdateRequestDTO;\n");
     }
     sb.append("import com.scbk.sms.vo.")
-        .append(model.moduleName())
+        .append(module)
         .append(".")
         .append(cls)
         .append("VO;\n")
@@ -41,50 +55,45 @@ public final class MapperInterfaceTemplate {
     if (model.includeCreateUpdate()) {
       sb.append("import org.apache.ibatis.annotations.Param;\n");
     }
-    sb.append("\n")
-        .append("/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */\n")
-        .append("@Mapper\n")
-        .append("public interface ")
-        .append(cls)
-        .append("Mapper {\n\n")
-        .append("    int count(")
-        .append(cls)
-        .append("SearchRequestDTO request);\n\n")
-        .append("    List<")
-        .append(cls)
-        .append("VO> selectList(")
-        .append(cls)
-        .append("SearchRequestDTO request);\n");
-
-    if (model.includePrivacy()) {
-      sb.append("\n    ")
-          .append(cls)
-          .append("VO selectDetail(")
-          .append(model.pkJavaType())
-          .append(" ")
-          .append(model.pkFieldName())
-          .append(");\n");
-    }
-
-    if (model.includeCreateUpdate()) {
-      sb.append("\n    int insert(")
-          .append(cls)
-          .append("UpdateRequestDTO request);\n\n")
-          .append("    int update(")
-          .append(cls)
-          .append("UpdateRequestDTO request);\n\n")
-          .append("    int delete(")
-          .append(deleteParams(model))
-          .append(");\n");
-    }
-    if (model.includeExcel()) {
-      sb.append("\n    // ExcelUtil 계약상 Map을 사용한다 (동적 컬럼 예외)\n")
-          .append("    List<Map<String, Object>> selectListForExcel(")
-          .append(cls)
-          .append("SearchRequestDTO request);\n");
-    }
-    sb.append("}\n");
     return sb.toString();
+  }
+
+  private static String detailMethod(ScaffoldModel model, String cls) {
+    if (!model.includePrivacy()) {
+      return "";
+    }
+    return "\n    "
+        + cls
+        + "VO selectDetail("
+        + model.pkJavaType()
+        + " "
+        + model.pkFieldName()
+        + ");\n";
+  }
+
+  private static String crudMethods(ScaffoldModel model, String cls) {
+    if (!model.includeCreateUpdate()) {
+      return "";
+    }
+    return "\n    int insert("
+        + cls
+        + "UpdateRequestDTO request);\n\n"
+        + "    int update("
+        + cls
+        + "UpdateRequestDTO request);\n\n"
+        + "    int delete("
+        + deleteParams(model)
+        + ");\n";
+  }
+
+  private static String excelMethod(ScaffoldModel model, String cls) {
+    if (!model.includeExcel()) {
+      return "";
+    }
+    return "\n    // ExcelUtil 계약상 Map을 사용한다 (동적 컬럼 예외)\n"
+        + "    List<Map<String, Object>> selectListForExcel("
+        + cls
+        + "SearchRequestDTO request);\n";
   }
 
   private static String deleteParams(ScaffoldModel model) {

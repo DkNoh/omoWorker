@@ -1,25 +1,36 @@
 package com.scbk.sms.service.system.scaffold;
 
-/** Service 단위 테스트 생성. Mapper는 Mockito mock, given/when/then 구조. */
+import java.util.Map;
+
+/** Service 단위 테스트 생성. Mapper는 Mockito mock, given/when/then 구조. service-test.java.tpl 리소스를 치환한다. */
 public final class ServiceTestTemplate {
+
+  private static final String TEMPLATE = "scaffold-templates/service-test.java.tpl";
 
   private ServiceTestTemplate() {}
 
   public static String generate(ScaffoldModel model) {
-    String cls = model.domainClass();
-    String module = model.moduleName();
+    return ResourceTemplateRenderer.render(
+        TEMPLATE,
+        Map.of(
+            "MODULE_NAME", model.moduleName(),
+            "DOMAIN_CLASS", model.domainClass(),
+            "IMPORTS", imports(model),
+            "CRUD_TESTS", crudTests(model)));
+  }
 
+  private static String imports(ScaffoldModel model) {
+    String module = model.moduleName();
+    String cls = model.domainClass();
+    boolean crud = model.includeCreateUpdate();
     StringBuilder sb = new StringBuilder();
-    sb.append("package com.scbk.sms.service.")
-        .append(module)
-        .append(";\n\n")
-        .append("import static org.assertj.core.api.Assertions.assertThat;\n");
-    if (model.includeCreateUpdate()) {
+    sb.append("import static org.assertj.core.api.Assertions.assertThat;\n");
+    if (crud) {
       sb.append("import static org.assertj.core.api.Assertions.assertThatThrownBy;\n")
           .append("import static org.mockito.ArgumentMatchers.any;\n");
     }
     sb.append("import static org.mockito.BDDMockito.given;\n");
-    if (model.includeCreateUpdate()) {
+    if (crud) {
       sb.append("import static org.mockito.BDDMockito.then;\n");
     }
     sb.append("\n")
@@ -29,7 +40,7 @@ public final class ServiceTestTemplate {
         .append(".")
         .append(cls)
         .append("SearchRequestDTO;\n");
-    if (model.includeCreateUpdate()) {
+    if (crud) {
       sb.append("import com.scbk.sms.dto.")
           .append(module)
           .append(".")
@@ -52,89 +63,53 @@ public final class ServiceTestTemplate {
         .append("import org.junit.jupiter.api.Test;\n")
         .append("import org.junit.jupiter.api.extension.ExtendWith;\n")
         .append("import org.mockito.Mock;\n")
-        .append("import org.mockito.junit.jupiter.MockitoExtension;\n\n")
-        .append("@ExtendWith(MockitoExtension.class)\n")
-        .append("/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */\n")
-        .append("class ")
+        .append("import org.mockito.junit.jupiter.MockitoExtension;\n");
+    return sb.toString();
+  }
+
+  private static String crudTests(ScaffoldModel model) {
+    if (!model.includeCreateUpdate()) {
+      return "";
+    }
+    String cls = model.domainClass();
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n    @Test\n")
+        .append("    void 수정_결과가_0건이면_충돌로_실패한다() {\n")
+        .append("        // given : 낙관적 잠금 — 다른 사용자가 먼저 수정했거나 대상이 없는 상황\n")
+        .append("        given(mapper.update(any())).willReturn(0);\n\n")
+        .append("        // when / then\n")
+        .append("        assertThatThrownBy(() -> service.update(new ")
         .append(cls)
-        .append("ServiceTest {\n\n")
-        .append("    @Mock\n")
-        .append("    private ")
-        .append(cls)
-        .append("Mapper mapper;\n\n")
-        .append("    private ")
-        .append(cls)
-        .append("Service service;\n\n")
-        .append("    @BeforeEach\n")
-        .append("    void setUp() {\n")
-        .append("        service = new ")
-        .append(cls)
-        .append("Service(mapper);\n")
+        .append("UpdateRequestDTO()))\n")
+        .append("            .isInstanceOf(CustomException.class);\n")
         .append("    }\n\n")
         .append("    @Test\n")
-        .append("    void 목록_조회는_페이지_응답으로_감싼다() {\n")
+        .append("    void 삭제는_Mapper에_위임한다() {\n")
         .append("        // given\n")
-        .append("        ")
-        .append(cls)
-        .append("SearchRequestDTO request = new ")
-        .append(cls)
-        .append("SearchRequestDTO();\n")
-        .append("        request.setPage(1);\n")
-        .append("        request.setSize(10);\n")
-        .append("        given(mapper.count(request)).willReturn(1);\n")
-        .append("        given(mapper.selectList(request)).willReturn(List.of(new ")
-        .append(cls)
-        .append("VO()));\n\n")
+        .append("        given(mapper.delete(")
+        .append(samplePkArgs(model))
+        .append(")).willReturn(1);\n\n")
         .append("        // when\n")
-        .append("        PageResponseDTO<")
-        .append(cls)
-        .append("VO> result = service.search(request);\n\n")
+        .append("        service.delete(")
+        .append(samplePkArgs(model))
+        .append(");\n\n")
         .append("        // then\n")
-        .append("        assertThat(result.getTotalCount()).isEqualTo(1);\n")
-        .append("        assertThat(result.getContents()).hasSize(1);\n")
+        .append("        then(mapper).should().delete(")
+        .append(samplePkArgs(model))
+        .append(");\n")
+        .append("    }\n\n")
+        .append("    @Test\n")
+        .append("    void 삭제_결과가_0건이면_충돌로_실패한다() {\n")
+        .append("        // given : 다른 사용자가 먼저 삭제했거나 대상이 없는 상황\n")
+        .append("        given(mapper.delete(")
+        .append(samplePkArgs(model))
+        .append(")).willReturn(0);\n\n")
+        .append("        // when / then\n")
+        .append("        assertThatThrownBy(() -> service.delete(")
+        .append(samplePkArgs(model))
+        .append("))\n")
+        .append("            .isInstanceOf(CustomException.class);\n")
         .append("    }\n");
-
-    if (model.includeCreateUpdate()) {
-      sb.append("\n    @Test\n")
-          .append("    void 수정_결과가_0건이면_충돌로_실패한다() {\n")
-          .append("        // given : 낙관적 잠금 — 다른 사용자가 먼저 수정했거나 대상이 없는 상황\n")
-          .append("        given(mapper.update(any())).willReturn(0);\n\n")
-          .append("        // when / then\n")
-          .append("        assertThatThrownBy(() -> service.update(new ")
-          .append(cls)
-          .append("UpdateRequestDTO()))\n")
-          .append("            .isInstanceOf(CustomException.class);\n")
-          .append("    }\n\n")
-          .append("    @Test\n")
-          .append("    void 삭제는_Mapper에_위임한다() {\n")
-          .append("        // given\n")
-          .append("        given(mapper.delete(")
-          .append(samplePkArgs(model))
-          .append(")).willReturn(1);\n\n")
-          .append("        // when\n")
-          .append("        service.delete(")
-          .append(samplePkArgs(model))
-          .append(");\n\n")
-          .append("        // then\n")
-          .append("        then(mapper).should().delete(")
-          .append(samplePkArgs(model))
-          .append(");\n")
-          .append("    }\n\n")
-          .append("    @Test\n")
-          .append("    void 삭제_결과가_0건이면_충돌로_실패한다() {\n")
-          .append("        // given : 다른 사용자가 먼저 삭제했거나 대상이 없는 상황\n")
-          .append("        given(mapper.delete(")
-          .append(samplePkArgs(model))
-          .append(")).willReturn(0);\n\n")
-          .append("        // when / then\n")
-          .append("        assertThatThrownBy(() -> service.delete(")
-          .append(samplePkArgs(model))
-          .append("))\n")
-          .append("            .isInstanceOf(CustomException.class);\n")
-          .append("    }\n");
-    }
-
-    sb.append("\n    // TODO: 업무 규칙 테스트를 추가한다 (검증 조건, 상태 전이, 마스킹 등)\n").append("}\n");
     return sb.toString();
   }
 

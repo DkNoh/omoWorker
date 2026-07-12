@@ -1,16 +1,37 @@
 package com.scbk.sms.service.system.scaffold;
 
-/** Controller 생성. two-track 구조, /create와 /update 분리 (/save 금지), 개인정보 포함 시 @PrivacyLog 부착. */
+import java.util.Map;
+
+/**
+ * Controller 생성. two-track 구조, /create와 /update 분리 (/save 금지), 개인정보 포함 시 @PrivacyLog 부착.
+ * controller.java.tpl 리소스를 치환한다.
+ */
 public final class ControllerTemplate {
+
+  private static final String TEMPLATE = "scaffold-templates/controller.java.tpl";
 
   private ControllerTemplate() {}
 
   public static String generate(ScaffoldModel model) {
     String cls = model.domainClass();
-    String module = model.moduleName();
+    return ResourceTemplateRenderer.render(
+        TEMPLATE,
+        Map.of(
+            "MODULE_NAME", model.moduleName(),
+            "DOMAIN_CLASS", cls,
+            "DOMAIN_ID", model.domainId(),
+            "DOMAIN_NAME", model.domainName(),
+            "SCREEN_URL", model.screenUrl(),
+            "IMPORTS", imports(model, cls),
+            "DATA_PRIVACY_LOG", dataPrivacyLog(model),
+            "CRUD_SECTION", crudSection(model, cls),
+            "EXCEL_SECTION", excelSection(model, cls),
+            "PRIVACY_SECTION", privacySection(model, cls)));
+  }
 
+  private static String imports(ScaffoldModel model, String cls) {
+    String module = model.moduleName();
     StringBuilder sb = new StringBuilder();
-    sb.append("package com.scbk.sms.controller.").append(module).append(";\n\n");
     if (model.includePrivacy()) {
       sb.append("import com.scbk.sms.annotation.PrivacyLog;\n");
     }
@@ -60,109 +81,88 @@ public final class ControllerTemplate {
     } else {
       sb.append("import org.springframework.web.bind.annotation.RequestMapping;\n");
     }
-    sb.append("import org.springframework.web.bind.annotation.ResponseBody;\n\n")
-        .append("/**\n")
-        .append(" * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.\n")
-        .append(" * 업무 로직은 TODO 위치에 직접 추가한다.\n")
-        .append(" */\n")
-        .append("@Controller\n")
-        .append("@RequiredArgsConstructor\n")
-        .append("@RequestMapping(\"")
-        .append(model.screenUrl())
-        .append("\")\n")
-        .append("public class ")
-        .append(cls)
-        .append("Controller {\n\n")
-        .append("    private final ")
-        .append(cls)
-        .append("Service service;\n\n")
-        .append("    @GetMapping\n")
-        .append("    public String page() {\n")
-        .append("        return \"")
-        .append(module)
-        .append("/")
-        .append(model.domainId())
-        .append("\";\n")
-        .append("    }\n\n");
-
-    if (model.includePrivacy()) {
-      sb.append("    @PrivacyLog(action = \"").append(model.domainName()).append(" 목록 조회\")\n");
-    }
-    sb.append("    @ResponseBody\n")
-        .append("    @GetMapping(\"/data\")\n")
-        .append("    public ResponseEntity<ApiResponse<PageResponseDTO<")
-        .append(cls)
-        .append("VO>>> getData(\n")
-        .append("            @ModelAttribute ")
-        .append(cls)
-        .append("SearchRequestDTO request) {\n")
-        .append("        return ResponseEntity.ok(ApiResponse.success(service.search(request)));\n")
-        .append("    }\n");
-
-    if (model.includeCreateUpdate()) {
-      sb.append("\n    @ResponseBody\n")
-          .append("    @PostMapping(\"/create\")\n")
-          .append("    public ResponseEntity<ApiResponse<String>> create(@Valid @RequestBody ")
-          .append(cls)
-          .append("UpdateRequestDTO request) {\n")
-          .append("        service.create(request);\n")
-          .append("        return ResponseEntity.ok(ApiResponse.success(\"등록되었습니다.\", null));\n")
-          .append("    }\n\n")
-          .append("    @ResponseBody\n")
-          .append("    @PostMapping(\"/update\")\n")
-          .append("    public ResponseEntity<ApiResponse<String>> update(@Valid @RequestBody ")
-          .append(cls)
-          .append("UpdateRequestDTO request) {\n")
-          .append("        service.update(request);\n")
-          .append("        return ResponseEntity.ok(ApiResponse.success(\"수정되었습니다.\", null));\n")
-          .append("    }\n\n")
-          .append("    @ResponseBody\n")
-          .append("    @PostMapping(\"/delete\")\n")
-          .append("    public ResponseEntity<ApiResponse<String>> delete(")
-          .append(deleteRequestParams(model))
-          .append(") {\n")
-          .append("        service.delete(")
-          .append(String.join(", ", model.pkFieldNames()))
-          .append(");\n")
-          .append("        return ResponseEntity.ok(ApiResponse.success(\"삭제되었습니다.\", null));\n")
-          .append("    }\n");
-    }
-
-    if (model.includeExcel()) {
-      sb.append("\n");
-      if (model.includePrivacy()) {
-        sb.append("    @PrivacyLog(action = \"").append(model.domainName()).append(" 엑셀 다운로드\")\n");
-      }
-      sb.append("    @GetMapping(\"/excel\")\n")
-          .append("    public void downloadExcel(@ModelAttribute ")
-          .append(cls)
-          .append("SearchRequestDTO request,\n")
-          .append("                              HttpServletResponse response) {\n")
-          .append("        service.downloadExcel(request, response);\n")
-          .append("    }\n");
-    }
-
-    if (model.includePrivacy()) {
-      sb.append("\n    @PrivacyLog(action = \"")
-          .append(model.domainName())
-          .append(" 원문 상세 조회\")\n")
-          .append("    @ResponseBody\n")
-          .append("    @GetMapping(\"/unmask\")\n")
-          .append("    public ResponseEntity<ApiResponse<")
-          .append(cls)
-          .append("VO>> getUnmaskedDetail(@RequestParam ")
-          .append(model.pkJavaType())
-          .append(" ")
-          .append(model.pkFieldName())
-          .append(") {\n")
-          .append("        return ResponseEntity.ok(ApiResponse.success(service.getUnmaskedDetail(")
-          .append(model.pkFieldName())
-          .append(")));\n")
-          .append("    }\n");
-    }
-
-    sb.append("}\n");
+    sb.append("import org.springframework.web.bind.annotation.ResponseBody;\n");
     return sb.toString();
+  }
+
+  private static String dataPrivacyLog(ScaffoldModel model) {
+    if (!model.includePrivacy()) {
+      return "";
+    }
+    return "    @PrivacyLog(action = \"" + model.domainName() + " 목록 조회\")\n";
+  }
+
+  private static String crudSection(ScaffoldModel model, String cls) {
+    if (!model.includeCreateUpdate()) {
+      return "";
+    }
+    return "\n    @ResponseBody\n"
+        + "    @PostMapping(\"/create\")\n"
+        + "    public ResponseEntity<ApiResponse<String>> create(@Valid @RequestBody "
+        + cls
+        + "UpdateRequestDTO request) {\n"
+        + "        service.create(request);\n"
+        + "        return ResponseEntity.ok(ApiResponse.success(\"등록되었습니다.\", null));\n"
+        + "    }\n\n"
+        + "    @ResponseBody\n"
+        + "    @PostMapping(\"/update\")\n"
+        + "    public ResponseEntity<ApiResponse<String>> update(@Valid @RequestBody "
+        + cls
+        + "UpdateRequestDTO request) {\n"
+        + "        service.update(request);\n"
+        + "        return ResponseEntity.ok(ApiResponse.success(\"수정되었습니다.\", null));\n"
+        + "    }\n\n"
+        + "    @ResponseBody\n"
+        + "    @PostMapping(\"/delete\")\n"
+        + "    public ResponseEntity<ApiResponse<String>> delete("
+        + deleteRequestParams(model)
+        + ") {\n"
+        + "        service.delete("
+        + String.join(", ", model.pkFieldNames())
+        + ");\n"
+        + "        return ResponseEntity.ok(ApiResponse.success(\"삭제되었습니다.\", null));\n"
+        + "    }\n";
+  }
+
+  private static String excelSection(ScaffoldModel model, String cls) {
+    if (!model.includeExcel()) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n");
+    if (model.includePrivacy()) {
+      sb.append("    @PrivacyLog(action = \"").append(model.domainName()).append(" 엑셀 다운로드\")\n");
+    }
+    sb.append("    @GetMapping(\"/excel\")\n")
+        .append("    public void downloadExcel(@ModelAttribute ")
+        .append(cls)
+        .append("SearchRequestDTO request,\n")
+        .append("                              HttpServletResponse response) {\n")
+        .append("        service.downloadExcel(request, response);\n")
+        .append("    }\n");
+    return sb.toString();
+  }
+
+  private static String privacySection(ScaffoldModel model, String cls) {
+    if (!model.includePrivacy()) {
+      return "";
+    }
+    return "\n    @PrivacyLog(action = \""
+        + model.domainName()
+        + " 원문 상세 조회\")\n"
+        + "    @ResponseBody\n"
+        + "    @GetMapping(\"/unmask\")\n"
+        + "    public ResponseEntity<ApiResponse<"
+        + cls
+        + "VO>> getUnmaskedDetail(@RequestParam "
+        + model.pkJavaType()
+        + " "
+        + model.pkFieldName()
+        + ") {\n"
+        + "        return ResponseEntity.ok(ApiResponse.success(service.getUnmaskedDetail("
+        + model.pkFieldName()
+        + ")));\n"
+        + "    }\n";
   }
 
   private static String deleteRequestParams(ScaffoldModel model) {

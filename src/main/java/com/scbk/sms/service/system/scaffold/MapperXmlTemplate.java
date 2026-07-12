@@ -7,9 +7,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Mapper XML 생성. $변수 라인은 동적 <if> 조건으로 변환된다. */
+/** Mapper XML 생성. $변수 라인은 동적 <if> 조건으로 변환된다. mapper-xml.xml.tpl 리소스를 치환한다. */
 public final class MapperXmlTemplate {
 
+  private static final String TEMPLATE = "scaffold-templates/mapper-xml.xml.tpl";
   private static final Pattern SEARCH_VAR_PATTERN = Pattern.compile("\\$([a-zA-Z0-9_]+)");
   private static final Pattern COLUMN_COMPARE_PATTERN =
       Pattern.compile("([A-Za-z0-9_\\.]+)\\s*(<>|>=|<=|=|>|<)\\s*\\$([a-zA-Z0-9_]+)");
@@ -32,118 +33,85 @@ public final class MapperXmlTemplate {
     }
     validateCrudModel(model);
 
+    return ResourceTemplateRenderer.render(
+        TEMPLATE,
+        Map.of(
+            "MODULE_NAME", module,
+            "DOMAIN_CLASS", cls,
+            "ORDER_BY", model.orderBy(),
+            "PAGE_CLAUSE", model.dialect().pageClause(),
+            "SEARCH_CONDITIONS", buildSearchConditionIfs(model, "            "),
+            "BASE_QUERY", buildBaseQuerySql(model, "            "),
+            "CRUD_SECTION", crudSection(model, cls, targetTable),
+            "EXCEL_SECTION", excelSection(model, cls),
+            "PRIVACY_SECTION", privacySection(model, cls, module)));
+  }
+
+  private static String crudSection(ScaffoldModel model, String cls, String targetTable) {
+    if (!model.includeCreateUpdate()) {
+      return "";
+    }
     StringBuilder sb = new StringBuilder();
-    sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n")
-        .append("<!DOCTYPE mapper\n")
-        .append("        PUBLIC \"-//mybatis.org//DTD Mapper 3.0//EN\"\n")
-        .append("        \"https://mybatis.org/dtd/mybatis-3-mapper.dtd\">\n\n")
-        .append("<mapper namespace=\"com.scbk.sms.mapper.")
-        .append(module)
-        .append(".")
-        .append(cls)
-        .append("Mapper\">\n\n")
-        .append("    <!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->\n")
-        .append("    <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).\n")
-        .append("         비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,\n")
-        .append("         단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->\n\n");
-
-    // searchConditions가 <where>+<if>로 검색 조건을 담당하고 baseQuery는 SELECT/FROM만 담당한다.
-    // mybatis <where>가 첫 AND를 WHERE로 자동 변환하므로 모든 조건은 AND로 시작한다.
-    sb.append("    <sql id=\"searchConditions\">\n")
-        .append("        <where>\n")
-        .append(buildSearchConditionIfs(model, "            "))
-        .append("        </where>\n")
-        .append("    </sql>\n\n");
-
-    sb.append("    <sql id=\"baseQuery\">\n")
-        .append(buildBaseQuerySql(model, "            "))
-        .append("    </sql>\n\n");
-
-    sb.append("    <select id=\"count\" resultType=\"int\">\n")
-        .append(signature(cls, "count"))
-        .append("        SELECT COUNT(1) FROM (\n")
-        .append("        <include refid=\"baseQuery\"/>\n")
-        .append("        ) A\n")
-        .append("        <include refid=\"searchConditions\"/>\n")
-        .append("    </select>\n\n");
-
-    sb.append("    <select id=\"selectList\" resultType=\"com.scbk.sms.vo.")
-        .append(module)
-        .append(".")
-        .append(cls)
-        .append("VO\">\n")
-        .append(signature(cls, "selectList"))
-        .append("        SELECT A.*\n")
-        .append("        FROM (\n")
-        .append("        <include refid=\"baseQuery\"/>\n")
-        .append("        ) A\n")
-        .append("        <include refid=\"searchConditions\"/>\n")
-        .append("        ORDER BY ")
-        .append(model.orderBy())
+    sb.append("\n    <insert id=\"insert\">\n")
+        .append(signature(cls, "insert"))
+        .append(insertSql(model, targetTable))
+        .append("    </insert>\n\n")
+        .append("    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->\n")
+        .append("    <update id=\"update\">\n")
+        .append(signature(cls, "update"))
+        .append("        UPDATE ")
+        .append(targetTable)
         .append("\n")
-        .append("        ")
-        .append(model.dialect().pageClause())
-        .append("\n")
-        .append("    </select>\n");
-
-    if (model.includeCreateUpdate()) {
-      sb.append("\n    <insert id=\"insert\">\n")
-          .append(signature(cls, "insert"))
-          .append(insertSql(model, targetTable))
-          .append("    </insert>\n\n")
-          .append("    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->\n")
-          .append("    <update id=\"update\">\n")
-          .append(signature(cls, "update"))
-          .append("        UPDATE ")
-          .append(targetTable)
-          .append("\n")
-          .append(updateSetClause(model))
-          .append(pkWhereClause(model, "         WHERE "))
-          .append(lockWhereClause(model))
-          .append("    </update>\n\n")
-          .append("    <delete id=\"delete\">\n")
-          .append(signature(cls, "delete"))
-          .append("        DELETE FROM ")
-          .append(targetTable)
-          .append(pkWhereClause(model, " WHERE "))
-          .append("    </delete>\n");
-    }
-
-    if (model.includeExcel()) {
-      sb.append("\n    <select id=\"selectListForExcel\" resultType=\"java.util.HashMap\">\n")
-          .append(signature(cls, "selectListForExcel"))
-          .append("        SELECT A.*\n")
-          .append("        FROM (\n")
-          .append("        <include refid=\"baseQuery\"/>\n")
-          .append("        ) A\n")
-          .append("        <include refid=\"searchConditions\"/>\n")
-          .append("        ORDER BY ")
-          .append(model.orderBy())
-          .append("\n")
-          .append("    </select>\n");
-    }
-
-    if (model.includePrivacy()) {
-      sb.append("\n    <select id=\"selectDetail\" resultType=\"com.scbk.sms.vo.")
-          .append(module)
-          .append(".")
-          .append(cls)
-          .append("VO\">\n")
-          .append(signature(cls, "selectDetail"))
-          .append("        SELECT A.*\n")
-          .append("        FROM (\n")
-          .append("        <include refid=\"baseQuery\"/>\n")
-          .append("        ) A\n")
-          .append("        WHERE A.")
-          .append(model.pkColumn())
-          .append(" = #{")
-          .append(model.pkFieldName())
-          .append("}\n")
-          .append("    </select>\n");
-    }
-
-    sb.append("\n</mapper>\n");
+        .append(updateSetClause(model))
+        .append(pkWhereClause(model, "         WHERE "))
+        .append(lockWhereClause(model))
+        .append("    </update>\n\n")
+        .append("    <delete id=\"delete\">\n")
+        .append(signature(cls, "delete"))
+        .append("        DELETE FROM ")
+        .append(targetTable)
+        .append(pkWhereClause(model, " WHERE "))
+        .append("    </delete>\n");
     return sb.toString();
+  }
+
+  private static String excelSection(ScaffoldModel model, String cls) {
+    if (!model.includeExcel()) {
+      return "";
+    }
+    return "\n    <select id=\"selectListForExcel\" resultType=\"java.util.HashMap\">\n"
+        + signature(cls, "selectListForExcel")
+        + "        SELECT A.*\n"
+        + "        FROM (\n"
+        + "        <include refid=\"baseQuery\"/>\n"
+        + "        ) A\n"
+        + "        <include refid=\"searchConditions\"/>\n"
+        + "        ORDER BY "
+        + model.orderBy()
+        + "\n"
+        + "    </select>\n";
+  }
+
+  private static String privacySection(ScaffoldModel model, String cls, String module) {
+    if (!model.includePrivacy()) {
+      return "";
+    }
+    return "\n    <select id=\"selectDetail\" resultType=\"com.scbk.sms.vo."
+        + module
+        + "."
+        + cls
+        + "VO\">\n"
+        + signature(cls, "selectDetail")
+        + "        SELECT A.*\n"
+        + "        FROM (\n"
+        + "        <include refid=\"baseQuery\"/>\n"
+        + "        ) A\n"
+        + "        WHERE A."
+        + model.pkColumn()
+        + " = #{"
+        + model.pkFieldName()
+        + "}\n"
+        + "    </select>\n";
   }
 
   // rawQuery를 SELECT/FROM 부분(baseQuery용)과 WHERE 이하 부분(searchConditions용)으로 분리한다.

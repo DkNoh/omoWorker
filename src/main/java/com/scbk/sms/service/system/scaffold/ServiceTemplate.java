@@ -1,21 +1,33 @@
 package com.scbk.sms.service.system.scaffold;
 
 import java.util.List;
+import java.util.Map;
 
-/** Service 생성. PageResponseDTO.of 계약 적용, plain Java. */
+/** Service 생성. PageResponseDTO.of 계약 적용, plain Java. service.java.tpl 리소스를 치환한다. */
 public final class ServiceTemplate {
+
+  private static final String TEMPLATE = "scaffold-templates/service.java.tpl";
 
   private ServiceTemplate() {}
 
   public static String generate(ScaffoldModel model) {
     String cls = model.domainClass();
-    String module = model.moduleName();
+    return ResourceTemplateRenderer.render(
+        TEMPLATE,
+        Map.of(
+            "MODULE_NAME", model.moduleName(),
+            "DOMAIN_CLASS", cls,
+            "IMPORTS", imports(model, cls),
+            "MASK_LIST_COLUMNS", maskListColumns(model),
+            "CRUD_SECTION", crudSection(model, cls),
+            "EXCEL_SECTION", excelSection(model, cls),
+            "PRIVACY_SECTION", privacySection(model, cls)));
+  }
 
+  private static String imports(ScaffoldModel model, String cls) {
+    String module = model.moduleName();
     StringBuilder sb = new StringBuilder();
-    sb.append("package com.scbk.sms.service.")
-        .append(module)
-        .append(";\n\n")
-        .append("import com.scbk.sms.dto.common.PageResponseDTO;\n")
+    sb.append("import com.scbk.sms.dto.common.PageResponseDTO;\n")
         .append("import com.scbk.sms.dto.")
         .append(module)
         .append(".")
@@ -60,107 +72,92 @@ public final class ServiceTemplate {
     }
     sb.append("import lombok.RequiredArgsConstructor;\n")
         .append("import org.springframework.stereotype.Service;\n")
-        .append("import org.springframework.transaction.annotation.Transactional;\n\n")
-        .append("/**\n")
-        .append(" * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.\n")
-        .append(" * Scaffold 생성 코드. 업무 로직은 이 파일에 직접 추가한다.\n")
-        .append(" */\n")
-        .append("@Service\n")
-        .append("@RequiredArgsConstructor\n")
-        .append("public class ")
-        .append(cls)
-        .append("Service {\n\n")
-        .append("    private final ")
-        .append(cls)
-        .append("Mapper mapper;\n\n");
-    sb.append("    @Transactional(readOnly = true)\n")
-        .append("    public PageResponseDTO<")
-        .append(cls)
-        .append("VO> search(")
-        .append(cls)
-        .append("SearchRequestDTO request) {\n")
-        .append("        request.validate();\n")
-        .append("        int totalCount = mapper.count(request);\n")
-        .append("        List<")
-        .append(cls)
-        .append("VO> list = mapper.selectList(request);\n");
-    sb.append(maskListColumns(model));
-    sb.append("        return PageResponseDTO.of(list, request, totalCount);\n").append("    }\n");
-
-    if (model.includeCreateUpdate()) {
-      sb.append("\n    @Transactional\n")
-          .append("    public void create(")
-          .append(cls)
-          .append("UpdateRequestDTO request) {\n")
-          .append("        // TODO: 등록 전 업무 규칙 검증(중복 체크, 필수값 보정 등)을 여기에 추가한다.\n")
-          .append("        mapper.insert(request);\n")
-          .append("    }\n\n")
-          .append("    @Transactional\n")
-          .append("    public void update(")
-          .append(cls)
-          .append("UpdateRequestDTO request) {\n")
-          .append("        // TODO: 수정 전 업무 규칙 검증(상태 전이, 권한 확인 등)을 여기에 추가한다.\n")
-          .append("        int updated = mapper.update(request);\n")
-          .append("        if (updated == 0) {\n")
-          .append("            // 다른 사용자가 먼저 수정했거나(낙관적 잠금) 대상이 없다\n")
-          .append("            throw new CustomException(ErrorCode.UPDATE_CONFLICT);\n")
-          .append("        }\n")
-          .append("    }\n\n")
-          .append("    @Transactional\n")
-          .append("    public void delete(")
-          .append(deleteMethodParams(model))
-          .append(") {\n")
-          .append("        int deleted = mapper.delete(")
-          .append(deleteCallArgs(model))
-          .append(");\n")
-          .append("        if (deleted == 0) {\n")
-          .append("            // 다른 사용자가 먼저 삭제했거나 대상이 없다\n")
-          .append("            throw new CustomException(ErrorCode.DELETE_CONFLICT);\n")
-          .append("        }\n")
-          .append("    }\n");
-    }
-
-    if (model.includeExcel()) {
-      sb.append("\n    @Transactional(readOnly = true)\n")
-          .append("    public void downloadExcel(")
-          .append(cls)
-          .append("SearchRequestDTO request, HttpServletResponse response) {\n")
-          .append("        String[] headers = {")
-          .append(joinQuoted(model, false))
-          .append("};\n")
-          .append("        String[] keys = {")
-          .append(joinQuoted(model, true))
-          .append("};\n");
-      sb.append("        List<Map<String, Object>> list = mapper.selectListForExcel(request);\n")
-          .append(maskExcelRows(model))
-          .append("        ExcelUtil.downloadExcel(response, \"")
-          .append(cls)
-          .append("_export\", headers, list, keys);\n")
-          .append("    }\n");
-    }
-
-    if (model.includePrivacy()) {
-      sb.append("\n    @Transactional(readOnly = true)\n")
-          .append("    public ")
-          .append(cls)
-          .append("VO getUnmaskedDetail(")
-          .append(model.pkJavaType())
-          .append(" ")
-          .append(model.pkFieldName())
-          .append(") {\n")
-          .append("        ")
-          .append(cls)
-          .append("VO vo = mapper.selectDetail(")
-          .append(model.pkFieldName())
-          .append(");\n")
-          .append("        if (vo == null) {\n")
-          .append("            throw new CustomException(ErrorCode.DATA_NOT_FOUND);\n")
-          .append("        }\n")
-          .append("        return vo;\n")
-          .append("    }\n");
-    }
-    sb.append("}\n");
+        .append("import org.springframework.transaction.annotation.Transactional;\n");
     return sb.toString();
+  }
+
+  private static String crudSection(ScaffoldModel model, String cls) {
+    if (!model.includeCreateUpdate()) {
+      return "";
+    }
+    return "\n    @Transactional\n"
+        + "    public void create("
+        + cls
+        + "UpdateRequestDTO request) {\n"
+        + "        // TODO: 등록 전 업무 규칙 검증(중복 체크, 필수값 보정 등)을 여기에 추가한다.\n"
+        + "        mapper.insert(request);\n"
+        + "    }\n\n"
+        + "    @Transactional\n"
+        + "    public void update("
+        + cls
+        + "UpdateRequestDTO request) {\n"
+        + "        // TODO: 수정 전 업무 규칙 검증(상태 전이, 권한 확인 등)을 여기에 추가한다.\n"
+        + "        int updated = mapper.update(request);\n"
+        + "        if (updated == 0) {\n"
+        + "            // 다른 사용자가 먼저 수정했거나(낙관적 잠금) 대상이 없다\n"
+        + "            throw new CustomException(ErrorCode.UPDATE_CONFLICT);\n"
+        + "        }\n"
+        + "    }\n\n"
+        + "    @Transactional\n"
+        + "    public void delete("
+        + deleteMethodParams(model)
+        + ") {\n"
+        + "        int deleted = mapper.delete("
+        + deleteCallArgs(model)
+        + ");\n"
+        + "        if (deleted == 0) {\n"
+        + "            // 다른 사용자가 먼저 삭제했거나 대상이 없다\n"
+        + "            throw new CustomException(ErrorCode.DELETE_CONFLICT);\n"
+        + "        }\n"
+        + "    }\n";
+  }
+
+  private static String excelSection(ScaffoldModel model, String cls) {
+    if (!model.includeExcel()) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n    @Transactional(readOnly = true)\n")
+        .append("    public void downloadExcel(")
+        .append(cls)
+        .append("SearchRequestDTO request, HttpServletResponse response) {\n")
+        .append("        String[] headers = {")
+        .append(joinQuoted(model, false))
+        .append("};\n")
+        .append("        String[] keys = {")
+        .append(joinQuoted(model, true))
+        .append("};\n");
+    sb.append("        List<Map<String, Object>> list = mapper.selectListForExcel(request);\n")
+        .append(maskExcelRows(model))
+        .append("        ExcelUtil.downloadExcel(response, \"")
+        .append(cls)
+        .append("_export\", headers, list, keys);\n")
+        .append("    }\n");
+    return sb.toString();
+  }
+
+  private static String privacySection(ScaffoldModel model, String cls) {
+    if (!model.includePrivacy()) {
+      return "";
+    }
+    return "\n    @Transactional(readOnly = true)\n"
+        + "    public "
+        + cls
+        + "VO getUnmaskedDetail("
+        + model.pkJavaType()
+        + " "
+        + model.pkFieldName()
+        + ") {\n"
+        + "        "
+        + cls
+        + "VO vo = mapper.selectDetail("
+        + model.pkFieldName()
+        + ");\n"
+        + "        if (vo == null) {\n"
+        + "            throw new CustomException(ErrorCode.DATA_NOT_FOUND);\n"
+        + "        }\n"
+        + "        return vo;\n"
+        + "    }\n";
   }
 
   private static String joinQuoted(ScaffoldModel model, boolean upperCase) {

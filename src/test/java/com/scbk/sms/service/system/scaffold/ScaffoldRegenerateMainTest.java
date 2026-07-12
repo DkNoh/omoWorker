@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * {@link ScaffoldRegenerateMain#run}의 dry-run 분기와 파일 미쓰기 계약을 검증한다. dry-run은
- * {@link ScaffoldFileApplier#preview}만 호출해야 하고, 기본 모드는 {@link ScaffoldFileApplier#apply}를 호출해야 한다.
+ * {@link ScaffoldRegenerateMain#run}의 dry-run 분기와 파일 미쓰기 계약을 검증한다. dry-run은 {@link
+ * ScaffoldFileApplier#preview}만 호출해야 하고, 기본 모드는 {@link ScaffoldFileApplier#apply}를 호출해야 한다.
  */
 class ScaffoldRegenerateMainTest {
 
@@ -29,8 +29,7 @@ class ScaffoldRegenerateMainTest {
   void dryRun은_preview만_호출하고_apply는_호출하지_않는다() {
     // given
     ScaffoldFileApplier applier = mock(ScaffoldFileApplier.class);
-    when(applier.preview(any(), any()))
-        .thenReturn(List.of());
+    when(applier.preview(any(), any())).thenReturn(List.of());
 
     // when
     boolean result =
@@ -62,8 +61,7 @@ class ScaffoldRegenerateMainTest {
     // given
     ScaffoldFileApplier applier = mock(ScaffoldFileApplier.class);
     when(applier.preview(any(), any()))
-        .thenReturn(
-            List.of(new ScaffoldApplyFileResultDTO("X.java", "x/X.java", "NEW", "신규 파일")));
+        .thenReturn(List.of(new ScaffoldApplyFileResultDTO("X.java", "x/X.java", "NEW", "신규 파일")));
 
     // when
     boolean result =
@@ -81,8 +79,7 @@ class ScaffoldRegenerateMainTest {
     when(applier.preview(any(), any()))
         .thenReturn(
             List.of(
-                new ScaffoldApplyFileResultDTO(
-                    "X.java", "x/X.java", "OVERWRITE", "기존 파일 덮어쓰기")));
+                new ScaffoldApplyFileResultDTO("X.java", "x/X.java", "OVERWRITE", "기존 파일 덮어쓰기")));
 
     // when
     boolean result =
@@ -99,18 +96,13 @@ class ScaffoldRegenerateMainTest {
 
     // when
     boolean result =
-        ScaffoldRegenerateMain.run(
-            new String[] {"--dry-run"}, List.of(newRecord()), realApplier);
+        ScaffoldRegenerateMain.run(new String[] {"--dry-run"}, List.of(newRecord()), realApplier);
 
     // then — 빈 tempDir이므로 NEW 감지로 result=false가 정상 동작. 핵심 계약은 NEW를 감지하더라도 디스크에 안 쓴다는 것.
-    assertThat(result)
-        .as("빈 디렉토리에서는 모든 산출물이 NEW로 감지되어 false가 정상")
-        .isFalse();
+    assertThat(result).as("빈 디렉토리에서는 모든 산출물이 NEW로 감지되어 false가 정상").isFalse();
     try (Stream<Path> walk = Files.walk(tempDir)) {
       long fileCount = walk.filter(Files::isRegularFile).count();
-      assertThat(fileCount)
-          .as("dry-run은 NEW를 감지하더라도 디스크에 어떤 파일도 써서는 안 된다")
-          .isZero();
+      assertThat(fileCount).as("dry-run은 NEW를 감지하더라도 디스크에 어떤 파일도 써서는 안 된다").isZero();
     }
   }
 
@@ -120,16 +112,13 @@ class ScaffoldRegenerateMainTest {
     ScaffoldFileApplier realApplier = new ScaffoldFileApplier(tempDir);
 
     // when
-    boolean result =
-        ScaffoldRegenerateMain.run(new String[0], List.of(newRecord()), realApplier);
+    boolean result = ScaffoldRegenerateMain.run(new String[0], List.of(newRecord()), realApplier);
 
     // then — 기본 모드는 apply를 타서 NEW 파일들이 tempDir 아래에 생성되어야 한다 (dry-run이 아님을 증명)
     assertThat(result).isTrue();
     try (Stream<Path> walk = Files.walk(tempDir)) {
       long fileCount = walk.filter(Files::isRegularFile).count();
-      assertThat(fileCount)
-          .as("기본 모드는 apply로 산출물을 디스크에 써야 한다")
-          .isPositive();
+      assertThat(fileCount).as("기본 모드는 apply로 산출물을 디스크에 써야 한다").isPositive();
     }
   }
 

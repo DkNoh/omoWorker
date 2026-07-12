@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class AuditLogSearchRequestDTO extends PageRequestDTO {
 
-    private String startdate;
-    private String enddate;
-    private String regid;
+  private String startdate;
+  private String enddate;
+  private String regid;
 }

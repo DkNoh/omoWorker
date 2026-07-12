@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class FaqSearchRequestDTO extends PageRequestDTO {
 
-    private String searchkeyword;
-    private String noticetype;
-    private String useyn;
+  private String searchkeyword;
+  private String noticetype;
+  private String useyn;
 }

@@ -9,6 +9,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CodeSearchRequestDTO extends PageRequestDTO {
 
-    private String searchkeyword;
-    private String noticetype;
+  private String searchkeyword;
+  private String noticetype;
 }

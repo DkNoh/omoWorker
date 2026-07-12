@@ -18,20 +18,19 @@ import org.junit.jupiter.api.Test;
 /**
  * Scaffold 템플릿(byte-level) golden 회귀 테스트.
  *
- * <p>현재 StringBuilder 기반 템플릿의 출력을 byte-level로 고정한다. text-block 리팩터링(T3-T9)
- * 이후에도 동일 byte가 생성되는지 검증한다.
+ * <p>현재 StringBuilder 기반 템플릿의 출력을 byte-level로 고정한다. text-block 리팩터링(T3-T9) 이후에도 동일 byte가 생성되는지
+ * 검증한다.
  *
  * <p>모드:
+ *
  * <ul>
- *   <li>기본 (compare): golden 파일과 {@code assertThat(actual).isEqualTo(expected)} 비교. 파일이
- *       없으면 실패.
+ *   <li>기본 (compare): golden 파일과 {@code assertThat(actual).isEqualTo(expected)} 비교. 파일이 없으면 실패.
  *   <li>{@code -Dgolden.record=true}: 모든 모델의 golden 파일을 (re)write.
- *   <li>{@code -Dgolden.record=true -Dgolden.record.models=KEY[,KEY...]}: 지정 모델만 write;
- *       나머지는 반드시 compare.
+ *   <li>{@code -Dgolden.record=true -Dgolden.record.models=KEY[,KEY...]}: 지정 모델만 write; 나머지는 반드시
+ *       compare.
  * </ul>
  *
- * <p>Self-contained: ScaffoldTemplateTest의 private helper를 호출하지 않고 이 클래스 내부에
- * 동등한 helper를 재정의한다.
+ * <p>Self-contained: ScaffoldTemplateTest의 private helper를 호출하지 않고 이 클래스 내부에 동등한 helper를 재정의한다.
  */
 class ScaffoldOutputGoldenTest {
 
@@ -51,12 +50,13 @@ class ScaffoldOutputGoldenTest {
       for (String raw : keys) {
         String key = raw.trim().toLowerCase();
         if (key.isEmpty()) {
-          throw new AssertionError(
-              "golden.record.models에 빈 key가 있습니다. 알려진 key: " + KNOWN_MODELS);
+          throw new AssertionError("golden.record.models에 빈 key가 있습니다. 알려진 key: " + KNOWN_MODELS);
         }
         if (!KNOWN_MODELS.contains(key)) {
           throw new AssertionError(
-              "golden.record.models에 알 수 없는 model key '" + key + "' 가 있습니다. 알려진 key: "
+              "golden.record.models에 알 수 없는 model key '"
+                  + key
+                  + "' 가 있습니다. 알려진 key: "
                   + KNOWN_MODELS);
         }
       }
@@ -190,15 +190,16 @@ class ScaffoldOutputGoldenTest {
     return model(true, false, false);
   }
 
-  /** full: 6컬럼 topology + CRUD + PK=SMS_HISTORY_ID + lock=UPD_DTTM + Excel + Privacy + masking + validate. */
+  /**
+   * full: 6컬럼 topology + CRUD + PK=SMS_HISTORY_ID + lock=UPD_DTTM + Excel + Privacy + masking +
+   * validate.
+   */
   private ScaffoldModel fullModel() {
     ScaffoldRequestDTO request = requestWithOptions();
     ScaffoldColumnOptionDTO receiverNo =
-        columnOption(
-            "RECEIVER_NO", true, true, true, "수신번호", 160, "left", "NONE", "PHONE");
+        columnOption("RECEIVER_NO", true, true, true, "수신번호", 160, "left", "NONE", "PHONE");
     ScaffoldColumnOptionDTO sendType =
-        columnOption(
-            "SEND_TYPE", true, true, true, "발송유형", 120, "center", "NONE", "NONE");
+        columnOption("SEND_TYPE", true, true, true, "발송유형", 120, "center", "NONE", "NONE");
     sendType.setValidate("required");
     request.setColumnOptions(List.of(receiverNo, sendType));
     request.setScreenMode("CRUD");
@@ -231,12 +232,7 @@ class ScaffoldOutputGoldenTest {
             WHERE 1=1
             AND A.SEND_DT = $send_dt
             """);
-    return new ScaffoldModel(
-        request,
-        SIX_COLUMNS,
-        List.of("sendDt"),
-        SIX_TYPE_MAP,
-        dialect);
+    return new ScaffoldModel(request, SIX_COLUMNS, List.of("sendDt"), SIX_TYPE_MAP, dialect);
   }
 
   /** keyword: empty searchVars + no-WHERE rawQuery — LIKE '%' 분기 (MapperXmlTemplate:198-211) 실행. */
@@ -352,8 +348,9 @@ class ScaffoldOutputGoldenTest {
       return true;
     }
     Set<String> selected =
-        Arrays.stream(SELECTOR.split(",")).map(s -> s.trim().toLowerCase()).collect(
-            java.util.stream.Collectors.toSet());
+        Arrays.stream(SELECTOR.split(","))
+            .map(s -> s.trim().toLowerCase())
+            .collect(java.util.stream.Collectors.toSet());
     return selected.contains(modelKey);
   }
 
@@ -384,12 +381,12 @@ class ScaffoldOutputGoldenTest {
       } else {
         assertThat(Files.exists(goldenFile))
             .as(
-                modelKey + "/" + template.name()
+                modelKey
+                    + "/"
+                    + template.name()
                     + " — golden 파일이 없습니다. record 모드로 생성하세요: "
                     + "-Dgolden.record=true"
-                    + (SELECTOR != null
-                        ? " -Dgolden.record.models=" + modelKey
-                        : ""))
+                    + (SELECTOR != null ? " -Dgolden.record.models=" + modelKey : ""))
             .isTrue();
         String expected = readGolden(goldenFile);
         assertThat(actual)
@@ -443,8 +440,7 @@ class ScaffoldOutputGoldenTest {
 
   private String runGitCheckAttr(Path repoRoot, String relativePath) {
     try {
-      ProcessBuilder pb =
-          new ProcessBuilder("git", "check-attr", "eol", "--", relativePath);
+      ProcessBuilder pb = new ProcessBuilder("git", "check-attr", "eol", "--", relativePath);
       pb.directory(repoRoot.toFile());
       pb.redirectErrorStream(true);
       Process process = pb.start();

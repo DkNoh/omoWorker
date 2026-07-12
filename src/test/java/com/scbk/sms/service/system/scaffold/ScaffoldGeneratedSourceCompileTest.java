@@ -25,11 +25,11 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * full 모델이 생성한 모든 Java 소스를 JDK 21 compiler로 실제 컴파일한다.
  *
- * <p>리팩터링 후에도 생성 코드가 컴파일 가능한지 검증한다. {@link ToolProvider#getSystemJavaCompiler()}를
- * 사용하여 {@code --release 21} 옵션으로 컴파일한다.
+ * <p>리팩터링 후에도 생성 코드가 컴파일 가능한지 검증한다. {@link ToolProvider#getSystemJavaCompiler()}를 사용하여 {@code
+ * --release 21} 옵션으로 컴파일한다.
  *
- * <p>classpath는 {@code surefire.test.class.path} 시스템 프로퍼티를 사용하고, 없으면 {@code
- * java.class.path}로 폴백한다. Lombok annotation processor를 processor path에 포함한다.
+ * <p>classpath는 {@code surefire.test.class.path} 시스템 프로퍼티를 사용하고, 없으면 {@code java.class.path}로 폴백한다.
+ * Lombok annotation processor를 processor path에 포함한다.
  *
  * <p>Self-contained: ScaffoldTemplateTest/ScaffoldOutputGoldenTest의 private helper를 호출하지 않는다.
  */
@@ -114,15 +114,11 @@ class ScaffoldGeneratedSourceCompileTest {
   /** 생성된 Java 소스에서 package와 type name을 추출하여 파일 경로를 결정한다. */
   private Path sourceFilePath(Path srcRoot, String source) {
     Matcher pkgMatcher = PACKAGE_PATTERN.matcher(source);
-    assertThat(pkgMatcher.find())
-        .as("생성된 소스에 package 선언이 없습니다:\n" + source)
-        .isTrue();
+    assertThat(pkgMatcher.find()).as("생성된 소스에 package 선언이 없습니다:\n" + source).isTrue();
     String pkg = pkgMatcher.group(1);
 
     Matcher typeMatcher = TYPE_PATTERN.matcher(source);
-    assertThat(typeMatcher.find())
-        .as("생성된 소스에 class/interface 선언이 없습니다:\n" + source)
-        .isTrue();
+    assertThat(typeMatcher.find()).as("생성된 소스에 class/interface 선언이 없습니다:\n" + source).isTrue();
     String typeName = typeMatcher.group(1);
 
     return srcRoot.resolve(pkg.replace('.', '/')).resolve(typeName + ".java");
@@ -189,7 +185,8 @@ class ScaffoldGeneratedSourceCompileTest {
     DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 
     // when: 컴파일 실행
-    try (var fileManager = compiler.getStandardFileManager(diagnostics, null, StandardCharsets.UTF_8)) {
+    try (var fileManager =
+        compiler.getStandardFileManager(diagnostics, null, StandardCharsets.UTF_8)) {
       fileManager.setLocation(StandardLocation.CLASS_PATH, List.of());
       fileManager.setLocation(StandardLocation.CLASS_OUTPUT, List.of(classesDir.toFile()));
 
@@ -203,10 +200,14 @@ class ScaffoldGeneratedSourceCompileTest {
 
       List<String> options =
           List.of(
-              "--release", "21",
-              "-classpath", classpath,
-              "-processorpath", classpath,
-              "-d", classesDir.toString());
+              "--release",
+              "21",
+              "-classpath",
+              classpath,
+              "-processorpath",
+              classpath,
+              "-d",
+              classesDir.toString());
 
       javax.tools.JavaCompiler.CompilationTask task =
           compiler.getTask(null, fileManager, diagnostics, options, null, compilationUnits);
@@ -226,9 +227,7 @@ class ScaffoldGeneratedSourceCompileTest {
             sb.append(d.getMessage(null)).append("\n");
           }
         }
-        assertThat(success)
-            .as(sb.toString())
-            .isTrue();
+        assertThat(success).as(sb.toString()).isTrue();
       }
 
       // 에러 diagnostic이 0개여야 한다
@@ -236,9 +235,7 @@ class ScaffoldGeneratedSourceCompileTest {
           diagnostics.getDiagnostics().stream()
               .filter(d -> d.getKind() == Diagnostic.Kind.ERROR)
               .count();
-      assertThat(errorCount)
-          .as("컴파일은 성공했지만 ERROR diagnostic이 있습니다")
-          .isZero();
+      assertThat(errorCount).as("컴파일은 성공했지만 ERROR diagnostic이 있습니다").isZero();
 
       // 컴파일된 .class 파일이 존재해야 한다
       assertThat(classesDir.resolve("com/scbk/sms/dto/sms/SmsHistorySearchRequestDTO.class"))

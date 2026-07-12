@@ -342,8 +342,7 @@ class ScaffoldTemplateTest {
 
     // then
     assertThat(js)
-        .contains(
-            "name: 'sendDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date");
+        .contains("name: 'sendDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date");
     assertThat(js).contains("name: 'receiverNo', align: 'center', width: 150 }");
   }
 
@@ -1003,7 +1002,8 @@ class ScaffoldTemplateTest {
   }
 
   @Test
-  void HttpClient는_axios_인터셉터와_CSRF를_처리하고_defaultLayout에서_notify_뒤_common_utils_앞에_로드된다() throws Exception {
+  void HttpClient는_axios_인터셉터와_CSRF를_처리하고_defaultLayout에서_notify_뒤_common_utils_앞에_로드된다()
+      throws Exception {
     String httpClient =
         Files.readString(Path.of("src/main/resources/static/js/common/http-client.js"));
     String layout = Files.readString(Path.of("src/main/resources/templates/defaultLayout.html"));

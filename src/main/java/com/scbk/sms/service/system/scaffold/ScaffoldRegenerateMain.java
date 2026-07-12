@@ -26,9 +26,9 @@ import java.util.Map;
  *   -Dexec.args=--dry-run
  * }</pre>
  *
- * <p>Spring 컨테이너 없이 동작한다. typeMap이 메타 파일에 저장되어 있어 DB 접속이 불필요하다. {@code --dry-run}은
- * {@link ScaffoldFileApplier#preview}만 호출하고 파일을 전혀 쓰지 않는다. dry-run에서 NEW/OVERWRITE가 감지되면
- * {@link #run(String[], List, ScaffoldFileApplier)}이 {@code false}를 반환하고 main은 exit code 1로 종료한다.
+ * <p>Spring 컨테이너 없이 동작한다. typeMap이 메타 파일에 저장되어 있어 DB 접속이 불필요하다. {@code --dry-run}은 {@link
+ * ScaffoldFileApplier#preview}만 호출하고 파일을 전혀 쓰지 않는다. dry-run에서 NEW/OVERWRITE가 감지되면 {@link
+ * #run(String[], List, ScaffoldFileApplier)}이 {@code false}를 반환하고 main은 exit code 1로 종료한다.
  */
 public class ScaffoldRegenerateMain {
 

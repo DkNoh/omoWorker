@@ -10,10 +10,10 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface AuditLogMapper {
 
-    int count(AuditLogSearchRequestDTO request);
+  int count(AuditLogSearchRequestDTO request);
 
-    List<AuditLogVO> selectList(AuditLogSearchRequestDTO request);
+  List<AuditLogVO> selectList(AuditLogSearchRequestDTO request);
 
-    // ExcelUtil 계약상 Map을 사용한다 (동적 컬럼 예외)
-    List<Map<String, Object>> selectListForExcel(AuditLogSearchRequestDTO request);
+  // ExcelUtil 계약상 Map을 사용한다 (동적 컬럼 예외)
+  List<Map<String, Object>> selectListForExcel(AuditLogSearchRequestDTO request);
 }

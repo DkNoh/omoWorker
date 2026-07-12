@@ -3,8 +3,8 @@ package com.scbk.sms.service.basic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
-import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.dto.basic.AuditLogSearchRequestDTO;
+import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.mapper.basic.AuditLogMapper;
 import com.scbk.sms.vo.basic.AuditLogVO;
 import java.util.List;
@@ -18,32 +18,31 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 class AuditLogServiceTest {
 
-    @Mock
-    private AuditLogMapper mapper;
+  @Mock private AuditLogMapper mapper;
 
-    private AuditLogService service;
+  private AuditLogService service;
 
-    @BeforeEach
-    void setUp() {
-        service = new AuditLogService(mapper);
-    }
+  @BeforeEach
+  void setUp() {
+    service = new AuditLogService(mapper);
+  }
 
-    @Test
-    void 목록_조회는_페이지_응답으로_감싼다() {
-        // given
-        AuditLogSearchRequestDTO request = new AuditLogSearchRequestDTO();
-        request.setPage(1);
-        request.setSize(10);
-        given(mapper.count(request)).willReturn(1);
-        given(mapper.selectList(request)).willReturn(List.of(new AuditLogVO()));
+  @Test
+  void 목록_조회는_페이지_응답으로_감싼다() {
+    // given
+    AuditLogSearchRequestDTO request = new AuditLogSearchRequestDTO();
+    request.setPage(1);
+    request.setSize(10);
+    given(mapper.count(request)).willReturn(1);
+    given(mapper.selectList(request)).willReturn(List.of(new AuditLogVO()));
 
-        // when
-        PageResponseDTO<AuditLogVO> result = service.search(request);
+    // when
+    PageResponseDTO<AuditLogVO> result = service.search(request);
 
-        // then
-        assertThat(result.getTotalCount()).isEqualTo(1);
-        assertThat(result.getContents()).hasSize(1);
-    }
+    // then
+    assertThat(result.getTotalCount()).isEqualTo(1);
+    assertThat(result.getContents()).hasSize(1);
+  }
 
-    // TODO: 업무 규칙 테스트를 추가한다 (검증 조건, 상태 전이, 마스킹 등)
+  // TODO: 업무 규칙 테스트를 추가한다 (검증 조건, 상태 전이, 마스킹 등)
 }

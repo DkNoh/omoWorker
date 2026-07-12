@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.dto.basic.CodeSearchRequestDTO;
+import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.service.basic.CodeService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,26 +22,26 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 /** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 class CodeControllerTest {
 
-    @Mock
-    private CodeService service;
+  @Mock private CodeService service;
 
-    private MockMvc mockMvc;
+  private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new CodeController(service)).build();
-    }
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcBuilders.standaloneSetup(new CodeController(service)).build();
+  }
 
-    @Test
-    void data는_ApiResponse_포맷으로_응답한다() throws Exception {
-        // given
-        given(service.search(any())).willReturn(
-            PageResponseDTO.of(List.of(), new CodeSearchRequestDTO(), 0));
+  @Test
+  void data는_ApiResponse_포맷으로_응답한다() throws Exception {
+    // given
+    given(service.search(any()))
+        .willReturn(PageResponseDTO.of(List.of(), new CodeSearchRequestDTO(), 0));
 
-        // when / then
-        mockMvc.perform(get("/basic/code/data"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200))
-            .andExpect(jsonPath("$.data.totalCount").value(0));
-    }
+    // when / then
+    mockMvc
+        .perform(get("/basic/code/data"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value(200))
+        .andExpect(jsonPath("$.data.totalCount").value(0));
+  }
 }

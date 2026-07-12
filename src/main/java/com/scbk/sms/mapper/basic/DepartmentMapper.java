@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface DepartmentMapper {
 
-    int count(DepartmentSearchRequestDTO request);
+  int count(DepartmentSearchRequestDTO request);
 
-    List<DepartmentVO> selectList(DepartmentSearchRequestDTO request);
+  List<DepartmentVO> selectList(DepartmentSearchRequestDTO request);
 }

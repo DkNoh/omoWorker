@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class CodeVO {
 
-    private Integer noticeId;
-    private String title;
-    private String noticeType;
-    private String useYn;
-    private LocalDateTime regDttm;
+  private Integer noticeId;
+  private String title;
+  private String noticeType;
+  private String useYn;
+  private LocalDateTime regDttm;
 }

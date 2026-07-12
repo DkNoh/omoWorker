@@ -9,6 +9,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class DepartmentSearchRequestDTO extends PageRequestDTO {
 
-    private String searchkeyword;
-    private String useyn;
+  private String searchkeyword;
+  private String useyn;
 }

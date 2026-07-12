@@ -11,13 +11,13 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface FaqMapper {
 
-    int count(FaqSearchRequestDTO request);
+  int count(FaqSearchRequestDTO request);
 
-    List<FaqVO> selectList(FaqSearchRequestDTO request);
+  List<FaqVO> selectList(FaqSearchRequestDTO request);
 
-    int insert(FaqUpdateRequestDTO request);
+  int insert(FaqUpdateRequestDTO request);
 
-    int update(FaqUpdateRequestDTO request);
+  int update(FaqUpdateRequestDTO request);
 
-    int delete(@Param("noticeId") Integer noticeId);
+  int delete(@Param("noticeId") Integer noticeId);
 }

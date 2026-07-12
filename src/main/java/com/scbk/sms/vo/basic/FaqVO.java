@@ -7,13 +7,13 @@ import lombok.Data;
 @Data
 public class FaqVO {
 
-    private Integer noticeId;
-    private String title;
-    private String noticeType;
-    private String useYn;
-    private Integer viewCnt;
-    private String regId;
-    private LocalDateTime regDttm;
-    private String updId;
-    private LocalDateTime updDttm;
+  private Integer noticeId;
+  private String title;
+  private String noticeType;
+  private String useYn;
+  private Integer viewCnt;
+  private String regId;
+  private LocalDateTime regDttm;
+  private String updId;
+  private LocalDateTime updDttm;
 }

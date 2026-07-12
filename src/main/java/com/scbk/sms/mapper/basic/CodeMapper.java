@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface CodeMapper {
 
-    int count(CodeSearchRequestDTO request);
+  int count(CodeSearchRequestDTO request);
 
-    List<CodeVO> selectList(CodeSearchRequestDTO request);
+  List<CodeVO> selectList(CodeSearchRequestDTO request);
 }

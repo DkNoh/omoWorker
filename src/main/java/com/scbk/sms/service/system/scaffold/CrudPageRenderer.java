@@ -87,7 +87,8 @@ final class CrudPageRenderer implements ScaffoldPageRenderer {
         sb.append(readonlyField(column));
         continue;
       }
-      sb.append("                <div class=\"col-12 col-md-6\"><label class=\"form-label\" for=\"f-")
+      sb.append(
+              "                <div class=\"col-12 col-md-6\"><label class=\"form-label\" for=\"f-")
           .append(column.fieldName())
           .append("\">")
           .append(html(column.headerName()))

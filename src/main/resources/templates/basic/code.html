@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- Scaffold 생성(LIST). 생성 후 개발자가 직접 수정해 소유한다. -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>공통코드조회</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>공통코드조회</h2>
+    </div>
+
+        <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+        <div class="card-body">
+            <div class="row align-items-center g-3 flex-wrap">
+                <div class="col-auto"><label for="searchkeyword" class="col-form-label fw-bold">searchkeyword</label></div>
+                <div class="col-auto"><input type="text" id="searchkeyword" class="form-control scaffold-search-control" aria-label="searchkeyword"></div>
+                <div class="col-auto"><label for="noticetype" class="col-form-label fw-bold">noticetype</label></div>
+                <div class="col-auto"><select id="noticetype" class="form-select scaffold-search-control" name="noticetype" aria-label="noticetype"><option value="">전체</option><option value="NOT">공지</option><option value="FAQ">FAQ</option></select></div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/basic/code.js}"></script>
+</th:block>
+</body>
+</html>

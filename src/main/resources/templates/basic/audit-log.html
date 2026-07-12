@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!-- Scaffold 생성(EXCEL). 생성 후 개발자가 직접 수정해 소유한다. -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>감사로그</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>감사로그</h2>
+    </div>
+
+        <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+        <div class="card-body">
+            <div class="row align-items-center g-3 flex-wrap">
+                <div class="col-auto"><label for="startdate" class="col-form-label fw-bold">startdate</label></div>
+                <div class="col-auto"><div class="scaffold-date-field scaffold-date-field-md"><div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input"><input type="text" id="startdate" data-search-type="date" autocomplete="off" aria-label="startdate"><span class="tui-ico-date" aria-hidden="true"></span></div><div id="startdatePickerLayer" class="scaffold-date-picker-layer"></div></div></div>
+                <div class="col-auto"><label for="enddate" class="col-form-label fw-bold">enddate</label></div>
+                <div class="col-auto"><div class="scaffold-date-field scaffold-date-field-md"><div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input"><input type="text" id="enddate" data-search-type="date" autocomplete="off" aria-label="enddate"><span class="tui-ico-date" aria-hidden="true"></span></div><div id="enddatePickerLayer" class="scaffold-date-picker-layer"></div></div></div>
+                <div class="col-auto"><label for="regid" class="col-form-label fw-bold">regid</label></div>
+                <div class="col-auto"><input type="text" id="regid" class="form-control scaffold-search-control" aria-label="regid"></div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
+                    <button type="button" id="btn-excel" th:if="${pageAuth.download}" class="btn btn-success px-3" aria-label="엑셀 다운로드"><i data-lucide="download" aria-hidden="true"></i><span>엑셀</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/basic/audit-log.js}"></script>
+</th:block>
+</body>
+</html>

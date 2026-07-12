@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!-- Scaffold 생성(DETAIL). 생성 후 개발자가 직접 수정해 소유한다. -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>부서상세</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>부서상세</h2>
+    </div>
+
+        <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+        <div class="card-body">
+            <div class="row align-items-center g-3 flex-wrap">
+                <div class="col-auto"><label for="searchkeyword" class="col-form-label fw-bold">searchkeyword</label></div>
+                <div class="col-auto"><input type="text" id="searchkeyword" class="form-control scaffold-search-control" aria-label="searchkeyword"></div>
+                <div class="col-auto"><label for="useyn" class="col-form-label fw-bold">useyn</label></div>
+                <div class="col-auto"><select id="useyn" class="form-select scaffold-search-control" name="useyn" aria-label="useyn"><option value="">전체</option><option value="Y">사용</option><option value="N">미사용</option></select></div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
+
+    <th:block th:replace="~{fragments/modal-base :: layout(
+        modalId='department-modal',
+        title='부서상세 상세',
+        size='modal-lg',
+        bodyContent=~{::#modal-body},
+        footerContent=null
+    )}">
+        <div id="modal-body">
+            <form id="detail-form" class="row g-3" autocomplete="off">
+                                <div class="col-12 col-md-6"><div class="form-label">ID</div><div class="form-control-plaintext" data-readonly-field="noticeId"></div></div>
+                <div class="col-12 col-md-6"><div class="form-label">제목</div><div class="form-control-plaintext" data-readonly-field="title"></div></div>
+                <div class="col-12 col-md-6"><div class="form-label">유형</div><div class="form-control-plaintext" data-readonly-field="noticeType"></div></div>
+                <div class="col-12 col-md-6"><div class="form-label">사용</div><div class="form-control-plaintext" data-readonly-field="useYn"></div></div>
+                <div class="col-12 col-md-6"><div class="form-label">조회수</div><div class="form-control-plaintext" data-readonly-field="viewCnt"></div></div>
+                <div class="col-12 col-md-6"><div class="form-label">등록자</div><div class="form-control-plaintext" data-readonly-field="regId"></div></div>
+                <div class="col-12 col-md-6"><div class="form-label">등록일시</div><div class="form-control-plaintext" data-readonly-field="regDttm"></div></div>
+
+            </form>
+        </div>
+    </th:block>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/basic/department.js}"></script>
+</th:block>
+</body>
+</html>

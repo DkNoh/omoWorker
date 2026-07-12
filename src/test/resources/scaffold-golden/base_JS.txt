@@ -1,0 +1,15 @@
+// Scaffold 생성(LIST). 생성 후 개발자가 직접 수정해 소유한다.
+document.addEventListener('DOMContentLoaded', function () {
+    const pageBuilder = new TuiPageBuilder({
+        el: 'grid',
+        apiUrl: '/sms/history/data',
+        searchInputs: ['startDt'],
+        searchDefaults: {},
+        rowHeaders: ['rowNum'],
+        columns: [
+            { header: 'SEND_DT', name: 'sendDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
+            { header: 'RECEIVER_NO', name: 'receiverNo', align: 'center', width: 150 }
+
+        ]
+    });
+});

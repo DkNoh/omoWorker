@@ -1,0 +1,2 @@
+# golden 테스트 리소스는 OS 무관 LF 고정 (byte-identical 검증 필수)
+src/test/resources/scaffold-golden/*.txt text eol=lf

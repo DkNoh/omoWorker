@@ -3,9 +3,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentKey = null;
     let lastRequest = null;
 
-    document.querySelector('#screenMode').addEventListener('change', syncModalOption);
-    syncModalOption();
-
     document.querySelector('#btn-refresh-options').addEventListener('click', async () => {
         try {
             await renderOptionTables();
@@ -102,7 +99,6 @@ document.addEventListener('DOMContentLoaded', function () {
             orderBy: document.querySelector('#orderBy').value.trim(),
             includeCreateUpdate: screenMode === 'CRUD' || screenMode === 'CRUD_PANEL',
             includeExcel: screenMode === 'EXCEL',
-            includeModal: document.querySelector('#includeModal').checked,
             includePrivacy: document.querySelector('#includePrivacy').checked,
             screenMode: screenMode,
             targetTable: document.querySelector('#targetTable').value.trim(),
@@ -136,24 +132,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (firstKey) {
             selectTab(firstKey, tabContainer.querySelector('button'));
         }
-    }
-
-    function syncModalOption() {
-        const screenMode = document.querySelector('#screenMode').value;
-        const includeModal = document.querySelector('#includeModal');
-        const forced = screenMode === 'DETAIL' || screenMode === 'CRUD';
-        const wasForced = includeModal.dataset.forced === 'true';
-        if (forced) {
-            includeModal.checked = true;
-            includeModal.disabled = true;
-            includeModal.dataset.forced = 'true';
-            return;
-        }
-        includeModal.disabled = false;
-        if (wasForced) {
-            includeModal.checked = false;
-        }
-        includeModal.dataset.forced = 'false';
     }
 
     function confirmApply(message) {
@@ -292,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tr.dataset.column = column;
             tr.innerHTML = `
                 <td><input class="form-check-input" type="checkbox" data-field="visible" ${visible ? 'checked' : ''} title="그리드 표시"></td>
-                <td><input class="form-check-input" type="checkbox" data-field="modalVisible" ${modalVisible ? 'checked' : ''} title="상세 모달 표시"></td>
+                <td><input class="form-check-input" type="checkbox" data-field="modalVisible" ${modalVisible ? 'checked' : ''} title="수정 화면 표시"></td>
                 <td><input class="form-check-input" type="checkbox" data-field="editable" ${editable ? 'checked' : ''} title="수정 가능"></td>
                 <td><code>${column}</code></td>
                 <td><input class="form-control form-control-sm" data-field="headerName" value="${escapeAttr(prev.headerName || column)}"></td>

@@ -5,7 +5,6 @@ import com.scbk.sms.dto.system.ScaffoldApplyFileResultDTO;
 import com.scbk.sms.dto.system.ScaffoldCaseRecord;
 import com.scbk.sms.dto.system.ScaffoldRequestDTO;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -120,21 +119,6 @@ public class ScaffoldRegenerateMain {
   }
 
   private static Map<String, String> generateAll(ScaffoldModel model) {
-    String cls = model.domainClass();
-    Map<String, String> results = new LinkedHashMap<>();
-    results.put(cls + "SearchRequestDTO.java", DtoTemplate.generate(model));
-    if (model.includeCreateUpdate()) {
-      results.put(cls + "UpdateRequestDTO.java", UpdateRequestDtoTemplate.generate(model));
-    }
-    results.put(cls + "VO.java", VoTemplate.generate(model));
-    results.put(cls + "Mapper.java", MapperInterfaceTemplate.generate(model));
-    results.put(cls + "Mapper.xml", MapperXmlTemplate.generate(model));
-    results.put(cls + "Service.java", ServiceTemplate.generate(model));
-    results.put(cls + "Controller.java", ControllerTemplate.generate(model));
-    results.put(cls + "ServiceTest.java", ServiceTestTemplate.generate(model));
-    results.put(cls + "ControllerTest.java", ControllerTestTemplate.generate(model));
-    results.putAll(ScaffoldPageRenderers.render(model));
-    results.put("메뉴등록.sql", MenuSqlTemplate.generate(model));
-    return results;
+    return ScaffoldArtifactRenderer.renderAll(model);
   }
 }

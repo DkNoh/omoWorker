@@ -38,12 +38,11 @@
     )}">
         <div id="modal-body">
             <form id="detail-form" class="row g-3" autocomplete="off" novalidate>
-                                <input type="hidden" name="receiverNo">
+                <input type="hidden" name="receiverNo">
                 <div class="row g-3">
                 <div class="col-12 col-md-6"><label class="form-label" for="f-sendDt">SEND_DT</label><input type="text" class="form-control" id="f-sendDt" name="sendDt"></div>
                 <div class="col-12 col-md-6"><div class="form-label">RECEIVER_NO</div><div class="form-control-plaintext" data-readonly-field="receiverNo"></div></div>
                 </div>
-
             </form>
         </div>
     </th:block>

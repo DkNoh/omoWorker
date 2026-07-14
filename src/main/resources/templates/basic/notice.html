@@ -16,16 +16,13 @@
         <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
         <div class="card-body">
             <div class="row align-items-center g-3 flex-wrap">
-                <div class="col-auto"><label for="noticetype" class="col-form-label fw-bold">noticetype</label></div>
-                <div class="col-auto"><input type="text" id="noticetype" class="form-control scaffold-search-control" aria-label="noticetype"></div>
-                <div class="col-auto"><label for="useyn" class="col-form-label fw-bold">useyn</label></div>
-                <div class="col-auto"><input type="text" id="useyn" class="form-control scaffold-search-control" aria-label="useyn"></div>
-                <div class="col-auto"><label for="searchkeyword" class="col-form-label fw-bold">searchkeyword</label></div>
-                <div class="col-auto"><input type="text" id="searchkeyword" class="form-control scaffold-search-control" aria-label="searchkeyword"></div>
                 <div class="col-auto"><label for="startdt" class="col-form-label fw-bold">startdt</label></div>
                 <div class="col-auto"><div class="scaffold-date-field scaffold-date-field-md"><div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input"><input type="text" id="startdt" data-search-type="date" autocomplete="off" aria-label="startdt"><span class="tui-ico-date" aria-hidden="true"></span></div><div id="startdtPickerLayer" class="scaffold-date-picker-layer"></div></div></div>
+                <div class="col-auto scaffold-date-range-separator" aria-hidden="true">~</div>
                 <div class="col-auto"><label for="enddt" class="col-form-label fw-bold">enddt</label></div>
                 <div class="col-auto"><div class="scaffold-date-field scaffold-date-field-md"><div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input"><input type="text" id="enddt" data-search-type="date" autocomplete="off" aria-label="enddt"><span class="tui-ico-date" aria-hidden="true"></span></div><div id="enddtPickerLayer" class="scaffold-date-picker-layer"></div></div></div>
+                <div class="col-auto"><label for="useYn" class="col-form-label fw-bold">useYn</label></div>
+                <div class="col-auto"><input type="text" id="useYn" class="form-control scaffold-search-control" aria-label="useYn"></div>
                 <div class="col-auto ms-auto d-flex gap-2">
                     <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary px-3" aria-label="신규 등록"><i data-lucide="plus" aria-hidden="true"></i><span>등록</span></button>
                     <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
@@ -37,7 +34,7 @@
 
     <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
 
-        <section class="card surface-card mb-4" id="detail-panel" hidden>
+    <section class="card surface-card mb-4" id="detail-panel" hidden>
         <header class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="d-flex align-items-center gap-2"><i data-lucide="panel-right" aria-hidden="true"></i><span class="fw-semibold" id="detail-panel-title">공지사항 상세</span><code id="detail-selected-key"></code></div>
             <div class="d-flex gap-2 flex-wrap">
@@ -47,19 +44,12 @@
         </header>
         <div class="card-body"><form id="detail-form" autocomplete="off" novalidate>
             <input type="hidden" name="noticeId">
-            <input type="hidden" name="beforeUpdDttm">
             <div class="row g-3">
                 <div class="col-12 col-md-6"><div class="form-label">NOTICE_ID</div><div class="form-control-plaintext" data-readonly-field="noticeId"></div></div>
                 <div class="col-12 col-md-6"><label class="form-label" for="f-title">TITLE</label><input type="text" class="form-control" id="f-title" name="title"></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-noticeType">NOTICE_TYPE</label><input type="text" class="form-control" id="f-noticeType" name="noticeType"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-content">CONTENT</label><input type="text" class="form-control" id="f-content" name="content"></div>
                 <div class="col-12 col-md-6"><label class="form-label" for="f-useYn">USE_YN</label><input type="text" class="form-control" id="f-useYn" name="useYn"></div>
                 <div class="col-12 col-md-6"><label class="form-label" for="f-startDt">START_DT</label><input type="text" class="form-control" id="f-startDt" name="startDt"></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-endDt">END_DT</label><input type="text" class="form-control" id="f-endDt" name="endDt"></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-viewCnt">VIEW_CNT</label><input type="number" class="form-control" id="f-viewCnt" name="viewCnt"></div>
-                <div class="col-12 col-md-6"><div class="form-label">REG_ID</div><div class="form-control-plaintext" data-readonly-field="regId"></div></div>
-                <div class="col-12 col-md-6"><div class="form-label">REG_DTTM</div><div class="form-control-plaintext" data-readonly-field="regDttm"></div></div>
-                <div class="col-12 col-md-6"><div class="form-label">UPD_ID</div><div class="form-control-plaintext" data-readonly-field="updId"></div></div>
-                <div class="col-12 col-md-6"><div class="form-label">UPD_DTTM</div><div class="form-control-plaintext" data-readonly-field="updDttm"></div></div>
             </div>
         </form></div>
     </section>

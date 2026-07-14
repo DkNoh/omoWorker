@@ -1,9 +1,9 @@
 // Scaffold 생성(CRUD_PANEL). 생성 후 개발자가 직접 수정해 소유한다.
 document.addEventListener('DOMContentLoaded', function () {
     const API = {
-        create: '@@SCREEN_URL@@/create',
-        update: '@@SCREEN_URL@@/update',
-        delete: '@@SCREEN_URL@@/delete'
+        create: '[( ${model.screenUrl()} )]/create',
+        update: '[( ${model.screenUrl()} )]/update',
+        delete: '[( ${model.screenUrl()} )]/delete'
     };
 
     const SELECTOR = {
@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btnDelete: '#btn-delete'
     };
 
-    const DEFAULT_FORM = @@DEFAULT_FORM@@;
-    const PK_FIELDS = [@@PK_FIELDS@@];
-    const LOCK = @@LOCK_CONFIG@@;
+    const DEFAULT_FORM = { [# th:each="field, iter : ${model.defaultFormFieldNames()}"][( ${field} )]: ''[# th:if="${!iter.last}"], [/][/] };
+    const PK_FIELDS = [[# th:each="field, iter : ${model.pkFieldNames()}"]'[( ${field} )]'[# th:if="${!iter.last}"], [/][/]];
+    const LOCK = [# th:if="${model.hasLockColumn()}"]{ field: '[( ${model.lockFieldName()} )]', beforeField: '[( ${model.beforeLockFieldName()} )]' }[/][# th:unless="${model.hasLockColumn()}"]null[/];
 
     const state = {
         mode: 'create',
@@ -41,20 +41,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const pageBuilder = new TuiPageBuilder({
         el: 'grid',
-        apiUrl: '@@SCREEN_URL@@/data',
-        searchInputs: [@@SEARCH_INPUTS@@],
-        searchDefaults: {@@SEARCH_DEFAULTS@@},
+        apiUrl: '[( ${model.screenUrl()} )]/data',
+        searchInputs: [[# th:each="searchParam, iter : ${model.searchParams()}"]'[( ${model.jsEscape(searchParam.name())} )]'[# th:if="${!iter.last}"], [/][/]],
+        searchDefaults: {[# th:each="searchParam, iter : ${model.searchParamsWithDefaults()}"][( ${searchParam.name()} )]: '[( ${model.jsEscape(searchParam.defaultValue())} )]'[# th:if="${!iter.last}"], [/][/]},
         btnCreate: 'crud-panel-auto-create-disabled',
         rowHeaders: ['rowNum'],
         columns: [
-@@GRID_COLUMNS@@
+[# th:each="column, iter : ${model.columnConfigs()}"]            { header: '[( ${model.jsEscape(column.headerName())} )]', name: '[( ${column.fieldName()} )]', align: '[( ${column.align()} )]', width: [( ${column.width()} )][# th:if="${!column.visible()}"], hidden: true[/][# th:if="${column.hasMask()}"], formatter: ({ value }) => TuiCommon.maskValue(value, '[( ${column.maskType()} )]')[/][# th:if="${!column.hasMask() and column.hasOptions()}"], formatter: TuiCommon.badgeByValue({ labels: { [# th:each="option, optionIter : ${column.options()}"][( ${option.value()} )]: '[( ${model.jsEscape(option.label())} )]'[# th:if="${!optionIter.last}"], [/][/] } })[/][# th:if="${!column.hasMask() and !column.hasOptions() and column.dateFormat() == 'DATE'}"], formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD')[/][# th:if="${!column.hasMask() and !column.hasOptions() and column.dateFormat() == 'DATETIME'}"], formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')[/][# th:if="${!column.hasMask() and !column.hasOptions() and column.dateFormat() == 'AUTO' and column.isDateColumn()}"], formatter: TuiCommon.fmt.date[/] }[# th:if="${!iter.last}"],[/]
+[/]
         ]
     });
 
     const grid = pageBuilder.getGrid();
     grid.on('click', (ev) => {
         if (ev.rowKey === null || ev.rowKey === undefined) return;
-        openDetail(grid.getRow(ev.rowKey));
+        openEdit(grid.getRow(ev.rowKey));
     });
 
     const showPanel = (show) => {
@@ -88,13 +89,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    const openDetail = (row) => {
+    const openEdit = (row) => {
         state.mode = 'update';
         state.selectedRow = row;
         FormBinder.bind(SELECTOR.form, row);
         bindReadonlyFields(row);
         applyLockSnapshot(row);
-        els.panelTitle.textContent = '@@DOMAIN_NAME@@ 수정';
+        els.panelTitle.textContent = '[( ${model.domainName()} )] 수정';
         els.selectedKey.textContent = rowLabel(row) || '(선택됨)';
         syncActionButtons();
         showPanel(true);
@@ -106,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
         els.form.reset();
         FormBinder.bind(SELECTOR.form, DEFAULT_FORM);
         bindReadonlyFields(DEFAULT_FORM);
-        els.panelTitle.textContent = '@@DOMAIN_NAME@@ 등록';
+        els.panelTitle.textContent = '[( ${model.domainName()} )] 등록';
         els.selectedKey.textContent = '(신규)';
         syncActionButtons();
         showPanel(true);

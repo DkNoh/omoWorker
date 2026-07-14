@@ -105,42 +105,6 @@ public final class QueryColumnExtractor {
    * $변수가 포함된 라인을 MyBatis 동적 조건으로 변환한다. AND A.SEND_DT >= $start_dt -> <if test="startDt != null and
    * startDt != ''"> AND A.SEND_DT >= #{startDt} </if>
    */
-  public static String convertToDynamicSql(String rawQuery, String indent) {
-    StringBuilder sql = new StringBuilder();
-    for (String line : rawQuery.split("\n")) {
-      if (!line.contains("$")) {
-        sql.append(indent).append(line).append("\n");
-        continue;
-      }
-
-      List<String> lineVars = new ArrayList<>();
-      Matcher matcher = SEARCH_VAR_PATTERN.matcher(line);
-      while (matcher.find()) {
-        lineVars.add(toCamelCase(matcher.group(1)));
-      }
-
-      sql.append(indent).append("    <if test=\"");
-      for (int i = 0; i < lineVars.size(); i++) {
-        if (i > 0) {
-          sql.append(" and ");
-        }
-        sql.append(lineVars.get(i))
-            .append(" != null and ")
-            .append(lineVars.get(i))
-            .append(" != ''");
-      }
-      sql.append("\">\n");
-
-      String replacedLine =
-          SEARCH_VAR_PATTERN
-              .matcher(line)
-              .replaceAll(match -> "#{" + toCamelCase(match.group(1)) + "}");
-      sql.append(indent).append("        ").append(replacedLine.trim()).append("\n");
-      sql.append(indent).append("    </if>\n");
-    }
-    return sql.toString();
-  }
-
   /** snake_case -> camelCase. map-underscore-to-camel-case 설정과 일치시킨다. */
   public static String toCamelCase(String value) {
     String[] parts = value.toLowerCase().split("_");

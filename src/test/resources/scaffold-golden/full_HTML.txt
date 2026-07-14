@@ -44,7 +44,7 @@
     )}">
         <div id="modal-body">
             <form id="detail-form" class="row g-3" autocomplete="off" novalidate>
-                                <input type="hidden" name="smsHistoryId">
+                <input type="hidden" name="smsHistoryId">
                 <input type="hidden" name="beforeUpdDttm">
                 <div class="row g-3">
                 <div class="col-12 col-md-6"><div class="form-label">SMS_HISTORY_ID</div><div class="form-control-plaintext" data-readonly-field="smsHistoryId"></div></div>
@@ -54,7 +54,6 @@
                 <div class="col-12 col-md-6"><label class="form-label" for="f-receiverNo">수신번호</label><input type="text" class="form-control" id="f-receiverNo" name="receiverNo"></div>
                 <div class="col-12 col-md-6"><div class="form-label">UPD_DTTM</div><div class="form-control-plaintext" data-readonly-field="updDttm"></div></div>
                 </div>
-
             </form>
         </div>
     </th:block>

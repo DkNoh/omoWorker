@@ -1,0 +1,151 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json",
+  "model_fallback": true,
+  "runtime_fallback": {
+    "enabled": true,
+    "retry_on_errors": [408, 409, 429, 500, 502, 503, 504],
+    "max_fallback_attempts": 3,
+    "cooldown_seconds": 300,
+    "timeout_seconds": 180,
+    "notify_on_fallback": true,
+    "restore_primary_after_cooldown": true
+  },
+  "background_task": {
+    "defaultConcurrency": 3,
+    "providerConcurrency": {
+      "openai": 1,
+      "zai-coding-plan": 3,
+      "lmstudio": 2
+    }
+  },
+  "agents": {
+    "sisyphus": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": [
+        "lmstudio/qwen/qwen3.6-35b-a3b",
+        "openai/gpt-5.6-sol"
+      ]
+    },
+    "hephaestus": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": [
+        "lmstudio/qwen/qwen3.6-35b-a3b",
+        "openai/gpt-5.6-sol"
+      ]
+    },
+    "atlas": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": [
+        "lmstudio/qwen/qwen3.6-35b-a3b",
+        "openai/gpt-5.6-sol"
+      ]
+    },
+    "prometheus": {
+      "model": "openai/gpt-5.6-sol",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2",
+        "lmstudio/qwen/qwen3.6-35b-a3b"
+      ]
+    },
+    "oracle": {
+      "model": "openai/gpt-5.6-sol",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2",
+        "lmstudio/qwen/qwen3.6-35b-a3b"
+      ]
+    },
+    "metis": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": [
+        "lmstudio/qwen/qwen3.6-35b-a3b",
+        "openai/gpt-5.6-sol"
+      ]
+    },
+    "momus": {
+      "model": "openai/gpt-5.6-sol",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2",
+        "lmstudio/qwen/qwen3.6-35b-a3b"
+      ]
+    },
+    "sisyphus-junior": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2"
+      ]
+    },
+    "explore": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2"
+      ]
+    },
+    "librarian": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2"
+      ]
+    },
+    "summary": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2"
+      ]
+    },
+    "title": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2"
+      ]
+    },
+    "compaction": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2"
+      ]
+    }
+  },
+  "categories": {
+    "quick": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": ["zai-coding-plan/glm-5.2"]
+    },
+    "writing": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": ["zai-coding-plan/glm-5.2"]
+    },
+    "unspecified-low": {
+      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "fallback_models": ["zai-coding-plan/glm-5.2"]
+    },
+    "unspecified-high": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": [
+        "lmstudio/qwen/qwen3.6-35b-a3b",
+        "openai/gpt-5.6-sol"
+      ]
+    },
+    "deep": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": [
+        "openai/gpt-5.6-sol",
+        "lmstudio/qwen/qwen3.6-35b-a3b"
+      ]
+    },
+    "ultrabrain": {
+      "model": "openai/gpt-5.6-sol",
+      "fallback_models": [
+        "zai-coding-plan/glm-5.2",
+        "lmstudio/qwen/qwen3.6-35b-a3b"
+      ]
+    },
+    "visual-engineering": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": ["lmstudio/qwen/qwen3.6-35b-a3b"]
+    },
+    "artistry": {
+      "model": "zai-coding-plan/glm-5.2",
+      "fallback_models": ["lmstudio/qwen/qwen3.6-35b-a3b"]
+    }
+  }
+}

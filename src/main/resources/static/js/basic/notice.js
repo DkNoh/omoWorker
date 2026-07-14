@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btnDelete: '#btn-delete'
     };
 
-    const DEFAULT_FORM = { noticeId: '', title: '', noticeType: '', useYn: '', startDt: '', endDt: '', viewCnt: '', beforeUpdDttm: '' };
+    const DEFAULT_FORM = { noticeId: '', title: '', content: '', useYn: '', startDt: '' };
     const PK_FIELDS = ['noticeId'];
-    const LOCK = { field: 'updDttm', beforeField: 'beforeUpdDttm' };
+    const LOCK = null;
 
     const state = {
         mode: 'create',
@@ -42,22 +42,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageBuilder = new TuiPageBuilder({
         el: 'grid',
         apiUrl: '/basic/notice/data',
-        searchInputs: ['noticetype', 'useyn', 'searchkeyword', 'startdt', 'enddt'],
+        searchInputs: ['startdt', 'enddt', 'useYn'],
         searchDefaults: {},
         btnCreate: 'crud-panel-auto-create-disabled',
         rowHeaders: ['rowNum'],
         columns: [
             { header: 'NOTICE_ID', name: 'noticeId', align: 'center', width: 150 },
             { header: 'TITLE', name: 'title', align: 'center', width: 150 },
-            { header: 'NOTICE_TYPE', name: 'noticeType', align: 'center', width: 150 },
+            { header: 'CONTENT', name: 'content', align: 'center', width: 150 },
             { header: 'USE_YN', name: 'useYn', align: 'center', width: 150 },
-            { header: 'START_DT', name: 'startDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
-            { header: 'END_DT', name: 'endDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
-            { header: 'VIEW_CNT', name: 'viewCnt', align: 'center', width: 150 },
-            { header: 'REG_ID', name: 'regId', align: 'center', width: 150 },
-            { header: 'REG_DTTM', name: 'regDttm', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
-            { header: 'UPD_ID', name: 'updId', align: 'center', width: 150 },
-            { header: 'UPD_DTTM', name: 'updDttm', align: 'center', width: 150, formatter: TuiCommon.fmt.date }
+            { header: 'START_DT', name: 'startDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date }
 
         ]
     });
@@ -65,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const grid = pageBuilder.getGrid();
     grid.on('click', (ev) => {
         if (ev.rowKey === null || ev.rowKey === undefined) return;
-        openDetail(grid.getRow(ev.rowKey));
+        openEdit(grid.getRow(ev.rowKey));
     });
 
     const showPanel = (show) => {
@@ -99,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    const openDetail = (row) => {
+    const openEdit = (row) => {
         state.mode = 'update';
         state.selectedRow = row;
         FormBinder.bind(SELECTOR.form, row);

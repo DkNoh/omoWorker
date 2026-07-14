@@ -58,6 +58,7 @@ public class MenuAuthService {
     map.put("/data", Set.of(MenuPermission.READ));
     map.put("/search", Set.of(MenuPermission.READ));
     map.put("/detail", Set.of(MenuPermission.READ));
+    map.put("/popup", Set.of(MenuPermission.READ));
     map.put("/tree", Set.of(MenuPermission.READ));
     map.put("/create", Set.of(MenuPermission.CREATE));
     map.put("/register", Set.of(MenuPermission.CREATE));

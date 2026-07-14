@@ -1,9 +1,11 @@
 package com.scbk.sms.service.system.scaffold;
 
+import static com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.render;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.scbk.sms.dto.system.ScaffoldColumnOptionDTO;
 import com.scbk.sms.dto.system.ScaffoldRequestDTO;
+import com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.Artifact;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,7 +20,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Scaffold 템플릿(byte-level) golden 회귀 테스트.
  *
- * <p>현재 StringBuilder 기반 템플릿의 출력을 byte-level로 고정한다. text-block 리팩터링(T3-T9) 이후에도 동일 byte가 생성되는지
+ * <p>현재 리소스 {@code .tpl} 기반 템플릿의 출력을 byte-level로 고정한다. Java 모델과 템플릿의 책임을 변경해도 의도하지 않은 출력 변화가 없는지
  * 검증한다.
  *
  * <p>모드:
@@ -235,7 +237,7 @@ class ScaffoldOutputGoldenTest {
     return new ScaffoldModel(request, SIX_COLUMNS, List.of("sendDt"), SIX_TYPE_MAP, dialect);
   }
 
-  /** keyword: empty searchVars + no-WHERE rawQuery — LIKE '%' 분기 (MapperXmlTemplate:198-211) 실행. */
+  /** keyword: empty searchVars + no-WHERE rawQuery — Mapper XML의 LIKE '%' 분기 실행. */
   private ScaffoldModel keywordModel() {
     ScaffoldRequestDTO request = baseRequest();
     request.setRawQuery("SELECT A.NOTICE_ID, A.TITLE FROM SMS.NOTICE A");
@@ -254,7 +256,7 @@ class ScaffoldOutputGoldenTest {
     DTO {
       @Override
       public String generate(ScaffoldModel m) {
-        return DtoTemplate.generate(m);
+        return render(Artifact.SEARCH_DTO, m);
       }
     },
     UPDATE_REQUEST_DTO {
@@ -265,67 +267,67 @@ class ScaffoldOutputGoldenTest {
 
       @Override
       public String generate(ScaffoldModel m) {
-        return UpdateRequestDtoTemplate.generate(m);
+        return render(Artifact.UPDATE_DTO, m);
       }
     },
     VO {
       @Override
       public String generate(ScaffoldModel m) {
-        return VoTemplate.generate(m);
+        return render(Artifact.VO, m);
       }
     },
     MAPPER_INTERFACE {
       @Override
       public String generate(ScaffoldModel m) {
-        return MapperInterfaceTemplate.generate(m);
+        return render(Artifact.MAPPER_INTERFACE, m);
       }
     },
     MAPPER_XML {
       @Override
       public String generate(ScaffoldModel m) {
-        return MapperXmlTemplate.generate(m);
+        return render(Artifact.MAPPER_XML, m);
       }
     },
     SERVICE {
       @Override
       public String generate(ScaffoldModel m) {
-        return ServiceTemplate.generate(m);
+        return render(Artifact.SERVICE, m);
       }
     },
     CONTROLLER {
       @Override
       public String generate(ScaffoldModel m) {
-        return ControllerTemplate.generate(m);
+        return render(Artifact.CONTROLLER, m);
       }
     },
     SERVICE_TEST {
       @Override
       public String generate(ScaffoldModel m) {
-        return ServiceTestTemplate.generate(m);
+        return render(Artifact.SERVICE_TEST, m);
       }
     },
     CONTROLLER_TEST {
       @Override
       public String generate(ScaffoldModel m) {
-        return ControllerTestTemplate.generate(m);
+        return render(Artifact.CONTROLLER_TEST, m);
       }
     },
     HTML {
       @Override
       public String generate(ScaffoldModel m) {
-        return ScaffoldPageRenderers.render(m).get(m.domainId() + ".html");
+        return render(Artifact.PAGE_HTML, m);
       }
     },
     JS {
       @Override
       public String generate(ScaffoldModel m) {
-        return ScaffoldPageRenderers.render(m).get(m.domainId() + ".js");
+        return render(Artifact.PAGE_JS, m);
       }
     },
     MENU_SQL {
       @Override
       public String generate(ScaffoldModel m) {
-        return MenuSqlTemplate.generate(m);
+        return render(Artifact.MENU_SQL, m);
       }
     };
 

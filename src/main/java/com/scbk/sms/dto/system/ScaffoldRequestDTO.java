@@ -34,7 +34,6 @@ public class ScaffoldRequestDTO {
 
   private boolean includeCreateUpdate;
   private boolean includeExcel;
-  private boolean includeModal;
   private boolean includePrivacy;
   private String screenMode;
   private String targetTable;
@@ -107,14 +106,6 @@ public class ScaffoldRequestDTO {
 
   public void setIncludeExcel(boolean includeExcel) {
     this.includeExcel = includeExcel;
-  }
-
-  public boolean isIncludeModal() {
-    return includeModal;
-  }
-
-  public void setIncludeModal(boolean includeModal) {
-    this.includeModal = includeModal;
   }
 
   public boolean isIncludePrivacy() {

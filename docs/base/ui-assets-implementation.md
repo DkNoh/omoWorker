@@ -12,7 +12,7 @@ v2 공통 UI 자산을 v3로 이식한 구현 기록이다. 이 작업으로 `do
 | CoreUI | `static/vendor/coreui/*` | v2 그대로 복사 |
 | 공통 JS | `static/js/common/common-utils.js`, `tui-common.js`, `tui-page-builder.js` | v2 그대로 복사 |
 | 공통 CSS | `static/css/admin-common.css` | v2 그대로 복사 |
-| 이미지 | `static/img/SC.png`, `static/favicon.ico` | v2 그대로 복사 |
+| 이미지 | `static/img/SC.png` | v2에서 가져온 공통 로고 |
 | 공통 레이아웃 | `templates/defaultLayout.html` | v2 기반, v3 조정 |
 | Fragment | `templates/fragments/sidebar.html`, `templates/fragments/header.html` | v2 기반, v3 조정 |
 

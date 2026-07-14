@@ -20,12 +20,11 @@ QuerySpec(조회 SQL + `$변수`)에서 화면 1세트의 복사용 코드와 �
 | domainId (3단계 URL) | v2 baseline 중 `/campaign/sms/register`처럼 3단계 URL인 화면은 `domainId`에 내부 슬래시 1개를 허용해 `sms/register`로 입력한다. `screenUrl`은 `/{moduleName}/{domainId}`이므로 그대로 `/campaign/sms/register`가 된다 |
 | rawQuery | `$변수` 검색조건 규약 포함 SQL |
 | orderBy | `A.SEND_DT DESC, A.HIST_ID DESC` — 결정적 정렬 입력 필수 (v2에 없던 신규 입력) |
-| screenMode | `LIST`, `EXCEL`, `DETAIL`, `CRUD`, `CRUD_PANEL` |
+| screenMode | `LIST`, `EXCEL`, `CRUD`, `CRUD_PANEL` |
 | targetTable | CRUD 기준 수정 대상 테이블. 미입력 시 `FROM`의 첫 테이블을 서버에서 추론 |
-| includeModal | `LIST`/`EXCEL`에서도 상세 자동 모달을 사용할지 여부. `DETAIL`/`CRUD`는 자동 활성화 |
 | includePrivacy | 개인정보 포함 시 `@PrivacyLog` 생성 |
 | searchParamOptions | 검색 파라미터별 입력 타입/기본값/콤보·라디오 옵션 |
-| columnOptions | 컬럼별 그리드 표시여부/모달 표시여부/수정 가능여부/헤더명/너비/정렬/날짜 포맷/마스킹 타입 |
+| columnOptions | 컬럼별 그리드 표시여부/수정 화면 표시여부/수정 가능여부/헤더명/너비/정렬/날짜 포맷/마스킹 타입 |
 | pkColumns / lockColumn | update/delete WHERE 기준 PK 목록, 낙관적 잠금 컬럼. `pkColumn` 단일 입력은 하위 호환용으로만 유지 |
 | menuOption | `menuId`, `parentMenuId`, `roleCode`, `sortOrd` |
 
@@ -44,7 +43,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 5. 적용 버튼            : local 전용 `/system/scaffold/apply` 호출 -> 생성물을 정해진 프로젝트 경로로 저장
 ```
 
-산출물: SearchRequestDTO, VO, Mapper interface, Mapper XML, Service, Controller, ServiceTest, ControllerTest, HTML, JS, 메뉴등록 SQL — 기본 11종. `screenMode=CRUD` 선택 시 UpdateRequestDTO(화이트리스트)가 추가되어 12종. (테스트 생성 전략은 `test-automation-guide.md`, 수정 요청 규약은 `screen-convention.md` "상세폼 화면 규약")
+산출물: SearchRequestDTO, VO, Mapper interface, Mapper XML, Service, Controller, ServiceTest, ControllerTest, HTML, JS, 메뉴등록 SQL — 기본 11종. `screenMode=CRUD` 선택 시 UpdateRequestDTO(화이트리스트)가 추가되어 12종. (테스트 생성 전략은 `test-automation-guide.md`, 수정 요청 규약은 `screen-convention.md` "수정폼 화면 규약")
 
 ## 적용 경로
 
@@ -78,16 +77,17 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 - 날짜 검색조건은 native `type="date"`가 아니라 Toast UI DatePicker (`data-search-type="date"` + `{field}PickerLayer`)로 생성한다.
 - 검색조건 `xxxFrom/xxxTo`, `startX/endX`, `fromX/toX` 날짜쌍은 HTML에서 `from ~ to` Toast UI DatePicker로 묶어 표시한다.
 - 검색조건 입력 타입은 텍스트/날짜/콤보/라디오 중 선택 가능하며, 기본값은 없음/오늘/어제/최근 7일/이번 달/현재월 1일~오늘 중 선택한다.
-- 컬럼 옵션은 그리드 표시여부, 모달 표시여부, 수정 가능여부, 헤더명, 너비, 정렬, 날짜 포맷, 마스킹 타입을 반영한다.
-  - `gridVisible=false`: 그리드에서는 `hidden: true`로 유지한다. PK/상세/삭제 기준으로 사용할 수 있다.
-  - `modalVisible=false`: 상세 모달에도 표시하지 않는다. 단, PK와 낙관적 잠금 값은 hidden으로 보관할 수 있다.
-  - `editable=true`: CRUD 모드에서만 의미가 있다. 수정 모달 input, `*UpdateRequestDTO`, Mapper XML `UPDATE SET` 대상에 포함한다.
-  - `editable=false`: 상세 모달에는 읽기전용으로 표시할 수 있지만 update payload와 `*UpdateRequestDTO`에는 포함하지 않는다.
-- `screenMode`는 목록 조회만, 목록+엑셀, 목록+상세 모달, 목록+등록/수정/삭제를 분리한다.
-- 상세 모달은 `TuiPageBuilder.autoModal` 공통 기능을 사용한다. CRUD 모드에서는 같은 모달 footer에 수정/삭제 버튼을 생성하고 `/update`, `/delete` endpoint를 호출한다. 실제 권한 판정은 기존 `MenuAuthInterceptor`의 URL suffix 권한 규칙을 따른다.
-- `CRUD_PANEL`은 기존 `CRUD` 모달 방식을 보존한 채 추가된 패널형 CRUD 모드다. 목록은 `TuiPageBuilder`를 유지하고, 행 클릭으로 상세 패널을 바인딩하며, 생성 JS는 `ApiClient`/`FormBinder`/`querySelector` 규약을 따른다. CSRF와 오류 처리는 `common-utils.js` axios 인터셉터가 계속 담당한다.
+- 컬럼 옵션은 그리드 표시여부, 수정 화면 표시여부, 수정 가능여부, 헤더명, 너비, 정렬, 날짜 포맷, 마스킹 타입을 반영한다.
+  - `gridVisible=false`: 그리드에서는 `hidden: true`로 유지한다. PK/삭제 기준으로 사용할 수 있다.
+  - `modalVisible=false`: 이름은 기존 요청 JSON 호환을 위해 유지하지만 CRUD 수정 화면에는 표시하지 않는다. PK와 낙관적 잠금 값은 hidden으로 보관할 수 있다.
+  - `editable=true`: CRUD 모드에서만 의미가 있다. 수정 화면 input, `*UpdateRequestDTO`, Mapper XML `UPDATE SET` 대상에 포함한다.
+  - `editable=false`: CRUD 수정 화면에 읽기전용으로 표시할 수 있지만 update payload와 `*UpdateRequestDTO`에는 포함하지 않는다.
+- `screenMode`는 `LIST`/`EXCEL`/`CRUD`/`CRUD_PANEL` 4종으로 화면 범위를 분리한다.
+- `LIST`/`EXCEL` 생성물은 행 클릭·더블클릭 상세보기와 자동 모달을 만들지 않는다. 필요한 업무 화면은 생성 후 개발자가 명시적으로 추가한다.
+- `CRUD`는 `.tpl`에 정의된 수정 모달을 행 클릭으로 열고 `/update`, `/delete` endpoint를 호출한다. `CRUD_PANEL`은 같은 수정 기능을 패널로 제공한다. 실제 권한 판정은 기존 `MenuAuthInterceptor`의 URL suffix 권한 규칙을 따른다.
+- 생성 JS는 `ApiClient`/`FormBinder`/`querySelector` 규약을 따른다. CSRF와 오류 처리는 `common-utils.js` axios 인터셉터가 담당한다.
 - CRUD 모드는 실제 DB 메타데이터의 PK를 기본값으로 사용한다. 단일 PK와 복합 PK를 모두 `pkColumns`로 다루며, 조회 SQL 결과에 모든 PK 컬럼이 없으면 생성을 막는다.
-- PK가 없는 테이블은 CRUD 생성을 막고 LIST/EXCEL/DETAIL 조회 전용만 허용한다. 임의 `_ID` 컬럼을 PK처럼 추정하지 않는다.
+- PK가 없는 테이블은 CRUD 생성을 막고 LIST/EXCEL 조회 전용만 허용한다. 임의 `_ID` 컬럼을 PK처럼 추정하지 않는다.
 - 선택한 `lockColumn`은 낙관적 잠금 조건으로 사용한다. 조회 SQL 결과와 targetTable 메타데이터에 포함되어야 하며, PK 컬럼은 lockColumn으로 선택할 수 없다. nullable 컬럼은 null-safe WHERE 조건으로 생성한다.
 - CRUD 모드의 수정 요청은 **화이트리스트 원칙을 유지한다.** `*UpdateRequestDTO`는 `pkColumns`, `before{LockColumn}`, `editable=true` 컬럼만 선언한다. VO 전체 컬럼이나 모달에 표시된 전체 컬럼을 update 요청 DTO로 사용하지 않는다.
 - CRUD 모드의 프론트 update payload도 `editable=true` 컬럼만 전송한다. 서버 DTO 화이트리스트가 최종 방어선이지만, 프론트에서도 불필요한 읽기전용/시스템 컬럼을 보내지 않는다.
@@ -105,16 +105,26 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 | `controller/system/ScaffoldController.java` | 화면 + 생성/적용 API |
 | `service/system/ScaffoldService.java` | 생성/적용 오케스트레이션 |
 | `service/system/scaffold/ScaffoldFileApplier.java` | 생성물 경로 매핑 및 파일 저장 |
-| `service/system/scaffold/QueryColumnExtractor.java` | 컬럼/검색변수 추출, 동적 SQL 변환 |
+| `service/system/scaffold/QueryColumnExtractor.java` | 컬럼/검색변수/CRUD 대상 테이블 추출 |
 | `service/system/scaffold/ColumnTypeInferrer.java` | 실제 DB 기준 타입 추론 |
 | `service/system/scaffold/ScaffoldDialect.java` | Oracle/Postgres/DB2별 페이징, 날짜 변환, 현재시각 SQL 분기 |
 | `service/system/scaffold/ScaffoldMetadataReader.java` | JDBC 메타데이터 기반 PK/nullable 컬럼 조회 |
-| `service/system/scaffold/*Template.java` (12종) | 산출물별 템플릿 (테스트 2종 포함) |
+| `service/system/scaffold/ScaffoldArtifactRenderer.java` | 산출물 파일명·`.tpl` 경로·생성 조건을 한 곳에서 관리하는 공통 렌더러 |
+| `service/system/scaffold/MapperXmlViewFactory.java` | Mapper XML 템플릿에 전달할 SQL 구조 데이터 계산 |
+| `resources/scaffold-templates/**/*.tpl` | Java·XML·HTML·JS·SQL 실제 출력 템플릿 |
 | `dto/system/ScaffoldRequestDTO.java` | QuerySpec 입력 |
 | `dto/system/Scaffold*OptionDTO.java`, `ScaffoldApplyFileResultDTO.java` | 검색/컬럼/메뉴 옵션, 적용 미리보기 결과 |
 | `templates/system/scaffold.html`, `static/js/system/scaffold.js` | 생성기 화면 |
 
 v2는 컨트롤러 1파일 800줄이었으나, v3는 파일 300줄 규칙에 따라 분리해 핵심 로직을 단위 테스트로 고정했다.
+
+## 개발자 수동 수정 예제
+
+scaffold 기본 산출물에는 상세보기 동작을 넣지 않는다. 업무상 별도 창이 필요한 경우 `basic/notice` 구현을 수동 수정 예제로 사용한다.
+
+- `static/js/basic/notice.js`: 그리드 `dblclick`을 화면에서 직접 바인딩하고 `window.open`으로 팝업을 연다.
+- `templates/basic/notice-popup.html`, `static/js/basic/notice-popup.js`: 팝업 조회·수정 폼과 부모 창 갱신 메시지를 구현한다.
+- 이 코드는 공통 생성 기능이 아니라 개발자가 생성 후 소유하는 화면별 예제다. 필요한 권한, 단건 조회 API, origin 검증을 화면 요구사항에 맞게 함께 구현한다.
 
 ## 의존성 (폐쇄망 반입 확인 완료)
 

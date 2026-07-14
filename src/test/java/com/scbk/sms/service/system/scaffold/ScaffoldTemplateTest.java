@@ -1,5 +1,8 @@
 package com.scbk.sms.service.system.scaffold;
 
+import static com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.Artifact.*;
+import static com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.render;
+import static com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.renderSelected;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -40,7 +43,7 @@ class ScaffoldTemplateTest {
   @Test
   void DTO는_PageRequestDTO를_상속하고_Lombok_기반으로_생성한다() {
     // when
-    String code = DtoTemplate.generate(model(false, false, false));
+    String code = render(SEARCH_DTO, model(false, false, false));
 
     // then
     assertThat(code).contains("extends PageRequestDTO");
@@ -53,7 +56,7 @@ class ScaffoldTemplateTest {
   @Test
   void VO는_추론된_타입과_Lombok으로_생성한다() {
     // when
-    String code = VoTemplate.generate(model(false, false, false));
+    String code = render(VO, model(false, false, false));
 
     // then
     assertThat(code).contains("@Data");
@@ -66,8 +69,8 @@ class ScaffoldTemplateTest {
   @Test
   void Service와_Controller는_RequiredArgsConstructor를_사용한다() {
     // when
-    String serviceCode = ServiceTemplate.generate(model(false, false, false));
-    String controllerCode = ControllerTemplate.generate(model(false, false, false));
+    String serviceCode = render(SERVICE, model(false, false, false));
+    String controllerCode = render(CONTROLLER, model(false, false, false));
 
     // then
     assertThat(serviceCode).contains("@RequiredArgsConstructor");
@@ -79,7 +82,7 @@ class ScaffoldTemplateTest {
   @Test
   void Controller는_create와_update를_분리하고_save를_만들지_않는다() {
     // when
-    String code = ControllerTemplate.generate(model(true, false, false));
+    String code = render(CONTROLLER, model(true, false, false));
 
     // then
     assertThat(code).contains("@PostMapping(\"/create\")");
@@ -90,10 +93,10 @@ class ScaffoldTemplateTest {
   @Test
   void 수정_요청은_화이트리스트_DTO로만_받는다() {
     // when
-    String controllerCode = ControllerTemplate.generate(model(true, false, false));
-    String updateDtoCode = UpdateRequestDtoTemplate.generate(model(true, false, false));
-    String serviceCode = ServiceTemplate.generate(model(true, false, false));
-    String xmlCode = MapperXmlTemplate.generate(model(true, false, false));
+    String controllerCode = render(CONTROLLER, model(true, false, false));
+    String updateDtoCode = render(UPDATE_DTO, model(true, false, false));
+    String serviceCode = render(SERVICE, model(true, false, false));
+    String xmlCode = render(MAPPER_XML, model(true, false, false));
 
     // then : Controller는 VO가 아니라 UpdateRequestDTO를 수신한다
     assertThat(controllerCode).contains("@RequestBody SmsHistoryUpdateRequestDTO request");
@@ -119,7 +122,7 @@ class ScaffoldTemplateTest {
   @Test
   void 개인정보_포함이면_PrivacyLog를_부착한다() {
     // when
-    String code = ControllerTemplate.generate(model(false, true, true));
+    String code = render(CONTROLLER, model(false, true, true));
 
     // then
     assertThat(code).contains("@PrivacyLog(action = \"발송이력조회 목록 조회\")");
@@ -127,9 +130,20 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void 개인정보만_포함해도_unmask용_RequestParam을_import한다() {
+    // when
+    String code = render(CONTROLLER, model(false, false, true));
+
+    // then
+    assertThat(code).contains("import org.springframework.web.bind.annotation.RequestParam;");
+    assertThat(code).contains("getUnmaskedDetail(@RequestParam String");
+    assertThat(code).doesNotContain("@PostMapping");
+  }
+
+  @Test
   void MapperXml은_입력받은_정렬과_OFFSET_FETCH를_사용한다() {
     // when
-    String xml = MapperXmlTemplate.generate(model(false, false, false));
+    String xml = render(MAPPER_XML, model(false, false, false));
 
     // then
     assertThat(xml).contains("ORDER BY A.SEND_DT DESC, A.HIST_ID DESC");
@@ -140,7 +154,7 @@ class ScaffoldTemplateTest {
   @Test
   void 메뉴SQL은_v3_스키마를_사용한다() {
     // when
-    String sql = MenuSqlTemplate.generate(model(false, false, false));
+    String sql = render(MENU_SQL, model(false, false, false));
 
     // then
     assertThat(sql).contains("SMS.TB_MENU (");
@@ -168,8 +182,8 @@ class ScaffoldTemplateTest {
         new ScaffoldModel(request, List.of("REG_ID"), List.of(), Map.of("REG_ID", "String"));
 
     // when
-    String controllerCode = ControllerTemplate.generate(model);
-    String htmlCode = ScaffoldPageRenderers.render(model).get("sms/register.html");
+    String controllerCode = render(CONTROLLER, model);
+    String htmlCode = render(PAGE_HTML, model);
 
     // then : screenUrl/menuId/뷰 이름/JS 경로 모두 3단계 경로를 유지한다
     assertThat(model.screenUrl()).isEqualTo("/campaign/sms/register");
@@ -182,7 +196,7 @@ class ScaffoldTemplateTest {
   @Test
   void ServiceTest는_Mockito_mock과_given_when_then으로_생성한다() {
     // when
-    String code = ServiceTestTemplate.generate(model(true, false, false));
+    String code = render(SERVICE_TEST, model(true, false, false));
 
     // then
     assertThat(code).contains("@ExtendWith(MockitoExtension.class)");
@@ -197,7 +211,7 @@ class ScaffoldTemplateTest {
   @Test
   void ControllerTest는_MockMvc로_ApiResponse_포맷을_검증한다() {
     // when
-    String code = ControllerTestTemplate.generate(model(false, false, false));
+    String code = render(CONTROLLER_TEST, model(false, false, false));
 
     // then
     assertThat(code).contains("MockMvcBuilders.standaloneSetup");
@@ -208,7 +222,7 @@ class ScaffoldTemplateTest {
   @Test
   void ControllerTest는_LIST_화면이면_create_update_delete_테스트를_만들지_않는다() {
     // when
-    String code = ControllerTestTemplate.generate(model(false, false, false));
+    String code = render(CONTROLLER_TEST, model(false, false, false));
 
     // then : CUD가 없는 화면은 create/update/delete 엔드포인트도, then(service) 검증도 없다
     assertThat(code).doesNotContain("/create");
@@ -220,7 +234,7 @@ class ScaffoldTemplateTest {
   @Test
   void ControllerTest는_CRUD이면_create_update_delete_성공_메시지를_검증한다() {
     // when
-    String code = ControllerTestTemplate.generate(model(true, false, false));
+    String code = render(CONTROLLER_TEST, model(true, false, false));
 
     // then : 성공 메시지는 ApiResponse.data가 아니라 message 필드에 담긴다
     assertThat(code).contains("post(\"/sms/history/create\")");
@@ -238,9 +252,28 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void ControllerTest는_required_필드가_있으면_유효한_JSON으로_성공을_검증한다() {
+    // given
+    ScaffoldRequestDTO request = requestWithOptions();
+    request.setScreenMode("CRUD");
+    request.setPkColumn("SMS_HISTORY_ID");
+    ScaffoldColumnOptionDTO sendType =
+        columnOption("SEND_TYPE", true, true, true, "발송유형", 120, "center", "NONE", "NONE");
+    sendType.setValidate("required");
+    request.setColumnOptions(List.of(sendType));
+
+    // when
+    String code = render(CONTROLLER_TEST, optionModel(request));
+
+    // then
+    assertThat(code).contains("\\\"sendType\\\":\\\"1\\\"");
+    assertThat(code).doesNotContain(".content(\"{}\")");
+  }
+
+  @Test
   void HTML은_screen_convention_골격을_따른다() {
     // when
-    String html = ScaffoldPageRenderers.render(model(false, true, false)).get("history.html");
+    String html = render(PAGE_HTML, model(false, true, false));
 
     // then
     assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
@@ -286,7 +319,7 @@ class ScaffoldTemplateTest {
             request, List.of("SEND_TYPE"), List.of("sendType"), Map.of("SEND_TYPE", "String"));
 
     // when
-    String html = ScaffoldPageRenderers.render(model).get("history.html");
+    String html = render(PAGE_HTML, model);
 
     // then
     assertThat(html).contains("id=\"sendType\" class=\"form-control scaffold-search-control\"");
@@ -297,7 +330,7 @@ class ScaffoldTemplateTest {
   @Test
   void JS는_TuiPageBuilder로_그리드를_초기화한다() {
     // when
-    String js = ScaffoldPageRenderers.render(model(false, false, false)).get("history.js");
+    String js = render(PAGE_JS, model(false, false, false));
 
     // then
     assertThat(js).contains("new TuiPageBuilder({");
@@ -323,22 +356,60 @@ class ScaffoldTemplateTest {
   }
 
   @Test
-  void TuiPageBuilder는_PAGE_AUTH로_모달_수정삭제를_제어한다() throws Exception {
+  void TuiPageBuilder는_자동_상세모달과_더블클릭을_포함하지_않는다() throws Exception {
     // when
     String builder =
         Files.readString(Path.of("src/main/resources/static/js/common/tui-page-builder.js"));
 
     // then
-    assertThat(builder).contains("_hasPagePermission('update')");
-    assertThat(builder).contains("_hasPagePermission('delete')");
-    assertThat(builder).contains("window.PAGE_AUTH[permission] === true");
-    assertThat(builder).contains("return false;");
+    assertThat(builder).doesNotContain("grid.on('dblclick'");
+    assertThat(builder).doesNotContain("autoModal");
+    assertThat(builder).doesNotContain("detailApiUrl");
+    assertThat(builder).doesNotContain("tui-auto-modal");
+  }
+
+  @Test
+  void scaffold_Java는_산출물_문자열을_append로_조립하지_않는다() throws Exception {
+    String modelSource =
+        Files.readString(
+            Path.of("src/main/java/com/scbk/sms/service/system/scaffold/ScaffoldModel.java"));
+    String mapperSource =
+        Files.readString(
+            Path.of(
+                "src/main/java/com/scbk/sms/service/system/scaffold/MapperXmlViewFactory.java"));
+
+    assertThat(modelSource).doesNotContain("StringBuilder", ".append(");
+    assertThat(mapperSource).doesNotContain("StringBuilder", ".append(");
+    assertThat(
+            Files.exists(
+                Path.of(
+                    "src/main/java/com/scbk/sms/service/system/scaffold/ControllerTemplate.java")))
+        .isFalse();
+    assertThat(
+            Files.exists(
+                Path.of(
+                    "src/main/java/com/scbk/sms/service/system/scaffold/ListPageRenderer.java")))
+        .isFalse();
+    assertThat(
+            Files.readString(Path.of("src/main/resources/scaffold-templates/mapper-xml.xml.tpl")))
+        .contains("th:each=\"value, iter : ${xml.insertValues()}\"");
+  }
+
+  @Test
+  void scaffold_입력과_공통_JS는_자동_상세모달_계약을_노출하지_않는다() throws Exception {
+    String requestDto =
+        Files.readString(Path.of("src/main/java/com/scbk/sms/dto/system/ScaffoldRequestDTO.java"));
+    String scaffoldUi =
+        Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+
+    assertThat(requestDto).doesNotContain("includeModal");
+    assertThat(scaffoldUi).doesNotContain("includeModal", "autoModal");
   }
 
   @Test
   void JS는_날짜_타입_컬럼에_공통_포매터를_부착한다() {
     // when : SEND_DT는 LocalDate, RECEIVER_NO는 String
-    String js = ScaffoldPageRenderers.render(model(false, false, false)).get("history.js");
+    String js = render(PAGE_JS, model(false, false, false));
 
     // then
     assertThat(js)
@@ -349,7 +420,7 @@ class ScaffoldTemplateTest {
   @Test
   void MapperXml은_날짜_비교_가이드_주석을_포함한다() {
     // when
-    String xml = MapperXmlTemplate.generate(model(false, false, false));
+    String xml = render(MAPPER_XML, model(false, false, false));
 
     // then
     assertThat(xml).contains("YYYYMMDD");
@@ -371,7 +442,7 @@ class ScaffoldTemplateTest {
             request, List.of("SEND_DT"), List.of("sendDt"), Map.of("SEND_DT", "LocalDateTime"));
 
     // when
-    String xml = MapperXmlTemplate.generate(dateModel);
+    String xml = render(MAPPER_XML, dateModel);
 
     // then
     assertThat(xml)
@@ -409,7 +480,7 @@ class ScaffoldTemplateTest {
             Map.of("SMS_HISTORY_ID", "Long", "RETRY_CNT", "Integer", "RESULT_CD", "String"));
 
     // when
-    String xml = MapperXmlTemplate.generate(optionModel);
+    String xml = render(MAPPER_XML, optionModel);
 
     // then
     assertThat(xml).contains("A.RETRY_CNT <![CDATA[ > ]]> #{retryCnt}");
@@ -429,9 +500,9 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String html = ScaffoldPageRenderers.render(optionModel).get("history.html");
-    String js = ScaffoldPageRenderers.render(optionModel).get("history.js");
-    String xml = MapperXmlTemplate.generate(optionModel);
+    String html = render(PAGE_HTML, optionModel);
+    String js = render(PAGE_JS, optionModel);
+    String xml = render(MAPPER_XML, optionModel);
 
     // then
     assertThat(html).contains("scaffold-search-card");
@@ -487,7 +558,7 @@ class ScaffoldTemplateTest {
             Map.of("NOTICE_ID", "Long", "TITLE", "String"));
 
     // when
-    String xml = MapperXmlTemplate.generate(model);
+    String xml = render(MAPPER_XML, model);
 
     // then 1 : baseQuery 블록은 SELECT/FROM만. WHERE와 <if>가 없어야 한다.
     int baseQueryStart = xml.indexOf("<sql id=\"baseQuery\">");
@@ -534,7 +605,7 @@ class ScaffoldTemplateTest {
             Map.of("NOTICE_ID", "Long", "REG_DTTM", "LocalDateTime"));
 
     // when
-    String xml = MapperXmlTemplate.generate(model);
+    String xml = render(MAPPER_XML, model);
 
     // then : 하한은 000000, 상한은 235959 suffix로 당일 inclusive 범위
     assertThat(xml)
@@ -571,7 +642,7 @@ class ScaffoldTemplateTest {
             Map.of("NOTICE_ID", "Long", "START_DT", "LocalDate"));
 
     // when
-    String xml = MapperXmlTemplate.generate(model);
+    String xml = render(MAPPER_XML, model);
 
     // then : LocalDate는 TO_DATE로 양끝을 모두 당일 inclusive로 변환
     assertThat(xml)
@@ -624,21 +695,26 @@ class ScaffoldTemplateTest {
         .containsExactly("searchKeyword", "noticeType", "useYn", "startDate", "endDate");
 
     // then 2 : HtmlTemplate는 start*/end* 규칙으로 FROM-TO picker 2개를 생성
-    String html = ScaffoldPageRenderers.render(model).get("notice.html");
+    String html = render(PAGE_HTML, model);
     assertThat(html).contains("id=\"startDate\" data-search-type=\"date\"");
     assertThat(html).contains("id=\"endDate\" data-search-type=\"date\"");
     assertThat(html).contains("id=\"startDatePickerLayer\"");
     assertThat(html).contains("id=\"endDatePickerLayer\"");
     assertThat(html).doesNotContain("id=\"startDt\"");
+    assertThat(html).containsOnlyOnce("class=\"col-auto scaffold-date-range-separator\"");
+    assertThat(html.indexOf("id=\"startDate\""))
+        .isLessThan(html.indexOf("scaffold-date-range-separator"));
+    assertThat(html.indexOf("scaffold-date-range-separator"))
+        .isLessThan(html.indexOf("id=\"endDate\""));
 
     // then 3 : DTO도 startDate/endDate 두 필드
-    String dto = DtoTemplate.generate(model);
+    String dto = render(SEARCH_DTO, model);
     assertThat(dto).contains("private String startDate;");
     assertThat(dto).contains("private String endDate;");
     assertThat(dto).doesNotContain("private String startDt;");
 
     // then 4 : MapperXml는 BETWEEN을 TO_TIMESTAMP 범위로 변환
-    String xml = MapperXmlTemplate.generate(model);
+    String xml = render(MAPPER_XML, model);
     assertThat(xml)
         .contains(
             "A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')");
@@ -656,7 +732,7 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String js = ScaffoldPageRenderers.render(optionModel).get("history.js");
+    String js = render(PAGE_JS, optionModel);
 
     // then
     assertThat(js)
@@ -680,10 +756,10 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String controller = ControllerTemplate.generate(optionModel);
-    String service = ServiceTemplate.generate(optionModel);
-    String mapper = MapperInterfaceTemplate.generate(optionModel);
-    String serviceTest = ServiceTestTemplate.generate(optionModel);
+    String controller = render(CONTROLLER, optionModel);
+    String service = render(SERVICE, optionModel);
+    String mapper = render(MAPPER_INTERFACE, optionModel);
+    String serviceTest = render(SERVICE_TEST, optionModel);
 
     // then : delete 파라미터가 쓰는 LocalDateTime의 import가 있어야 컴파일된다
     assertThat(controller).contains("import java.time.LocalDateTime;");
@@ -707,11 +783,11 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String updateDto = UpdateRequestDtoTemplate.generate(optionModel);
-    String mapper = MapperInterfaceTemplate.generate(optionModel);
-    String controller = ControllerTemplate.generate(optionModel);
-    String xml = MapperXmlTemplate.generate(optionModel);
-    String serviceTest = ServiceTestTemplate.generate(optionModel);
+    String updateDto = render(UPDATE_DTO, optionModel);
+    String mapper = render(MAPPER_INTERFACE, optionModel);
+    String controller = render(CONTROLLER, optionModel);
+    String xml = render(MAPPER_XML, optionModel);
+    String serviceTest = render(SERVICE_TEST, optionModel);
 
     // then
     assertThat(updateDto).contains("private Long smsHistoryId;");
@@ -734,10 +810,10 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String updateDto = UpdateRequestDtoTemplate.generate(optionModel);
-    String mapper = MapperInterfaceTemplate.generate(optionModel);
-    String controller = ControllerTemplate.generate(optionModel);
-    String xml = MapperXmlTemplate.generate(optionModel);
+    String updateDto = render(UPDATE_DTO, optionModel);
+    String mapper = render(MAPPER_INTERFACE, optionModel);
+    String controller = render(CONTROLLER, optionModel);
+    String xml = render(MAPPER_XML, optionModel);
 
     // then
     assertThat(updateDto).contains("private Long smsHistoryId;");
@@ -761,7 +837,7 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when / then
-    assertThatThrownBy(() -> MapperXmlTemplate.generate(optionModel))
+    assertThatThrownBy(() -> render(MAPPER_XML, optionModel))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("must not be a PK column");
   }
@@ -796,7 +872,7 @@ class ScaffoldTemplateTest {
             ScaffoldDialect.POSTGRES);
 
     // when
-    String xml = MapperXmlTemplate.generate(optionModel);
+    String xml = render(MAPPER_XML, optionModel);
 
     // then
     assertThat(xml).contains("OFFSET #{offset} LIMIT #{size}");
@@ -821,8 +897,8 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String updateDto = UpdateRequestDtoTemplate.generate(optionModel);
-    String xml = MapperXmlTemplate.generate(optionModel);
+    String updateDto = render(UPDATE_DTO, optionModel);
+    String xml = render(MAPPER_XML, optionModel);
 
     // then
     assertThat(updateDto).contains("private String sendType;");
@@ -852,7 +928,7 @@ class ScaffoldTemplateTest {
     ScaffoldModel optionModel = optionModel(request);
 
     // when
-    String sql = MenuSqlTemplate.generate(optionModel);
+    String sql = render(MENU_SQL, optionModel);
 
     // then
     assertThat(sql).contains("'SMS_HISTORY', 'G_SMS_SEARCH', '발송이력조회', '/sms/history'");
@@ -861,12 +937,10 @@ class ScaffoldTemplateTest {
   }
 
   @Test
-  void 화면모드는_엑셀_상세_CRUD_생성범위를_나눈다() {
+  void 화면모드는_엑셀_CRUD_생성범위를_나눈다() {
     // given
     ScaffoldRequestDTO excelRequest = requestWithOptions();
     excelRequest.setScreenMode("EXCEL");
-    ScaffoldRequestDTO detailRequest = requestWithOptions();
-    detailRequest.setScreenMode("DETAIL");
     ScaffoldRequestDTO crudRequest = requestWithOptions();
     crudRequest.setScreenMode("CRUD");
     crudRequest.setPkColumn("SMS_HISTORY_ID");
@@ -876,24 +950,17 @@ class ScaffoldTemplateTest {
 
     // when
     ScaffoldModel excelModel = optionModel(excelRequest);
-    ScaffoldModel detailModel = optionModel(detailRequest);
     ScaffoldModel crudModel = optionModel(crudRequest);
     ScaffoldModel listModel = optionModel(listRequest);
 
     // then
-    Map<String, String> excelFiles = ScaffoldPageRenderers.render(excelModel);
+    Map<String, String> excelFiles = renderSelected(excelModel, PAGE_HTML, PAGE_JS);
     assertThat(excelFiles.get("history.html")).contains("id=\"btn-excel\"");
     assertThat(excelFiles.get("history.js")).contains("PAGE_AUTH.download");
-    assertThat(ControllerTemplate.generate(excelModel)).contains("@GetMapping(\"/excel\")");
-    assertThat(ControllerTemplate.generate(excelModel)).doesNotContain("@PostMapping(\"/create\")");
+    assertThat(render(CONTROLLER, excelModel)).contains("@GetMapping(\"/excel\")");
+    assertThat(render(CONTROLLER, excelModel)).doesNotContain("@PostMapping(\"/create\")");
 
-    Map<String, String> detailFiles = ScaffoldPageRenderers.render(detailModel);
-    assertThat(detailFiles.get("history.html")).contains("fragments/modal-base :: layout");
-    assertThat(detailFiles.get("history.html")).doesNotContain("id=\"btn-excel\"");
-    assertThat(ControllerTemplate.generate(detailModel))
-        .doesNotContain("@PostMapping(\"/create\")");
-
-    Map<String, String> crudFiles = ScaffoldPageRenderers.render(crudModel);
+    Map<String, String> crudFiles = renderSelected(crudModel, PAGE_HTML, PAGE_JS);
     assertThat(crudFiles.get("history.html")).contains("id=\"btn-create\"");
     assertThat(crudFiles.get("history.html")).contains("fragments/modal-base :: layout");
     assertThat(crudFiles.get("history.js")).contains("API.create");
@@ -901,9 +968,23 @@ class ScaffoldTemplateTest {
     assertThat(crudFiles.get("history.js")).contains("API.delete");
     assertThat(crudFiles.get("history.js")).contains("ModalManager.init");
 
-    Map<String, String> listFiles = ScaffoldPageRenderers.render(listModel);
+    Map<String, String> listFiles = renderSelected(listModel, PAGE_HTML, PAGE_JS);
     assertThat(listFiles.get("history.html")).doesNotContain("id=\"btn-create\"");
     assertThat(listFiles.get("history.html")).doesNotContain("fragments/modal-base");
+  }
+
+  @Test
+  void 제거된_DETAIL_화면모드는_명시적으로_거부한다() {
+    // given
+    ScaffoldRequestDTO request = requestWithOptions();
+    request.setScreenMode("DETAIL");
+    ScaffoldModel model = optionModel(request);
+
+    // when / then
+    assertThatThrownBy(() -> renderSelected(model, PAGE_HTML, PAGE_JS))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("지원하지 않는 screenMode입니다: DETAIL")
+        .hasMessageContaining("LIST, EXCEL, CRUD, CRUD_PANEL");
   }
 
   @Test
@@ -914,7 +995,7 @@ class ScaffoldTemplateTest {
     request.setLockColumn("UPD_DTTM");
     ScaffoldModel panelModel = optionModel(request);
 
-    Map<String, String> files = ScaffoldPageRenderers.render(panelModel);
+    Map<String, String> files = renderSelected(panelModel, PAGE_HTML, PAGE_JS);
     String html = files.get("history.html");
     String js = files.get("history.js");
 
@@ -948,7 +1029,7 @@ class ScaffoldTemplateTest {
     assertThat(js).doesNotContain("modalActions");
     assertThat(js).doesNotContain("JustValidate");
 
-    assertThat(MenuSqlTemplate.generate(panelModel)).contains("'Y', 'Y', 'Y',");
+    assertThat(render(MENU_SQL, panelModel)).contains("'Y', 'Y', 'Y',");
   }
 
   @Test
@@ -967,7 +1048,7 @@ class ScaffoldTemplateTest {
     request.setColumnOptions(List.of(phone));
     ScaffoldModel model = optionModel(request);
 
-    Map<String, String> files = ScaffoldPageRenderers.render(model);
+    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
     String html = files.get("history.html");
 
     assertThat(html).contains("<select id=\"sendType\"");
@@ -991,7 +1072,7 @@ class ScaffoldTemplateTest {
             columnOption("RECEIVER_NO", true, false, false, "수신번호", 160, "left", "NONE", "PHONE")));
     ScaffoldModel model = optionModel(request);
 
-    Map<String, String> files = ScaffoldPageRenderers.render(model);
+    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
     String html = files.get("history.html");
     String js = files.get("history.js");
 
@@ -1018,6 +1099,41 @@ class ScaffoldTemplateTest {
         .isLessThan(layout.indexOf("/js/common/http-client.js"));
     assertThat(layout.indexOf("/js/common/http-client.js"))
         .isLessThan(layout.indexOf("/js/common/common-utils.js"));
+  }
+
+  @Test
+  void betweenDateParamsFromRawQueryRenderOneRangeSeparator() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("notice");
+    request.setDomainClass("Notice");
+    request.setDomainName("공지사항");
+    request.setRawQuery(
+        """
+            SELECT NOTICE_ID, TITLE, CONTENT, USE_YN, START_DT
+            FROM NOTICE
+            WHERE START_DT BETWEEN $startDT AND $endDT
+            """);
+    request.setOrderBy("NOTICE_ID");
+    List<String> searchVars = QueryColumnExtractor.extractSearchVars(request.getRawQuery());
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("NOTICE_ID", "TITLE", "CONTENT", "USE_YN", "START_DT"),
+            searchVars,
+            Map.of("NOTICE_ID", "Long", "START_DT", "LocalDate"));
+
+    String html = render(PAGE_HTML, model);
+
+    assertThat(searchVars).containsExactly("startdt", "enddt");
+    assertThat(model.searchParams())
+        .extracting(ScaffoldModel.SearchParam::isBetweenRangeEnd)
+        .containsExactly(false, true);
+    assertThat(html).containsOnlyOnce("class=\"col-auto scaffold-date-range-separator\"");
+    assertThat(html.indexOf("id=\"startdt\""))
+        .isLessThan(html.indexOf("scaffold-date-range-separator"));
+    assertThat(html.indexOf("scaffold-date-range-separator"))
+        .isLessThan(html.indexOf("id=\"enddt\""));
   }
 
   private ScaffoldRequestDTO requestWithOptions() {
@@ -1100,7 +1216,7 @@ class ScaffoldTemplateTest {
   }
 
   @Test
-  void ColumnConfig는_optionsText를_JS_라벨_객체로_변환한다() {
+  void ColumnConfig는_optionsText를_구조화된_옵션으로_변환한다() {
     ScaffoldColumnOptionDTO option = new ScaffoldColumnOptionDTO();
     option.setColumnName("STATUS");
     option.setOptionsText("SUCCESS:성공,FAIL:실패,WAIT:대기");
@@ -1112,7 +1228,11 @@ class ScaffoldTemplateTest {
 
     ScaffoldModel.ColumnConfig config = model.columnConfigs().get(0);
     assertThat(config.hasOptions()).isTrue();
-    assertThat(config.optionsJsObject()).isEqualTo("{ SUCCESS: '성공', FAIL: '실패', WAIT: '대기' }");
+    assertThat(config.options())
+        .containsExactly(
+            new ScaffoldModel.SelectOption("SUCCESS", "성공"),
+            new ScaffoldModel.SelectOption("FAIL", "실패"),
+            new ScaffoldModel.SelectOption("WAIT", "대기"));
   }
 
   @Test
@@ -1126,8 +1246,9 @@ class ScaffoldTemplateTest {
     ScaffoldModel model =
         new ScaffoldModel(request, List.of("STATUS"), List.of(), Map.of("STATUS", "String"));
 
-    assertThat(model.columnConfigs().get(0).optionsJsObject())
-        .isEqualTo("{ USER_INPUT: 'User\\'s input' }");
+    String js = render(PAGE_JS, model);
+
+    assertThat(js).contains("USER_INPUT: 'User\\'s input'");
   }
 
   @Test
@@ -1140,7 +1261,7 @@ class ScaffoldTemplateTest {
     ScaffoldModel model =
         new ScaffoldModel(request, List.of("STATUS"), List.of(), Map.of("STATUS", "String"));
 
-    String js = ScaffoldPageRenderers.render(model).get("history.js");
+    String js = render(PAGE_JS, model);
 
     assertThat(js)
         .contains(
@@ -1158,7 +1279,7 @@ class ScaffoldTemplateTest {
         new ScaffoldModel(
             request, List.of("SENT_AT"), List.of(), Map.of("SENT_AT", "LocalDateTime"));
 
-    String js = ScaffoldPageRenderers.render(model).get("history.js");
+    String js = render(PAGE_JS, model);
 
     assertThat(js).contains("TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')");
   }
@@ -1180,7 +1301,7 @@ class ScaffoldTemplateTest {
     request.setScreenMode("LIST");
     ScaffoldModel model = optionModel(request);
 
-    Map<String, String> files = ScaffoldPageRenderers.render(model);
+    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
     String html = files.get("history.html");
     String js = files.get("history.js");
 
@@ -1210,7 +1331,7 @@ class ScaffoldTemplateTest {
     request.setScreenMode("EXCEL");
     ScaffoldModel model = optionModel(request);
 
-    Map<String, String> files = ScaffoldPageRenderers.render(model);
+    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
     String html = files.get("history.html");
     String js = files.get("history.js");
 
@@ -1236,46 +1357,6 @@ class ScaffoldTemplateTest {
   }
 
   @Test
-  void DETAIL은_모달_fragment를_사용하고_읽기전용_필드를_표시한다() {
-    ScaffoldRequestDTO request = requestWithOptions();
-    request.setScreenMode("DETAIL");
-    ScaffoldModel model = optionModel(request);
-
-    Map<String, String> files = ScaffoldPageRenderers.render(model);
-    String html = files.get("history.html");
-    String js = files.get("history.js");
-
-    assertThat(model.screenMode()).isEqualTo("DETAIL");
-    assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
-    assertThat(html).contains("th:replace=\"~{fragments/toast-grid :: gridCard}\"");
-    assertThat(html).contains("fragments/modal-base :: layout");
-    assertThat(html).contains("modalId='history-modal'");
-    assertThat(html).contains("bodyContent=~{::#modal-body}");
-    assertThat(html).contains("id=\"modal-body\"");
-    assertThat(html).contains("id=\"detail-form\"");
-    assertThat(html).contains("data-readonly-field=\"smsHistoryId\"");
-    assertThat(html).contains("data-readonly-field=\"sendDt\"");
-    assertThat(html).contains("id=\"btn-search\"");
-    assertThat(html).doesNotContain("id=\"btn-create\"");
-    assertThat(html).doesNotContain("id=\"detail-panel\"");
-    assertThat(html).doesNotContain("tui-auto-modal");
-
-    assertThat(js).contains("new TuiPageBuilder({");
-    assertThat(js).contains("apiUrl: '/sms/history/data'");
-    assertThat(js).contains("MODAL_ID = 'history-modal'");
-    assertThat(js).contains("ModalManager.open(MODAL_ID)");
-    assertThat(js).contains("ModalManager.init(MODAL_ID");
-    assertThat(js).contains("FormBinder.bind('#detail-form', row)");
-    assertThat(js).contains("bindReadonlyFields(row)");
-    assertThat(js).contains("saveBtn.hidden = true");
-    assertThat(js).contains("deleteBtn.hidden = true");
-    assertThat(js).doesNotContain("ApiClient.post");
-    assertThat(js).doesNotContain("ApiClient.remove");
-    assertThat(js).doesNotContain("autoModal");
-    assertThat(js).doesNotContain("modalActions");
-  }
-
-  @Test
   void CRUD는_모달_fragment와_편집_폼과_저장삭제_버튼을_생성한다() {
     ScaffoldRequestDTO request = requestWithOptions();
     request.setScreenMode("CRUD");
@@ -1283,7 +1364,7 @@ class ScaffoldTemplateTest {
     request.setLockColumn("UPD_DTTM");
     ScaffoldModel model = optionModel(request);
 
-    Map<String, String> files = ScaffoldPageRenderers.render(model);
+    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
     String html = files.get("history.html");
     String js = files.get("history.js");
 

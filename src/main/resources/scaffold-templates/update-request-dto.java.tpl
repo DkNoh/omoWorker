@@ -1,6 +1,12 @@
-package com.scbk.sms.dto.@@MODULE_NAME@@;
+package com.scbk.sms.dto.[( ${model.moduleName()} )];
 
-@@IMPORTS@@
+[# th:if="${model.hasType('BigDecimal')}"]import java.math.BigDecimal;
+[/][# th:if="${model.hasType('LocalDate')}"]import java.time.LocalDate;
+[/][# th:if="${model.hasType('LocalDateTime')}"]import java.time.LocalDateTime;
+[/]import lombok.Data;
+[# th:if="${model.hasEditableRequiredNotBlank()}"]import jakarta.validation.constraints.NotBlank;
+[/][# th:if="${model.hasEditableRequiredNotNull()}"]import jakarta.validation.constraints.NotNull;
+[/]
 /**
  * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
  * 수정 가능한 필드만 선언하는 화이트리스트 DTO.
@@ -8,6 +14,18 @@ package com.scbk.sms.dto.@@MODULE_NAME@@;
  *       REG_ID/REG_DTTM, 시스템 필드, 권한 필드는 선언하지 않는다.
  */
 @Data
-public class @@DOMAIN_CLASS@@UpdateRequestDTO {
+public class [( ${model.domainClass()} )]UpdateRequestDTO {
 
-@@PK_SECTION@@@@EDITABLE_FIELDS@@@@LOCK_FIELD@@}
+[# th:if="${model.pkColumns().isEmpty()}"]    // TODO: PK 필드 (WHERE 조건). 실제 PK 컬럼명으로 교체한다
+    private String id;
+
+[/][# th:if="${!model.pkColumns().isEmpty()}"]    /** PK 필드 (WHERE 조건): [( ${#strings.listJoin(model.pkColumns(), ', ')} )] */
+[# th:each="pk : ${model.pkFields()}"]    private [( ${pk.javaType()} )] [( ${pk.fieldName()} )];
+[/]
+[/][# th:each="column : ${model.editableColumns()}"][# th:if="${column.requiresNotBlank()}"]    @NotBlank
+[/][# th:if="${column.requiresNotNull()}"]    @NotNull
+[/]    private [( ${column.javaType()} )] [( ${column.fieldName()} )];
+[/][# th:if="${!model.lockColumn().isEmpty()}"]
+    /** 낙관적 잠금용. 조회 시점의 [( ${model.lockColumn()} )] (hidden으로 받는다) */
+    private [( ${model.lockJavaType()} )] [( ${model.beforeLockFieldName()} )];
+[/]}

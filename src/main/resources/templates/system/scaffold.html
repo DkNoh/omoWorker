@@ -51,14 +51,9 @@
                     <select id="screenMode" class="form-select">
                         <option value="LIST">목록 조회만</option>
                         <option value="EXCEL">목록 + 엑셀</option>
-                        <option value="DETAIL">목록 + 상세 모달</option>
                         <option value="CRUD">목록 + 등록/수정/삭제</option>
                         <option value="CRUD_PANEL">목록 + 패널형 등록/수정/삭제</option>
                     </select>
-                </div>
-                <div class="col-auto form-check form-switch ms-2">
-                    <input class="form-check-input" type="checkbox" id="includeModal">
-                    <label class="form-check-label" for="includeModal">상세 모달 사용</label>
                 </div>
                 <div class="col-auto form-check form-switch ms-2">
                     <input class="form-check-input" type="checkbox" id="includePrivacy">
@@ -105,7 +100,7 @@
                             <thead>
                             <tr>
                                 <th>그리드</th>
-                                <th>모달</th>
+                                <th>수정 화면</th>
                                 <th>수정</th>
                                 <th>컬럼</th>
                                 <th>헤더명</th>

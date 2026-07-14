@@ -1,5 +1,7 @@
 package com.scbk.sms.service.system.scaffold;
 
+import static com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.Artifact.*;
+import static com.scbk.sms.service.system.scaffold.ScaffoldArtifactRenderer.render;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.scbk.sms.dto.system.ScaffoldColumnOptionDTO;
@@ -102,6 +104,21 @@ class ScaffoldGeneratedSourceCompileTest {
             "UPD_DTTM", "LocalDateTime"));
   }
 
+  private ScaffoldModel privacyOnlyModel() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("privacy-history");
+    request.setDomainClass("PrivacyHistory");
+    request.setDomainName("개인정보이력조회");
+    request.setRawQuery("SELECT A.RECEIVER_NO FROM SMS_HISTORY A WHERE 1=1");
+    request.setOrderBy("A.RECEIVER_NO");
+    request.setScreenMode("LIST");
+    request.setPkColumn("RECEIVER_NO");
+    request.setIncludePrivacy(true);
+    return new ScaffoldModel(
+        request, List.of("RECEIVER_NO"), List.of(), Map.of("RECEIVER_NO", "String"));
+  }
+
   // ============================================================================================
   // Java source extraction helpers
   // ============================================================================================
@@ -130,14 +147,16 @@ class ScaffoldGeneratedSourceCompileTest {
     Files.createDirectories(srcRoot);
 
     Map<String, String> generated = new LinkedHashMap<>();
-    generated.put("DTO", DtoTemplate.generate(model));
-    generated.put("UPDATE_REQUEST_DTO", UpdateRequestDtoTemplate.generate(model));
-    generated.put("VO", VoTemplate.generate(model));
-    generated.put("MAPPER", MapperInterfaceTemplate.generate(model));
-    generated.put("SERVICE", ServiceTemplate.generate(model));
-    generated.put("CONTROLLER", ControllerTemplate.generate(model));
-    generated.put("SERVICE_TEST", ServiceTestTemplate.generate(model));
-    generated.put("CONTROLLER_TEST", ControllerTestTemplate.generate(model));
+    generated.put("DTO", render(SEARCH_DTO, model));
+    if (model.includeCreateUpdate()) {
+      generated.put("UPDATE_REQUEST_DTO", render(UPDATE_DTO, model));
+    }
+    generated.put("VO", render(VO, model));
+    generated.put("MAPPER", render(MAPPER_INTERFACE, model));
+    generated.put("SERVICE", render(SERVICE, model));
+    generated.put("CONTROLLER", render(CONTROLLER, model));
+    generated.put("SERVICE_TEST", render(SERVICE_TEST, model));
+    generated.put("CONTROLLER_TEST", render(CONTROLLER_TEST, model));
 
     List<Path> sourceFiles = new ArrayList<>();
     for (Map.Entry<String, String> entry : generated.entrySet()) {
@@ -247,6 +266,48 @@ class ScaffoldGeneratedSourceCompileTest {
       assertThat(classesDir.resolve("com/scbk/sms/service/sms/SmsHistoryService.class")).exists();
       assertThat(classesDir.resolve("com/scbk/sms/controller/sms/SmsHistoryController.class"))
           .exists();
+    }
+  }
+
+  @Test
+  void privacy_only_모델_생성_Java_소스가_JDK21으로_컴파일된다() throws IOException {
+    compileGeneratedSources(privacyOnlyModel(), "privacy-only");
+  }
+
+  private void compileGeneratedSources(ScaffoldModel model, String outputName) throws IOException {
+    Path srcRoot = writeGeneratedSources(model);
+    Path classesDir = tempDir.resolve(outputName + "-classes");
+    Files.createDirectories(classesDir);
+    var compiler = ToolProvider.getSystemJavaCompiler();
+    assertThat(compiler).isNotNull();
+    DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+    try (var fileManager =
+        compiler.getStandardFileManager(diagnostics, null, StandardCharsets.UTF_8)) {
+      Iterable<? extends JavaFileObject> compilationUnits =
+          fileManager.getJavaFileObjectsFromFiles(
+              Files.walk(srcRoot)
+                  .filter(path -> path.toString().endsWith(".java"))
+                  .map(Path::toFile)
+                  .toList());
+      List<String> options =
+          List.of(
+              "--release",
+              "21",
+              "-classpath",
+              resolveClasspath(),
+              "-processorpath",
+              resolveClasspath(),
+              "-d",
+              classesDir.toString());
+
+      // when
+      boolean success =
+          compiler.getTask(null, fileManager, diagnostics, options, null, compilationUnits).call();
+
+      // then
+      assertThat(success)
+          .as(outputName + " generated sources failed to compile:\n" + diagnostics.getDiagnostics())
+          .isTrue();
     }
   }
 }

@@ -2,6 +2,8 @@ package com.scbk.sms.service.menu;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 import com.scbk.sms.exception.CustomException;
@@ -124,5 +126,59 @@ class MenuAuthServiceTest {
     // when / then
     assertThatThrownBy(() -> menuAuthService.checkAccess("/unknown/path", ROLES))
         .isInstanceOf(CustomException.class);
+  }
+
+  @Test
+  void popup_suffix는_부모_화면의_READ_권한으로_판단한다() {
+    // given : window.open 팝업 화면(/basic/notice/popup)은 부모 메뉴의 READ 자식 화면이다
+    given(menuSource.getPermissions("/basic/notice/popup", ROLES))
+        .willReturn(EnumSet.noneOf(MenuPermission.class));
+    given(menuSource.getPermissions("/basic/notice", ROLES))
+        .willReturn(EnumSet.of(MenuPermission.READ));
+
+    // when / then : READ 사용자는 팝업 화면을 열 수 있다 (쓰기 권한 불필요)
+    assertThatCode(() -> menuAuthService.checkAccess("/basic/notice/popup", ROLES))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void popup_suffix는_READ_권한이_없으면_거부한다() {
+    // given : 부모 메뉴에 READ가 없다 (메뉴 권한 행 자체가 없다)
+    given(menuSource.getPermissions(anyString(), anyList()))
+        .willReturn(EnumSet.noneOf(MenuPermission.class));
+
+    // when / then
+    assertThatThrownBy(() -> menuAuthService.checkAccess("/basic/notice/popup", ROLES))
+        .isInstanceOf(CustomException.class)
+        .extracting(e -> ((CustomException) e).getErrorCode())
+        .isEqualTo(ErrorCode.ACCESS_DENIED);
+  }
+
+  @Test
+  void detail_suffix는_READ_권한이_있으면_통과한다() {
+    // given : /basic/notice/detail (JSON)은 READ 자식 액션이다
+    given(menuSource.getPermissions("/basic/notice/detail", ROLES))
+        .willReturn(EnumSet.noneOf(MenuPermission.class));
+    given(menuSource.getPermissions("/basic/notice", ROLES))
+        .willReturn(EnumSet.of(MenuPermission.READ));
+
+    // when / then
+    assertThatCode(() -> menuAuthService.checkAccess("/basic/notice/detail", ROLES))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void detail_suffix는_READ_권한이_없으면_거부한다() {
+    // given : 부모 메뉴에는 쓰기 권한만 있고 READ가 없다
+    given(menuSource.getPermissions("/basic/notice/detail", ROLES))
+        .willReturn(EnumSet.noneOf(MenuPermission.class));
+    given(menuSource.getPermissions("/basic/notice", ROLES))
+        .willReturn(EnumSet.of(MenuPermission.CREATE, MenuPermission.UPDATE));
+
+    // when / then : 쓰기 권한으로 detail READ 권한을 넓히지 않는다
+    assertThatThrownBy(() -> menuAuthService.checkAccess("/basic/notice/detail", ROLES))
+        .isInstanceOf(CustomException.class)
+        .extracting(e -> ((CustomException) e).getErrorCode())
+        .isEqualTo(ErrorCode.ACCESS_DENIED);
   }
 }

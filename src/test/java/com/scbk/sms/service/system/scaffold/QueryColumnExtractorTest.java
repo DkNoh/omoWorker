@@ -63,26 +63,6 @@ class QueryColumnExtractorTest {
   }
 
   @Test
-  void 변수_라인은_동적_if_조건으로_변환한다() {
-    // when
-    String sql = QueryColumnExtractor.convertToDynamicSql("AND A.SEND_DT >= $start_dt", "");
-
-    // then
-    assertThat(sql).contains("<if test=\"startDt != null and startDt != ''\">");
-    assertThat(sql).contains("AND A.SEND_DT >= #{startDt}");
-    assertThat(sql).contains("</if>");
-  }
-
-  @Test
-  void 변수가_없는_라인은_그대로_둔다() {
-    // when
-    String sql = QueryColumnExtractor.convertToDynamicSql("FROM SMS_HISTORY A", "");
-
-    // then
-    assertThat(sql.trim()).isEqualTo("FROM SMS_HISTORY A");
-  }
-
-  @Test
   void snake_case를_camelCase로_변환한다() {
     assertThat(QueryColumnExtractor.toCamelCase("SEND_DT")).isEqualTo("sendDt");
     assertThat(QueryColumnExtractor.toCamelCase("receiver_no")).isEqualTo("receiverNo");

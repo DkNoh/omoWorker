@@ -150,14 +150,14 @@ const pageBuilder = new TuiPageBuilder({
 | 상태/유형 badge | 컬럼 단위로 `formatter: TuiCommon.badgeByValue({ labels, tones })` 선언. `labels`=코드→표시라벨 매핑, `tones`=코드→고정 색(생략 시 라벨 해시 기반 자동 색). 도메인 코드값(SMS/LMS, SUCCESS/FAIL 등)은 공통 JS가 모르게 화면에서 선언한다 |
 | 데이터 통신 | **모든 HTTP 호출은 axios로 통일한다** (2026-06-12, fetch 사용처 제거). 전역 인터셉터가 스피너/언래핑/오류 모달을 일괄 담당하므로 화면 JS에서 fetch를 쓰지 않는다 |
 
-## 상세폼 화면 규약 (조회 -> 수정 -> 저장)
+## 수정폼 화면 규약 (목록 선택 -> 수정 -> 저장)
 
 목록형(그리드)과 함께 BASE의 두 번째 표준 화면 유형이다.
 
 ```text
-화면 진입 -> 검색조건 입력 -> 조회
- -> GET /domain/detail (단건 조회, ApiResponse<VO 또는 DetailDTO>)
- -> FormBinder.bind('#detailForm', res.data)   // name 기준 자동 바인딩
+화면 진입 -> 검색조건 입력 -> 목록 조회
+ -> 수정할 행 선택
+ -> FormBinder.bind('#editForm', row)   // name 기준 자동 바인딩
  -> 사용자 수정 -> 저장
  -> POST /domain/update (FormBinder.toObject 결과를 UpdateRequestDTO로 수신)
  -> Service 검증/트랜잭션 -> MyBatis update -> 성공/실패
@@ -166,10 +166,10 @@ const pageBuilder = new TuiPageBuilder({
 ### name 일치 계약
 
 수정 가능한 form 필드의 `name` = 응답 JSON 필드명 = `UpdateRequestDTO` 프로퍼티명을 일치시킨다.
-상세 모달에 표시만 하는 읽기전용 필드는 `name`을 두지 않거나 `disabled` 처리해 update payload에 들어가지 않게 한다.
+수정 화면에 표시만 하는 읽기전용 필드는 `name`을 두지 않거나 `disabled` 처리해 update payload에 들어가지 않게 한다.
 
 ```html
-<form id="detailForm">
+<form id="editForm">
     <input type="hidden" name="msgId">
     <input type="hidden" name="beforeUpdateDttm">  <!-- 낙관적 잠금용 -->
     <input type="text" name="msgNm">
@@ -187,12 +187,11 @@ const pageBuilder = new TuiPageBuilder({
 | `FormBinder.toObject(selector)` | name 필드를 객체로 수집. disabled 제외, checkbox -> 'Y'/'N', **빈 문자열 -> null 전송 (확정 정책)** |
 
 ```javascript
-// 조회
-const res = await axios.get('/system/message/detail', { params: { msgId } });
-FormBinder.bind('#detailForm', res.data);
+// 목록에서 수정 행 선택
+FormBinder.bind('#editForm', grid.getRow(rowKey));
 
 // 저장
-await axios.post('/system/message/update', FormBinder.toObject('#detailForm'));
+await axios.post('/system/message/update', FormBinder.toObject('#editForm'));
 CommonUtils.toast('저장되었습니다.', 'success');
 ```
 
@@ -200,7 +199,7 @@ CommonUtils.toast('저장되었습니다.', 'success');
 
 - 조회 응답은 VO(전체 컬럼) 가능. 그러나 **수정 요청은 반드시 `*UpdateRequestDTO`(화이트리스트)로만 받는다.**
 - `UpdateRequestDTO`에는 수정 가능한 필드만 선언한다. `REG_ID`/`REG_DTTM`, 시스템 필드, 권한 필드는 선언하지 않는다 — 선언하지 않으면 Jackson이 버리므로 DTO 자체가 화이트리스트다.
-- 상세 모달은 표시 필드와 수정 필드를 분리한다. 사용자는 여러 값을 볼 수 있지만, `editable=true` 필드만 input `name`을 갖고 update payload에 포함된다.
+- 수정 화면은 표시 필드와 수정 필드를 분리한다. 사용자는 여러 값을 볼 수 있지만, `editable=true` 필드만 input `name`을 갖고 update payload에 포함된다.
 - 프론트는 편의 장치일 뿐이다. 화면에서 실수로 많은 값을 보내더라도 서버는 `*UpdateRequestDTO`에 선언된 필드만 수신하고, Mapper XML도 DTO의 수정 허용 필드만 `UPDATE SET`에 사용한다.
 - VO를 `@RequestBody`로 받지 않는다 (`ConventionTest`가 자동 검출).
 - 소유자 키(EMP_ID/DEP_ID)를 hidden으로 받더라도 서버에서 principal과 재검증한다.
@@ -240,7 +239,7 @@ CommonUtils.toast('저장되었습니다.', 'success');
 
 ## 수동 모달 표준 (ModalManager + modal-base.html)
 
-scaffold DETAIL/CRUD screenMode가 생성하는 모달 화면과 개발자가 수동으로 추가하는 비즈니스 모달은 공통 표준을 따른다.
+scaffold CRUD screenMode가 생성하는 수정 모달과 개발자가 수동으로 추가하는 비즈니스 모달은 공통 표준을 따른다. LIST/EXCEL에는 자동 상세 모달이나 더블클릭 동작을 추가하지 않는다.
 
 **Fragment** (`fragments/modal-base.html`):
 ```html

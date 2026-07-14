@@ -13,17 +13,28 @@
     <sql id="searchConditions">
         <where>
             <if test="startdt != null and startdt != '' and enddt != null and enddt != ''">
-                AND START_DT BETWEEN TO_TIMESTAMP(#{startdt} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{enddt} || '235959', 'YYYYMMDDHH24MISS')
+                AND A.START_DT BETWEEN TO_TIMESTAMP(#{startdt} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{enddt} || '235959', 'YYYYMMDDHH24MISS')
             </if>
             <if test="useYn != null and useYn != ''">
-                AND USE_YN = #{useYn}
+                AND A.USE_YN = #{useYn}
             </if>
         </where>
     </sql>
 
     <sql id="baseQuery">
-            SELECT NOTICE_ID, TITLE, CONTENT, USE_YN, START_DT 
-            FROM NOTICE
+            SELECT
+                A.NOTICE_ID   AS NOTICE_ID,
+                A.TITLE       AS TITLE,
+                A.NOTICE_TYPE AS NOTICE_TYPE,
+                A.USE_YN      AS USE_YN,
+                A.START_DT    AS START_DT,
+                A.END_DT      AS END_DT,
+                A.VIEW_CNT    AS VIEW_CNT,
+                A.REG_ID      AS REG_ID,
+                A.REG_DTTM    AS REG_DTTM,
+                A.UPD_ID      AS UPD_ID,
+                A.UPD_DTTM    AS UPD_DTTM
+            FROM SMS.NOTICE A
     </sql>
 
     <select id="count" resultType="int">
@@ -45,35 +56,66 @@
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
     </select>
 
+    <select id="selectDetail" resultType="com.scbk.sms.vo.basic.NoticeVO">
+        /* NoticeMapper.selectDetail */
+        SELECT
+            A.NOTICE_ID   AS NOTICE_ID,
+            A.TITLE       AS TITLE,
+            A.CONTENT     AS CONTENT,
+            A.NOTICE_TYPE AS NOTICE_TYPE,
+            A.USE_YN      AS USE_YN,
+            A.START_DT    AS START_DT,
+            A.END_DT      AS END_DT,
+            A.VIEW_CNT    AS VIEW_CNT,
+            A.REG_ID      AS REG_ID,
+            A.REG_DTTM    AS REG_DTTM,
+            A.UPD_ID      AS UPD_ID,
+            A.UPD_DTTM    AS UPD_DTTM
+        FROM SMS.NOTICE A
+        WHERE A.NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
+    </select>
+
     <insert id="insert">
         /* NoticeMapper.insert */
-        INSERT INTO NOTICE (
+        INSERT INTO SMS.NOTICE (
             TITLE,
             CONTENT,
+            NOTICE_TYPE,
             USE_YN,
-            START_DT
+            START_DT,
+            END_DT,
+            VIEW_CNT
         ) VALUES (
             #{title,jdbcType=VARCHAR},
-            #{content,jdbcType=VARCHAR},
+            #{content,jdbcType=CLOB},
+            #{noticeType,jdbcType=VARCHAR},
             #{useYn,jdbcType=VARCHAR},
-            #{startDt,jdbcType=TIMESTAMP}
+            #{startDt,jdbcType=TIMESTAMP},
+            #{endDt,jdbcType=TIMESTAMP},
+            #{viewCnt,jdbcType=NUMERIC}
         )
     </insert>
 
     <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
     <update id="update">
         /* NoticeMapper.update */
-        UPDATE NOTICE
+        UPDATE SMS.NOTICE
            SET TITLE = #{title,jdbcType=VARCHAR},
-               CONTENT = #{content,jdbcType=VARCHAR},
+               CONTENT = #{content,jdbcType=CLOB},
+               NOTICE_TYPE = #{noticeType,jdbcType=VARCHAR},
                USE_YN = #{useYn,jdbcType=VARCHAR},
-               START_DT = #{startDt,jdbcType=TIMESTAMP}
+               START_DT = #{startDt,jdbcType=TIMESTAMP},
+               END_DT = #{endDt,jdbcType=TIMESTAMP},
+               VIEW_CNT = #{viewCnt,jdbcType=NUMERIC},
+               UPD_DTTM = SYSTIMESTAMP
          WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
+           AND (UPD_DTTM = #{beforeUpdDttm,jdbcType=TIMESTAMP}
+                OR (UPD_DTTM IS NULL AND #{beforeUpdDttm,jdbcType=TIMESTAMP} IS NULL))
     </update>
 
     <delete id="delete">
         /* NoticeMapper.delete */
-        DELETE FROM NOTICE WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
+        DELETE FROM SMS.NOTICE WHERE NOTICE_ID = #{noticeId,jdbcType=NUMERIC}
     </delete>
 
 </mapper>

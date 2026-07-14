@@ -7,10 +7,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.dto.basic.NoticeSearchRequestDTO;
+import com.scbk.sms.dto.common.PageResponseDTO;
 import com.scbk.sms.service.basic.NoticeService;
+import com.scbk.sms.vo.basic.NoticeVO;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,61 +27,88 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 /** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 class NoticeControllerTest {
 
-    @Mock
-    private NoticeService service;
+  @Mock private NoticeService service;
 
-    private MockMvc mockMvc;
+  private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new NoticeController(service)).build();
-    }
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcBuilders.standaloneSetup(new NoticeController(service)).build();
+  }
 
-    @Test
-    void data는_ApiResponse_포맷으로_응답한다() throws Exception {
-        // given
-        given(service.search(any())).willReturn(
-            PageResponseDTO.of(List.of(), new NoticeSearchRequestDTO(), 0));
+  @Test
+  void data는_ApiResponse_포맷으로_응답한다() throws Exception {
+    // given
+    given(service.search(any()))
+        .willReturn(PageResponseDTO.of(List.of(), new NoticeSearchRequestDTO(), 0));
 
-        // when / then
-        mockMvc.perform(get("/basic/notice/data"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200))
-            .andExpect(jsonPath("$.data.totalCount").value(0));
-    }
+    // when / then
+    mockMvc
+        .perform(get("/basic/notice/data"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value(200))
+        .andExpect(jsonPath("$.data.totalCount").value(0));
+  }
 
-    @Test
-    void create는_등록_성공_메시지를_반환한다() throws Exception {
-        // when / then
-        mockMvc.perform(post("/basic/notice/create")
+  @Test
+  void popup은_수동_공지_팝업_화면을_반환한다() throws Exception {
+    mockMvc
+        .perform(get("/basic/notice/popup"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("basic/notice-popup"));
+  }
+
+  @Test
+  void detail은_ApiResponse_포맷으로_응답한다() throws Exception {
+    NoticeVO notice = new NoticeVO();
+    notice.setNoticeId(1);
+    given(service.getDetail(1)).willReturn(notice);
+
+    mockMvc
+        .perform(get("/basic/notice/detail").param("noticeId", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value(200))
+        .andExpect(jsonPath("$.data.noticeId").value(1));
+  }
+
+  @Test
+  void create는_등록_성공_메시지를_반환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(
+            post("/basic/notice/create")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"title\":\"1\",\"content\":\"1\",\"useYn\":\"1\",\"startDt\":\"2020-01-01T00:00:00\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message").value("등록되었습니다."));
+                .content(
+                    "{\"title\":\"1\",\"content\":\"1\",\"useYn\":\"1\",\"startDt\":\"2020-01-01T00:00:00\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("등록되었습니다."));
 
-        then(service).should().create(any());
-    }
+    then(service).should().create(any());
+  }
 
-    @Test
-    void update는_수정_성공_메시지를_반환한다() throws Exception {
-        // when / then
-        mockMvc.perform(post("/basic/notice/update")
+  @Test
+  void update는_수정_성공_메시지를_반환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(
+            post("/basic/notice/update")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"title\":\"1\",\"content\":\"1\",\"useYn\":\"1\",\"startDt\":\"2020-01-01T00:00:00\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message").value("수정되었습니다."));
+                .content(
+                    "{\"title\":\"1\",\"content\":\"1\",\"useYn\":\"1\",\"startDt\":\"2020-01-01T00:00:00\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("수정되었습니다."));
 
-        then(service).should().update(any());
-    }
+    then(service).should().update(any());
+  }
 
-    @Test
-    void delete는_삭제_성공_메시지를_반환한다() throws Exception {
-        // when / then
-        mockMvc.perform(post("/basic/notice/delete")
-                .param("noticeId", "1"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message").value("삭제되었습니다."));
+  @Test
+  void delete는_삭제_성공_메시지를_반환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(post("/basic/notice/delete").param("noticeId", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("삭제되었습니다."));
 
-        then(service).should().delete(1);
-    }
+    then(service).should().delete(1);
+  }
 }

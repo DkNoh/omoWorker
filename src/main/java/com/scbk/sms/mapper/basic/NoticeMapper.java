@@ -11,13 +11,15 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface NoticeMapper {
 
-    int count(NoticeSearchRequestDTO request);
+  int count(NoticeSearchRequestDTO request);
 
-    List<NoticeVO> selectList(NoticeSearchRequestDTO request);
+  List<NoticeVO> selectList(NoticeSearchRequestDTO request);
 
-    int insert(NoticeUpdateRequestDTO request);
+  NoticeVO selectDetail(@Param("noticeId") Integer noticeId);
 
-    int update(NoticeUpdateRequestDTO request);
+  int insert(NoticeUpdateRequestDTO request);
 
-    int delete(@Param("noticeId") Integer noticeId);
+  int update(NoticeUpdateRequestDTO request);
+
+  int delete(@Param("noticeId") Integer noticeId);
 }

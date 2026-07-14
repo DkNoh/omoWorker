@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Scaffold 생성(CRUD_PANEL). 생성 후 개발자가 직접 수정해 소유한다. -->
+<!-- 수동 커스텀: scaffold 생성 후 window.open 수정 팝업을 추가한 예제다. -->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{defaultLayout}">
@@ -33,29 +33,6 @@
     </div>
 
     <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
-
-    <section class="card surface-card mb-4" id="detail-panel" hidden>
-        <header class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2"><i data-lucide="panel-right" aria-hidden="true"></i><span class="fw-semibold" id="detail-panel-title">공지사항 상세</span><code id="detail-selected-key"></code></div>
-            <div class="d-flex gap-2 flex-wrap">
-                <button type="button" id="btn-save" th:if="${pageAuth.create or pageAuth.update}" class="btn btn-primary"><i data-lucide="save" aria-hidden="true"></i><span>저장</span></button>
-                <button type="button" id="btn-delete" th:if="${pageAuth.delete}" class="btn btn-danger"><i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span></button>
-            </div>
-        </header>
-        <div class="card-body"><form id="detail-form" autocomplete="off" novalidate>
-            <input type="hidden" name="noticeId">
-            <div class="row g-3">
-                <div class="col-12 col-md-6"><div class="form-label">NOTICE_ID</div><div class="form-control-plaintext" data-readonly-field="noticeId"></div></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-title">TITLE</label><input type="text" class="form-control" id="f-title" name="title"></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-content">CONTENT</label><input type="text" class="form-control" id="f-content" name="content"></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-useYn">USE_YN</label><input type="text" class="form-control" id="f-useYn" name="useYn"></div>
-                <div class="col-12 col-md-6"><label class="form-label" for="f-startDt">START_DT</label><input type="text" class="form-control" id="f-startDt" name="startDt"></div>
-            </div>
-        </form></div>
-    </section>
-    <section class="card surface-card mb-4" id="detail-empty-panel">
-        <div class="empty-state"><i data-lucide="mouse-pointer-click" class="empty-state-icon" aria-hidden="true"></i><p class="empty-state-title">행을 선택하세요</p></div>
-    </section>
 
 </main>
 <th:block layout:fragment="script">

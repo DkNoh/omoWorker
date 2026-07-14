@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class NoticeSearchRequestDTO extends PageRequestDTO {
 
-    private String startdt;
-    private String enddt;
-    private String useYn;
+  private String startdt;
+  private String enddt;
+  private String useYn;
 }

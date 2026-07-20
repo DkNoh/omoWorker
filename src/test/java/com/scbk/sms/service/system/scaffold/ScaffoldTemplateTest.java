@@ -582,6 +582,103 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void MapperXml은_LEFT_JOIN_서브쿼리_내_variable을_baseQuery에서_제자리_파라미터화한다() {
+    // given : LEFT JOIN 서브쿼리의 WHERE 안에 $variable이 있다 (depth>=1).
+    // splitRawQuery는 depth=0의 메인 WHERE에서만 분리하므로 서브쿼리의 $variable은
+    // baseQuery 파트에 그대로 남는다. 이것을 searchConditions로 빼지 않고 baseQuery 안에서
+    // #{var}로 파라미터화 + <if> 가드로 제자리 감싸야 한다 (집계 의미론 보존).
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("customer-search");
+    request.setDomainClass("CustormerSearch");
+    request.setDomainName("고객별조회");
+    request.setRawQuery(
+        """
+            SELECT T.ID, S.CNT
+            FROM TBL T
+            LEFT JOIN (
+                SELECT H.ID, COUNT(*) AS CNT
+                FROM HIST H
+                WHERE 1=1
+                AND H.COL >= TO_TIMESTAMP($start_var || '000000', 'YYYYMMDDHH24MISS')
+                AND H.SEND_TYPE = $send_type
+                AND H.ID >= $min_id
+                GROUP BY H.ID
+            ) S ON S.ID = T.ID
+            WHERE 1=1
+            AND T.NAME = $outer_var
+            """);
+    request.setOrderBy("T.ID DESC");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("ID", "CNT", "NAME"),
+            List.of("startVar", "sendType", "minId", "outerVar"),
+            Map.of(
+                "ID", "Long",
+                "CNT", "Integer",
+                "NAME", "String",
+                "COL", "LocalDateTime",
+                "SEND_TYPE", "String"));
+
+    // when
+    String xml = render(MAPPER_XML, model);
+
+    // then 1 : baseQuery 블록의 서브쿼리 $variable은 #{var}로 파라미터화되어 <if>로 감싸진다
+    int baseQueryStart = xml.indexOf("<sql id=\"baseQuery\">");
+    int baseQueryEnd = xml.indexOf("</sql>", baseQueryStart);
+    String baseQuery = xml.substring(baseQueryStart, baseQueryEnd);
+    assertThat(baseQuery)
+        .contains(
+            "<if test=\"startVar != null and startVar != ''\">AND H.COL &gt;= TO_TIMESTAMP(#{startVar} || '000000', 'YYYYMMDDHH24MISS')</if>");
+    assertThat(baseQuery)
+        .contains(
+            "<if test=\"sendType != null and sendType != ''\">AND H.SEND_TYPE = #{sendType}</if>");
+    assertThat(baseQuery)
+        .contains(
+            "<if test=\"minId != null and minId != ''\">AND H.ID <![CDATA[ >= ]]> #{minId}</if>");
+    assertThat(baseQuery).doesNotContain("&lt;![CDATA[");
+
+    // then 2 : baseQuery에는 raw $variable이 남으면 안 된다
+    assertThat(baseQuery).doesNotContain("$start_var");
+    assertThat(baseQuery).doesNotContain("$send_type");
+
+    // then 3 : 메인 WHERE의 $outer_var는 기존대로 searchConditions로 분리된다 (변경 없음)
+    int scStart = xml.indexOf("<sql id=\"searchConditions\">");
+    int scEnd = xml.indexOf("</sql>", scStart);
+    String searchConditions = xml.substring(scStart, scEnd);
+    assertThat(searchConditions).contains("<if test=\"outerVar != null and outerVar != ''\">");
+    assertThat(searchConditions).contains("AND T.NAME = #{outerVar}");
+    assertThat(baseQuery).doesNotContain("$outer_var");
+    assertThat(baseQuery).doesNotContain("#{outerVar}");
+  }
+
+  @Test
+  void MapperXml은_서브쿼리_조건절_밖의_variable을_명시적으로_거부한다() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("invalid-search");
+    request.setDomainClass("InvalidSearch");
+    request.setDomainName("잘못된조회");
+    request.setRawQuery(
+        """
+            SELECT T.ID, $dynamic_value AS DYNAMIC_VALUE
+            FROM TBL T
+            WHERE 1=1
+            """);
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("ID", "DYNAMIC_VALUE"),
+            List.of("dynamicValue"),
+            Map.of("ID", "Long", "DYNAMIC_VALUE", "String"));
+
+    assertThatThrownBy(() -> render(MAPPER_XML, model))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("서브쿼리 검색조건");
+  }
+
+  @Test
   void MapperXml은_BETWEEN_TIMESTAMP_조건을_상하한_TO_TIMESTAMP로_변환한다() {
     // given : notice 등록일시 REG_DTTM을 startDate/endDate 범위로 조회
     ScaffoldRequestDTO request = new ScaffoldRequestDTO();

@@ -67,18 +67,57 @@ public final class MapperXmlViewFactory {
 
   private static List<String> buildBaseQueryLines(ScaffoldModel model) {
     String[] parts = splitRawQuery(model.rawQuery());
+    Map<String, ScaffoldModel.SearchParam> paramMap = buildParamMap(model);
     return parts[0]
         .lines()
         .filter(line -> !line.trim().isEmpty())
-        .map(MapperXmlViewFactory::escapeSqlText)
+        .map(line -> buildBaseQueryLine(model, paramMap, line))
         .toList();
   }
 
-  private static List<SearchCondition> buildSearchConditions(ScaffoldModel model) {
+  // baseQuery 라인 중 $variable이 포함된 라인(LEFT JOIN 서브쿼리 내부 등 depth>=1)은
+  // searchConditions로 빼지 않고 baseQuery 안에서 #{var}로 파라미터화 + <if> 가드로 제자리 감싼다.
+  // 집계 의미론을 보존하기 위해 서브쿼리를 분해하지 않고 그대로 둔다.
+  // 서브쿼리 안의 WHERE 1=1 앵커가 선행 AND를 안전하게 만든다.
+  private static String buildBaseQueryLine(
+      ScaffoldModel model, Map<String, ScaffoldModel.SearchParam> paramMap, String line) {
+    if (!line.contains("$")) {
+      return escapeSqlText(line);
+    }
+    String trimmed = line.trim();
+    if (!trimmed.regionMatches(true, 0, "AND ", 0, 4)) {
+      throw new IllegalArgumentException(
+          "서브쿼리 검색조건의 $variable은 WHERE 1=1 뒤의 AND 조건에서만 사용할 수 있습니다: "
+              + trimmed);
+    }
+    List<String> lineVars = new ArrayList<>();
+    Matcher matcher = SEARCH_VAR_PATTERN.matcher(line);
+    while (matcher.find()) {
+      lineVars.add(QueryColumnExtractor.toCamelCase(matcher.group(1)));
+    }
+    String test =
+        lineVars.stream()
+            .map(field -> field + " != null and " + field + " != ''")
+            .reduce((left, right) -> left + " and " + right)
+            .orElse("");
+    String parameterized = replaceBindVariables(model, paramMap, line).trim();
+    return "<if test=\""
+        + test
+        + "\">"
+        + escapeSqlTextPreservingCdata(parameterized)
+        + "</if>";
+  }
+
+  private static Map<String, ScaffoldModel.SearchParam> buildParamMap(ScaffoldModel model) {
     Map<String, ScaffoldModel.SearchParam> paramMap = new HashMap<>();
     for (ScaffoldModel.SearchParam param : model.searchParams()) {
       paramMap.put(param.name(), param);
     }
+    return paramMap;
+  }
+
+  private static List<SearchCondition> buildSearchConditions(ScaffoldModel model) {
+    Map<String, ScaffoldModel.SearchParam> paramMap = buildParamMap(model);
 
     String[] parts = splitRawQuery(model.rawQuery());
     if (parts[1].trim().isEmpty()
@@ -236,6 +275,14 @@ public final class MapperXmlViewFactory {
 
   private static String escapeSqlText(String sqlLine) {
     return sqlLine.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+  }
+
+  private static String escapeSqlTextPreservingCdata(String sqlLine) {
+    return escapeSqlText(sqlLine)
+        .replace("&lt;![CDATA[ &gt;= ]]&gt;", "<![CDATA[ >= ]]>")
+        .replace("&lt;![CDATA[ &lt;= ]]&gt;", "<![CDATA[ <= ]]>")
+        .replace("&lt;![CDATA[ &gt; ]]&gt;", "<![CDATA[ > ]]>")
+        .replace("&lt;![CDATA[ &lt; ]]&gt;", "<![CDATA[ < ]]>");
   }
 
   private static String xmlOperator(String operator) {

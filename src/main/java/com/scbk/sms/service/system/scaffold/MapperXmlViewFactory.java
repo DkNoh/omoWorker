@@ -87,8 +87,7 @@ public final class MapperXmlViewFactory {
     String trimmed = line.trim();
     if (!trimmed.regionMatches(true, 0, "AND ", 0, 4)) {
       throw new IllegalArgumentException(
-          "서브쿼리 검색조건의 $variable은 WHERE 1=1 뒤의 AND 조건에서만 사용할 수 있습니다: "
-              + trimmed);
+          "서브쿼리 검색조건의 $variable은 WHERE 1=1 뒤의 AND 조건에서만 사용할 수 있습니다: " + trimmed);
     }
     List<String> lineVars = new ArrayList<>();
     Matcher matcher = SEARCH_VAR_PATTERN.matcher(line);
@@ -101,11 +100,7 @@ public final class MapperXmlViewFactory {
             .reduce((left, right) -> left + " and " + right)
             .orElse("");
     String parameterized = replaceBindVariables(model, paramMap, line).trim();
-    return "<if test=\""
-        + test
-        + "\">"
-        + escapeSqlTextPreservingCdata(parameterized)
-        + "</if>";
+    return "<if test=\"" + test + "\">" + escapeSqlTextPreservingCdata(parameterized) + "</if>";
   }
 
   private static Map<String, ScaffoldModel.SearchParam> buildParamMap(ScaffoldModel model) {

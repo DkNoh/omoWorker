@@ -1,6 +1,7 @@
 package com.scbk.sms.controller;
 
 import com.scbk.sms.auth.SmsUserPrincipal;
+import com.scbk.sms.service.menu.MenuAuthService;
 import com.scbk.sms.service.menu.MenuSource;
 import com.scbk.sms.service.menu.PageAuth;
 import com.scbk.sms.vo.menu.MenuItemVO;
@@ -25,10 +26,13 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 public class GlobalModelAdvice {
 
   private final MenuSource menuSource;
+  private final MenuAuthService menuAuthService;
   private final Environment environment;
 
-  public GlobalModelAdvice(MenuSource menuSource, Environment environment) {
+  public GlobalModelAdvice(
+      MenuSource menuSource, MenuAuthService menuAuthService, Environment environment) {
     this.menuSource = menuSource;
+    this.menuAuthService = menuAuthService;
     this.environment = environment;
   }
 
@@ -88,16 +92,17 @@ public class GlobalModelAdvice {
     }
     String path =
         normalizePath(request.getRequestURI().substring(request.getContextPath().length()));
+    String authPath = menuAuthService.resolveBaseMenuPath(path, principal.getRoleCodes());
     HttpSession session = request.getSession(false);
     if (session != null) {
-      PageAuth cached = getPageAuthCache(session).get(path);
+      PageAuth cached = getPageAuthCache(session).get(authPath);
       if (cached != null) {
         return cached;
       }
     }
-    PageAuth auth = PageAuth.from(menuSource.getPermissions(path, principal.getRoleCodes()));
+    PageAuth auth = PageAuth.from(menuSource.getPermissions(authPath, principal.getRoleCodes()));
     if (session != null) {
-      getPageAuthCache(session).put(path, auth);
+      getPageAuthCache(session).put(authPath, auth);
     }
     return auth;
   }

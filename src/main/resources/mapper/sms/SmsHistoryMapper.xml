@@ -18,8 +18,8 @@
             <if test="sendStatus != null and sendStatus != ''">
                 AND A.SEND_STATUS = #{sendStatus}
             </if>
-            <if test="sentAt != null and sentAt != ''">
-                AND A.SENT_AT <![CDATA[ >= ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') AND A.SENT_AT <![CDATA[ < ]]> TO_TIMESTAMP(#{sentAt} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY
+            <if test="startDt != null and startDt != '' and endDt != null and endDt != ''">
+                AND A.SENT_AT <![CDATA[ >= ]]> TO_TIMESTAMP(#{startDt} || '000000', 'YYYYMMDDHH24MISS') AND A.SENT_AT <![CDATA[ < ]]> TO_TIMESTAMP(#{endDt} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY
             </if>
             <if test="receiverNo != null and receiverNo != ''">
                 AND A.RECEIVER_NO LIKE '%' || #{receiverNo} || '%'
@@ -29,16 +29,16 @@
 
     <sql id="baseQuery">
             SELECT
-                     A.SMS_HISTORY_ID AS SMS_HISTORY_ID,
-                     A.REQUEST_ID AS REQUEST_ID,
-                     A.SENT_AT AS SENT_AT,
-                     A.RECEIVER_NO AS RECEIVER_NO,
-                     A.SENDER_NO AS SENDER_NO,
-                     A.SEND_TYPE AS SEND_TYPE,
-                     A.SEND_STATUS AS SEND_STATUS,
-                     A.RESULT_CD AS RESULT_CD,
-                     A.RESULT_MSG AS RESULT_MSG
-                 FROM SMS.SMS_HISTORY A
+              A.SMS_HISTORY_ID AS SMS_HISTORY_ID,
+              A.REQUEST_ID     AS REQUEST_ID,
+              A.SENT_AT        AS SENT_AT,
+              A.RECEIVER_NO    AS RECEIVER_NO,
+              A.SENDER_NO      AS SENDER_NO,
+              A.SEND_TYPE      AS SEND_TYPE,
+              A.SEND_STATUS    AS SEND_STATUS,
+              A.RESULT_CD      AS RESULT_CD,
+              A.RESULT_MSG     AS RESULT_MSG
+            FROM SMS.SMS_HISTORY A
     </sql>
 
     <select id="count" resultType="int">
@@ -56,8 +56,27 @@
         <include refid="baseQuery"/>
         ) A
         <include refid="searchConditions"/>
-        ORDER BY A.SMS_HISTORY_ID
+        ORDER BY A.SENT_AT DESC, A.SMS_HISTORY_ID DESC
         OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <select id="selectListForExcel" resultType="java.util.HashMap">
+        /* SmsHistoryMapper.selectListForExcel */
+        SELECT A.*
+        FROM (
+        <include refid="baseQuery"/>
+        ) A
+        <include refid="searchConditions"/>
+        ORDER BY A.SENT_AT DESC, A.SMS_HISTORY_ID DESC
+    </select>
+
+    <select id="selectDetail" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
+        /* SmsHistoryMapper.selectDetail */
+        SELECT A.*
+        FROM (
+        <include refid="baseQuery"/>
+        ) A
+        WHERE A.SMS_HISTORY_ID = #{smsHistoryId}
     </select>
 
 </mapper>

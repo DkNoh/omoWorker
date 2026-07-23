@@ -11,6 +11,7 @@ public class SmsHistorySearchRequestDTO extends PageRequestDTO {
 
   private String sendType;
   private String sendStatus;
-  private String sentAt;
+  private String startDt;
+  private String endDt;
   private String receiverNo;
 }

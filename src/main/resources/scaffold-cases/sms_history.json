@@ -1,0 +1,183 @@
+{
+  "request" : {
+    "moduleName" : "sms",
+    "domainId" : "history",
+    "domainClass" : "SmsHistory",
+    "domainName" : "발송이력조회",
+    "rawQuery" : "SELECT                                             \n  A.SMS_HISTORY_ID AS SMS_HISTORY_ID,            \n  A.REQUEST_ID     AS REQUEST_ID,                \n  A.SENT_AT        AS SENT_AT,                   \n  A.RECEIVER_NO    AS RECEIVER_NO,               \n  A.SENDER_NO      AS SENDER_NO,                 \n  A.SEND_TYPE      AS SEND_TYPE,                 \n  A.SEND_STATUS    AS SEND_STATUS,               \n  A.RESULT_CD      AS RESULT_CD,                 \n  A.RESULT_MSG     AS RESULT_MSG                 \nFROM SMS.SMS_HISTORY A                             \nWHERE 1 = 1                                        \nAND A.SEND_TYPE = $send_type                     \nAND A.SEND_STATUS = $send_status                 \nAND A.SENT_AT between $start_dt and $end_dt      \nAND A.RECEIVER_NO LIKE '%' || $receiver_no || '%'",
+    "orderBy" : "A.SENT_AT DESC, A.SMS_HISTORY_ID DESC",
+    "includeCreateUpdate" : false,
+    "includeExcel" : true,
+    "includePrivacy" : true,
+    "showRowNumber" : false,
+    "screenMode" : "EXCEL",
+    "targetTable" : "SMS.SMS_HISTORY",
+    "pkColumn" : "SMS_HISTORY_ID",
+    "pkColumns" : [ "SMS_HISTORY_ID" ],
+    "lockColumn" : "",
+    "searchParamOptions" : [ {
+      "name" : "sendType",
+      "inputType" : "SELECT",
+      "defaultValue" : "NONE",
+      "optionsText" : "SMS:SMS,LMS:LMS,MMS:MMS,ALIMTALK:ALIMTALK"
+    }, {
+      "name" : "sendStatus",
+      "inputType" : "SELECT",
+      "defaultValue" : "NONE",
+      "optionsText" : "SUCCESS:SUCCESS,FAIL:FAIL,SENT:SENT, CANCEL:CANCEL,READY:READY"
+    }, {
+      "name" : "startDt",
+      "inputType" : "DATE",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "endDt",
+      "inputType" : "DATE",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "receiverNo",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    } ],
+    "columnOptions" : [ {
+      "columnName" : "SMS_HISTORY_ID",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : false,
+      "headerName" : "SMS_HISTORY_ID",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "REQUEST_ID",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : false,
+      "headerName" : "REQUEST_ID",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SENT_AT",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "SENT_AT",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "RECEIVER_NO",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "RECEIVER_NO",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SENDER_NO",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "SENDER_NO",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SEND_TYPE",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "SEND_TYPE",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SEND_STATUS",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "SEND_STATUS",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "RESULT_CD",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "RESULT_CD",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "RESULT_MSG",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "RESULT_MSG",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    } ],
+    "menuOption" : {
+      "menuId" : "SMS_HISTORY",
+      "parentMenuId" : "",
+      "roleCode" : "ROLE_ADMIN",
+      "sortOrd" : 99
+    }
+  },
+  "columns" : [ "SMS_HISTORY_ID", "REQUEST_ID", "SENT_AT", "RECEIVER_NO", "SENDER_NO", "SEND_TYPE", "SEND_STATUS", "RESULT_CD", "RESULT_MSG" ],
+  "searchVars" : [ "sendType", "sendStatus", "startDt", "endDt", "receiverNo" ],
+  "typeMap" : {
+    "SMS_HISTORY_ID" : "Integer",
+    "REQUEST_ID" : "String",
+    "SENT_AT" : "LocalDateTime",
+    "RECEIVER_NO" : "String",
+    "SENDER_NO" : "String",
+    "SEND_TYPE" : "String",
+    "SEND_STATUS" : "String",
+    "RESULT_CD" : "String",
+    "RESULT_MSG" : "String"
+  },
+  "dialect" : "ORACLE"
+}

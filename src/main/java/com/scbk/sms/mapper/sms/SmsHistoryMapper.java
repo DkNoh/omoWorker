@@ -3,7 +3,9 @@ package com.scbk.sms.mapper.sms;
 import com.scbk.sms.dto.sms.SmsHistorySearchRequestDTO;
 import com.scbk.sms.vo.sms.SmsHistoryVO;
 import java.util.List;
+import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 @Mapper
@@ -12,4 +14,9 @@ public interface SmsHistoryMapper {
   int count(SmsHistorySearchRequestDTO request);
 
   List<SmsHistoryVO> selectList(SmsHistorySearchRequestDTO request);
+
+  SmsHistoryVO selectDetail(@Param("smsHistoryId") Integer smsHistoryId);
+
+  // ExcelUtil 계약상 Map을 사용한다 (동적 컬럼 예외)
+  List<Map<String, Object>> selectListForExcel(SmsHistorySearchRequestDTO request);
 }

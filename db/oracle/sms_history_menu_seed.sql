@@ -20,7 +20,7 @@ INSERT INTO SMS.TB_MENU_AUTH (
 ) VALUES (
     'SMS_HISTORY', 'ROLE_ADMIN',
     'Y', 'N', 'N', 'N',
-    'N', 'N', 'N', 'N',
+    'N', 'N', 'Y', 'Y',
     'Y', 'SYSTEM'
 );
 

@@ -182,6 +182,19 @@ BEGIN
     FOR R IN (SELECT MENU_ID FROM SMS.TB_MENU WHERE USE_YN = 'Y') LOOP
         upsert_menu_auth(R.MENU_ID, 'ROLE_ADMIN');
     END LOOP;
+
+    UPDATE SMS.TB_MENU_AUTH
+       SET CAN_CREATE = 'N',
+           CAN_UPDATE = 'N',
+           CAN_DELETE = 'N',
+           CAN_APPROVE = 'N',
+           CAN_CANCEL = 'N',
+           CAN_DOWNLOAD = 'N',
+           CAN_MASK_VIEW = 'Y',
+           UPD_ID = 'SYSTEM',
+           UPD_DTTM = SYSTIMESTAMP
+     WHERE MENU_ID = 'SMS_CUSTOMER_SEARCH'
+       AND ROLE_CD = 'ROLE_ADMIN';
 END;
 /
 

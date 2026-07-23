@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!--
+  회귀 테스트용 호출 템플릿 — footerContent=~{::#modal-footer} (basic/notice.html과 동일 계약).
+  커스텀 footerContent가 제공되면 기본 footer 대신 해당 프래그먼트가 렌더링되는지 검증한다.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/modal-base :: layout(
+    modalId='custom-footer-modal',
+    title='커스텀 푸터 테스트',
+    size='modal-md',
+    bodyContent=~{::#modal-body},
+    footerContent=~{::#modal-footer}
+)}">
+    <div id="modal-body">본문</div>
+    <div id="modal-footer"><button type="button" id="custom-btn">커스텀</button></div>
+</th:block>
+</body>
+</html>

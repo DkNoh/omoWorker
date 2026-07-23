@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!--
+  회귀 테스트용 호출 템플릿 — footerContent=null (scaffold CRUD 생성 화면과 동일 계약).
+  modal-base가 null footerContent를 예외 없이 기본 footer로 렌더링하는지 검증한다.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:replace="~{fragments/modal-base :: layout(
+    modalId='null-footer-modal',
+    title='널 푸터 테스트',
+    size='modal-md',
+    bodyContent=~{::#modal-body},
+    footerContent=null
+)}">
+    <div id="modal-body">본문</div>
+</th:block>
+</body>
+</html>

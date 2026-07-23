@@ -16,4 +16,6 @@ public @interface PrivacyLog {
 
   /** 수행 업무명. 메뉴명 + 행위 형태로 작성한다. (예: "발송이력 엑셀 다운로드") */
   String action() default "민감 정보 조회";
+
+  boolean recordParameters() default true;
 }

@@ -6,7 +6,10 @@ import com.scbk.sms.auth.SmsUserPrincipal;
 import com.scbk.sms.service.system.AuditLogService;
 import com.scbk.sms.util.MaskingUtil;
 import com.scbk.sms.vo.system.PrivacyAuditLogVO;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -47,7 +50,7 @@ public class PrivacyLogAspect {
     logVO.setActionType(privacyLog.action());
     logVO.setExecutorIp(resolveExecutorIp(request));
     applyExecutor(logVO);
-    logVO.setTargetData(serializeArgs(joinPoint.getArgs()));
+    logVO.setTargetData(privacyLog.recordParameters() ? serializeArgs(joinPoint.getArgs()) : "");
 
     auditLogService.saveLog(logVO);
 
@@ -78,9 +81,16 @@ public class PrivacyLogAspect {
     if (args == null || args.length == 0) {
       return "";
     }
+    Object[] auditableArgs =
+        Arrays.stream(args)
+            .filter(arg -> !(arg instanceof ServletRequest) && !(arg instanceof ServletResponse))
+            .toArray();
+    if (auditableArgs.length == 0) {
+      return "";
+    }
     String json;
     try {
-      json = objectMapper.writeValueAsString(args);
+      json = objectMapper.writeValueAsString(auditableArgs);
     } catch (Exception e) {
       // HttpServletResponse처럼 직렬화 불가능한 파라미터가 섞일 수 있다.
       // targetData는 보조 추적 정보이므로 직렬화 실패가 업무를 막지는 않는다.

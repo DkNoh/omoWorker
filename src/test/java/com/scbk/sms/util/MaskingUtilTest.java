@@ -32,6 +32,18 @@ class MaskingUtilTest {
   }
 
   @Test
+  void 이메일은_로컬파트_첫_글자만_남기고_마스킹한다() {
+    assertThat(MaskingUtil.maskEmail("customer@example.com")).isEqualTo("c*******@example.com");
+    assertThat(MaskingUtil.maskEmail("a@example.com")).isEqualTo("*@example.com");
+  }
+
+  @Test
+  void 생년월일은_연도만_남기고_마스킹한다() {
+    assertThat(MaskingUtil.maskBirthDate("19850312")).isEqualTo("1985****");
+    assertThat(MaskingUtil.maskBirthDate("1985-03-12")).isEqualTo("1985****");
+  }
+
+  @Test
   void 텍스트_안의_주민번호와_전화번호_후보를_마스킹한다() {
     // given : 감사 로그용 JSON 직렬화 파라미터
     String json = "{\"ssn\":\"9001011234567\",\"phone\":\"01012345678\",\"name\":\"홍길동\"}";

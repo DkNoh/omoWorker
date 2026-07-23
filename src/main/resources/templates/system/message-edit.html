@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>메시지 관리</title>
+    <th:block layout:fragment="css">
+        <style>
+            .message-edit-row {
+                min-height: 68px;
+                border-bottom: 1px solid var(--sms-border-subtle);
+            }
+
+            .message-edit-row:last-child {
+                border-bottom: 0;
+            }
+
+            .message-edit-label {
+                display: flex;
+                align-items: center;
+                min-height: 68px;
+                padding: var(--sms-space-3) var(--sms-space-4);
+                color: var(--sms-text-strong);
+                background: var(--sms-bg-surface-alt);
+                font-weight: var(--sms-fw-semibold);
+                word-break: keep-all;
+            }
+
+            .message-edit-control {
+                display: flex;
+                align-items: center;
+                min-height: 68px;
+                padding: var(--sms-space-3) var(--sms-space-4);
+            }
+
+            .message-edit-required::after {
+                content: " *";
+                color: var(--sms-danger);
+            }
+
+            .message-edit-date-field {
+                width: min(100%, 220px);
+            }
+
+            .message-edit-unit-control {
+                width: min(100%, 180px);
+            }
+
+            .message-edit-counter.is-over {
+                color: var(--sms-danger) !important;
+                font-weight: var(--sms-fw-semibold);
+            }
+
+            .message-edit-ad-warning {
+                color: var(--sms-danger);
+                font-size: var(--sms-fs-body-sm);
+                font-weight: var(--sms-fw-semibold);
+                word-break: keep-all;
+            }
+
+            .message-edit-readonly {
+                background: var(--sms-bg-muted) !important;
+                color: var(--sms-text-muted);
+            }
+
+            @media (max-width: 575.98px) {
+                .message-edit-label,
+                .message-edit-control {
+                    min-height: auto;
+                }
+
+                .message-edit-label {
+                    padding-bottom: var(--sms-space-2);
+                }
+
+                .message-edit-control {
+                    padding-top: var(--sms-space-2);
+                }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>메시지 관리 <small class="text-body-sm">(시스템관리 &gt; 메시지관리 &gt; 수정)</small></h2>
+    </div>
+
+    <form id="message-edit-form" autocomplete="off" novalidate>
+        <input type="hidden" id="messageId" name="messageId">
+        <input type="hidden" id="messageCode" name="messageCode" value="37" th:value="${''}">
+        <input type="hidden" id="beforeUpdateDttm" name="beforeUpdateDttm">
+
+        <div class="card shadow-sm border-0 mb-0">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex align-items-center justify-content-between gap-3">
+                    <h3 class="fs-6 fw-semibold mb-0">메시지 상세 정보</h3>
+                    <span class="text-caption"><span class="text-danger">*</span> 필수 입력</span>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="messageTitle">메시지 제목</label>
+                    </div>
+                    <div class="col-12 col-sm-10 message-edit-control">
+                        <input type="text" class="form-control" id="messageTitle" name="messageTitle"
+                               value="온라인 즉시 발급 카드정보" th:value="${''}"
+                               maxlength="100" placeholder="메시지 제목을 입력하세요"
+                               data-validate="required|maxlength:100" required>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label for="messageCodeDisplay">메시지 코드</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <input type="text" class="form-control message-edit-readonly"
+                               id="messageCodeDisplay" value="37" th:value="${''}" readonly aria-readonly="true">
+                    </div>
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="depId">부서명</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <select class="form-select common-combo" id="depId" name="depId"
+                                data-code-type="dept" data-validate="required" required>
+                            <option value="">부서를 선택하세요</option>
+                            <option value="CARD" selected th:remove="all">카드상품팀</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="managerName">담당자명</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <input type="text" class="form-control" id="managerName" name="managerName"
+                               value="문기선/정기준" th:value="${''}" maxlength="50"
+                               placeholder="담당자명을 입력하세요"
+                               data-validate="required|maxlength:50" required>
+                    </div>
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label for="managerMobileNo">핸드폰</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <input type="tel" class="form-control" id="managerMobileNo" name="managerMobileNo"
+                               value="01040418423" th:value="${''}" maxlength="13" placeholder="담당자 연락처"
+                               data-mask="phone" data-validate="phone">
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="onlineBatchType">온라인/배치 구분</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <select class="form-select" id="onlineBatchType" name="onlineBatchType"
+                                data-validate="required" required>
+                            <option value="">구분을 선택하세요</option>
+                            <option value="ONLINE">온라인</option>
+                            <option value="BATCH">배치</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="accessLocation">접근 위치</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <select class="form-select" id="accessLocation" name="accessLocation"
+                                data-validate="required" required>
+                            <option value="">접근 위치를 선택하세요</option>
+                            <option th:each="location : ${accessLocations}"
+                                    th:value="${location.code}"
+                                    th:text="${location.name}">접근 위치</option>
+                            <option value="INTERNAL" th:remove="all">내부 시스템</option>
+                            <option value="EXTERNAL" th:remove="all">외부 연계</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="sendTime">발송 시간</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <div class="input-group message-edit-unit-control">
+                            <input type="number" class="form-control" id="sendTime" name="sendTime"
+                                   value="0" th:value="${''}" min="0" max="23" inputmode="numeric"
+                                   data-validate="required|number" required>
+                            <span class="input-group-text">시</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="sendInterval">발송 간격</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <div class="input-group message-edit-unit-control">
+                                <input type="number" class="form-control" id="sendInterval" name="sendInterval"
+                                       value="0" th:value="${''}" min="0" max="1440" inputmode="numeric"
+                                       data-validate="required|number" required>
+                                <span class="input-group-text">분</span>
+                            </div>
+                            <span class="text-caption">예: 120분</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <span class="message-edit-required" id="use-yn-label">사용 여부</span>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <div class="d-flex gap-4" role="radiogroup" aria-labelledby="use-yn-label">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" id="useYes"
+                                       name="useYn" value="Y" required>
+                                <label class="form-check-label" for="useYes">예</label>
+                            </div>
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" id="useNo"
+                                       name="useYn" value="N" checked th:checked="${false}" required>
+                                <label class="form-check-label" for="useNo">아니요</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="startDate">시작일자</label>
+                    </div>
+                    <div class="col-12 col-sm-4 message-edit-control">
+                        <div class="message-edit-date-field">
+                            <div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input w-100">
+                                <input type="text" id="startDate" name="startDate"
+                                       value="2014-07-28" th:value="${''}" autocomplete="off"
+                                       aria-label="시작일자" placeholder="YYYY-MM-DD" required>
+                                <span class="tui-ico-date" aria-hidden="true"></span>
+                            </div>
+                            <div id="startDatePickerLayer" class="scaffold-date-picker-layer"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <label class="message-edit-required" for="callbackNumber">회신 번호</label>
+                    </div>
+                    <div class="col-12 col-sm-10 message-edit-control">
+                        <input type="tel" class="form-control message-edit-unit-control"
+                               id="callbackNumber" name="callbackNumber"
+                               value="15881599" th:value="${''}" maxlength="13" placeholder="승인된 회신번호"
+                               inputmode="numeric" pattern="[0-9-]{8,13}"
+                               data-validate="required" required>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label">
+                        <span class="message-edit-required" id="message-purpose-label">메시지 성격</span>
+                    </div>
+                    <div class="col-12 col-sm-10 message-edit-control">
+                        <div class="d-flex flex-wrap align-items-center gap-4"
+                             role="radiogroup" aria-labelledby="message-purpose-label">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" id="purposeNotice"
+                                       name="messagePurpose" value="NOTICE" checked th:checked="${false}" required>
+                                <label class="form-check-label" for="purposeNotice">공지성</label>
+                            </div>
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="radio" id="purposeAdvertisement"
+                                       name="messagePurpose" value="ADVERTISEMENT" required>
+                                <label class="form-check-label" for="purposeAdvertisement">광고성</label>
+                            </div>
+                            <span class="message-edit-ad-warning d-none" id="advertisement-warning">
+                                광고성 메시지는 반드시 광고성 메시지 관리 화면에서 등록해야 합니다.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-0 message-edit-row">
+                    <div class="col-12 col-sm-2 message-edit-label align-items-start">
+                        <label class="message-edit-required" for="messageContent">메시지 내용</label>
+                    </div>
+                    <div class="col-12 col-sm-10 message-edit-control align-items-start">
+                        <div class="w-100">
+                            <textarea class="form-control" id="messageContent" name="messageContent"
+                                      rows="11" placeholder="메시지 내용을 입력하세요"
+                                      data-validate="required" required
+                                      th:text="${''}">[SC은행] 리워드11 신용카드 즉시발급
+카드번호: #{카드번호}, 유효기간: #{유효기간}</textarea>
+                            <div class="d-flex justify-content-between gap-3 mt-2 text-caption">
+                                <span>개인정보는 직접 입력하지 말고 승인된 치환 변수를 사용하세요.</span>
+                                <span class="message-edit-counter text-nowrap" id="message-counter">
+                                    <strong id="message-byte-count">0</strong> / 2,600byte
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" id="btn-cancel" class="btn btn-secondary px-3">
+                <i data-lucide="x" aria-hidden="true"></i>
+                <span>취소</span>
+            </button>
+            <button type="submit" id="btn-save" th:if="${pageAuth.update}"
+                    class="btn btn-primary px-4">
+                <i data-lucide="save" aria-hidden="true"></i>
+                <span>저장</span>
+            </button>
+        </div>
+    </form>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/system/message-edit.js}"></script>
+</th:block>
+</body>
+</html>

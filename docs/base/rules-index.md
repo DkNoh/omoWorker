@@ -47,6 +47,8 @@
 `login-page-implementation.md`, `initial-menu-screen-implementation.md`, `ui-assets-implementation.md`,
 `menu-auth-interceptor-implementation.md`, `common-utils-implementation.md`, `common-code-api-implementation.md`
 
+화면 단위 분석(예: `../js분석.md`)은 CustomerSearch 화면이나 공통 그리드·모달·HTTP JavaScript를 다룰 때만 참고한다.
+
 ## 문서 계층
 
 | 위치 | 용도 |

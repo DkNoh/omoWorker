@@ -35,12 +35,21 @@ public class StaticMenuSource implements MenuSource {
 
   @Override
   public Set<MenuPermission> getPermissions(String menuUrl, List<String> roleCodes) {
-    Set<String> menuUrls = new HashSet<>();
-    collectUrls(getMenuTree(roleCodes), menuUrls);
-    if (menuUrls.contains(menuUrl)) {
+    if (collectBaselineUrls().contains(menuUrl)) {
       return EnumSet.allOf(MenuPermission.class);
     }
     return EnumSet.noneOf(MenuPermission.class);
+  }
+
+  @Override
+  public boolean hasMenu(String menuUrl) {
+    return collectBaselineUrls().contains(menuUrl);
+  }
+
+  private Set<String> collectBaselineUrls() {
+    Set<String> menuUrls = new HashSet<>();
+    collectUrls(getMenuTree(List.of()), menuUrls);
+    return menuUrls;
   }
 
   private void collectUrls(List<MenuItemVO> menus, Set<String> menuUrls) {

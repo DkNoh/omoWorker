@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 수동 커스텀: notice 팝업 수정 화면 (window.open 예제). 개발자가 직접 관리한다. -->
+<!-- 개발자 소유 수동 참조: scaffold 복사 후 커스터마이즈한 window.open CRUD 예제. 재생성하지 않고 직접 수정한다. -->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{defaultLayout}">
@@ -9,12 +9,32 @@
     <!-- Toast UI Editor: 프로젝트에 toastui-editor.min.js / .css를 static/lib에 추가해야 한다.
          CDN 없이 로컬 파일만 사용한다 (프로젝트 규칙). -->
     <link rel="stylesheet" th:href="@{/lib/toastui-editor/3.2.2/toastui-editor.min.css}">
+
+    <!-- 게시판 팝업 예제(window.open) 전용 스타일.
+         공통 defaultLayout/admin-layout.css는 수정하지 않고, 이 팝업 뷰에서만
+         앱 크롤(사이드바/헤더)을 숨기고 콘텐츠 영역을 전체 폭으로 펼친다.
+         색은 --sms-* 토큰만 사용하며 원색(hex) 리터럴을 두지 않는다. -->
+    <th:block layout:fragment="css">
+        <style>
+            .admin-shell .sidebar { display: none !important; }
+            .admin-shell .header { display: none !important; }
+            .admin-shell .main-wrapper { height: 100vh !important; }
+            .admin-shell .content-area {
+                height: 100vh !important;
+                padding: var(--sms-content-padding) !important;
+                overflow-y: auto !important;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
 <main layout:fragment="content">
 
     <div class="content-header d-flex justify-content-between align-items-center">
-        <h2 id="popup-title">공지사항 수정</h2>
+        <div class="d-flex align-items-center gap-2">
+            <h2 id="popup-title">공지사항 수정</h2>
+            <span class="badge bg-primary">게시판 팝업 예제</span>
+        </div>
         <button type="button" id="btn-close" class="btn btn-secondary btn-sm">
             <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
         </button>
@@ -34,7 +54,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="content" class="form-label fw-bold">본문</label>
+                    <label for="content" id="content-label" class="form-label fw-bold">본문</label>
                     <!-- Toast UI Editor가 이 요소를 대체한다 -->
                     <div id="content-editor"></div>
                     <textarea id="content" name="content" class="d-none" aria-hidden="true"></textarea>
@@ -74,13 +94,18 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="button" id="btn-save" class="btn btn-primary px-4">
-                        <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                <div class="d-flex justify-content-between gap-2 mt-4">
+                    <button type="button" id="btn-delete" class="btn btn-outline-danger px-3 d-none">
+                        <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
                     </button>
-                    <button type="button" id="btn-cancel" class="btn btn-secondary px-3">
-                        <i data-lucide="rotate-ccw" aria-hidden="true"></i><span>취소</span>
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="btn-save" class="btn btn-primary px-4">
+                            <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                        </button>
+                        <button type="button" id="btn-cancel" class="btn btn-secondary px-3">
+                            <i data-lucide="rotate-ccw" aria-hidden="true"></i><span>취소</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -90,6 +115,13 @@
 
 <th:block layout:fragment="script">
     <script th:src="@{/lib/toastui-editor/3.2.2/toastui-editor-all.min.js}"></script>
+    <script th:inline="javascript">
+        window.noticePageAuth = {
+            create: /*[[${pageAuth.create}]]*/ false,
+            update: /*[[${pageAuth.update}]]*/ false,
+            delete: /*[[${pageAuth.delete}]]*/ false
+        };
+    </script>
     <script th:src="@{/js/basic/notice-popup.js}"></script>
 </th:block>
 </body>

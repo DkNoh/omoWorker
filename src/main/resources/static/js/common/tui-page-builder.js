@@ -80,14 +80,46 @@ class TuiPageBuilder {
             ? [this._rowNoColumn()].concat(this.config.columns)
             : this.config.columns;
 
-        this.grid = new tui.Grid(Object.assign({}, defaults, this.config.gridOptions, {
+        const mergedOptions = Object.assign({}, defaults, this.config.gridOptions, {
             el: document.getElementById(this.config.el),
             rowHeaders: rowHeaders,
             columns: columns
-        }));
+        });
+
+        // DOWNLOAD 권한이 strict true가 아니면 copy-only contextMenu로 강제
+        if (!this._hasDownloadPermission()) {
+            mergedOptions.contextMenu = this._copyOnlyContextMenu();
+        }
+
+        this.grid = new tui.Grid(mergedOptions);
 
         this._toggleEmptyState(0);
 
+    }
+
+    /**
+     * [내부 메서드] PAGE_AUTH.download === true 인지 strict하게 판단한다.
+     * @returns {boolean}
+     */
+    _hasDownloadPermission() {
+        return !!(window.PAGE_AUTH && window.PAGE_AUTH.download === true);
+    }
+
+    /**
+     * [내부 메서드] 복사 전용 contextMenu 콜백을 생성한다.
+     * TUI Grid 4.x MenuItem[][] 형식: [{name, label, action}]
+     * @returns {Function}
+     */
+    _copyOnlyContextMenu() {
+        return function () {
+            return [
+                [
+                    { name: 'copy', label: '복사', action: 'copy' },
+                    { name: 'copyColumns', label: '열 복사', action: 'copyColumns' },
+                    { name: 'copyRows', label: '행 복사', action: 'copyRows' }
+                ]
+            ];
+        };
     }
 
     _toggleEmptyState(totalCount) {

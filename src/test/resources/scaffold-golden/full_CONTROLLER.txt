@@ -36,7 +36,7 @@ public class SmsHistoryController {
         return "sms/history";
     }
 
-    @PrivacyLog(action = "발송이력조회 목록 조회")
+    @PrivacyLog(action = "발송이력조회 목록 조회", recordParameters = false)
     @ResponseBody
     @GetMapping("/data")
     public ResponseEntity<ApiResponse<PageResponseDTO<SmsHistoryVO>>> getData(

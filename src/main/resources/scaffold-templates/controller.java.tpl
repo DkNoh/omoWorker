@@ -37,7 +37,7 @@ public class [( ${model.domainClass()} )]Controller {
         return "[( ${model.moduleName()} )]/[( ${model.domainId()} )]";
     }
 
-[# th:if="${model.includePrivacy()}"]    @PrivacyLog(action = "[( ${model.domainName()} )] 목록 조회")
+[# th:if="${model.includePrivacy()}"]    @PrivacyLog(action = "[( ${model.domainName()} )] 목록 조회", recordParameters = false)
 [/]    @ResponseBody
     @GetMapping("/data")
     public ResponseEntity<ApiResponse<PageResponseDTO<[( ${model.domainClass()} )]VO>>> getData(

@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { header: 'SEND_DT', name: 'sendDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
             { header: '발송유형', name: 'sendType', align: 'center', width: 120 },
             { header: 'SEND_STATUS', name: 'sendStatus', align: 'center', width: 150 },
-            { header: '수신번호', name: 'receiverNo', align: 'left', width: 160, formatter: ({ value }) => TuiCommon.maskValue(value, 'PHONE') },
+            { header: '수신번호', name: 'receiverNo', align: 'left', width: 160 },
             { header: 'UPD_DTTM', name: 'updDttm', align: 'center', width: 150, formatter: TuiCommon.fmt.date }
 
         ]

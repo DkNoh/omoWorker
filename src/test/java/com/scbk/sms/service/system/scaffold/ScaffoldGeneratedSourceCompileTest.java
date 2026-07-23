@@ -84,7 +84,18 @@ class ScaffoldGeneratedSourceCompileTest {
     sendType.setMaskType("NONE");
     sendType.setValidate("required");
 
-    request.setColumnOptions(List.of(receiverNo, sendType));
+    ScaffoldColumnOptionDTO payload = new ScaffoldColumnOptionDTO();
+    payload.setColumnName("PAYLOAD");
+    payload.setVisible(false);
+    payload.setModalVisible(true);
+    payload.setEditable(true);
+    payload.setHeaderName("전문");
+    payload.setWidth(120);
+    payload.setAlign("left");
+    payload.setDateFormat("NONE");
+    payload.setMaskType("NONE");
+
+    request.setColumnOptions(List.of(receiverNo, sendType, payload));
     request.setScreenMode("CRUD");
     request.setPkColumn("SMS_HISTORY_ID");
     request.setLockColumn("UPD_DTTM");
@@ -93,7 +104,14 @@ class ScaffoldGeneratedSourceCompileTest {
 
     return new ScaffoldModel(
         request,
-        List.of("SMS_HISTORY_ID", "SEND_DT", "SEND_TYPE", "SEND_STATUS", "RECEIVER_NO", "UPD_DTTM"),
+        List.of(
+            "SMS_HISTORY_ID",
+            "SEND_DT",
+            "SEND_TYPE",
+            "SEND_STATUS",
+            "RECEIVER_NO",
+            "PAYLOAD",
+            "UPD_DTTM"),
         List.of("sendDtFrom", "sendDtTo", "sendType", "sendStatus"),
         Map.of(
             "SMS_HISTORY_ID", "Long",
@@ -101,6 +119,7 @@ class ScaffoldGeneratedSourceCompileTest {
             "SEND_TYPE", "String",
             "SEND_STATUS", "String",
             "RECEIVER_NO", "String",
+            "PAYLOAD", "byte[]",
             "UPD_DTTM", "LocalDateTime"));
   }
 

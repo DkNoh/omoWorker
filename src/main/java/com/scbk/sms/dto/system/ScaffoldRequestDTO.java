@@ -35,6 +35,7 @@ public class ScaffoldRequestDTO {
   private boolean includeCreateUpdate;
   private boolean includeExcel;
   private boolean includePrivacy;
+  private boolean showRowNumber = true;
   private String screenMode;
   private String targetTable;
   private String pkColumn;
@@ -114,6 +115,14 @@ public class ScaffoldRequestDTO {
 
   public void setIncludePrivacy(boolean includePrivacy) {
     this.includePrivacy = includePrivacy;
+  }
+
+  public boolean isShowRowNumber() {
+    return showRowNumber;
+  }
+
+  public void setShowRowNumber(boolean showRowNumber) {
+    this.showRowNumber = showRowNumber;
   }
 
   public String getScreenMode() {

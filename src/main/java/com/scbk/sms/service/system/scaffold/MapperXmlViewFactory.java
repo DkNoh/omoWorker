@@ -96,6 +96,7 @@ public final class MapperXmlViewFactory {
     }
     String test =
         lineVars.stream()
+            .distinct()
             .map(field -> field + " != null and " + field + " != ''")
             .reduce((left, right) -> left + " and " + right)
             .orElse("");
@@ -134,7 +135,8 @@ public final class MapperXmlViewFactory {
 
       if (!line.contains("$")) {
         String normalized = trimmed.toUpperCase().startsWith("AND ") ? trimmed : "AND " + trimmed;
-        conditions.add(new SearchCondition("", escapeSqlText(normalized)));
+        conditions.add(
+            new SearchCondition("", escapeSqlText(normalizeOuterAliases(model, normalized))));
         continue;
       }
 
@@ -145,6 +147,7 @@ public final class MapperXmlViewFactory {
       }
       String test =
           lineVars.stream()
+              .distinct()
               .map(field -> field + " != null and " + field + " != ''")
               .reduce((left, right) -> left + " and " + right)
               .orElse("");
@@ -153,7 +156,7 @@ public final class MapperXmlViewFactory {
       if (!normalized.toUpperCase().startsWith("AND ")) {
         normalized = "AND " + normalized;
       }
-      conditions.add(new SearchCondition(test, normalized));
+      conditions.add(new SearchCondition(test, normalizeOuterAliases(model, normalized)));
     }
     return List.copyOf(conditions);
   }
@@ -180,6 +183,17 @@ public final class MapperXmlViewFactory {
         .replaceAll(match -> "#{" + QueryColumnExtractor.toCamelCase(match.group(1)) + "}");
   }
 
+  private static String normalizeOuterAliases(ScaffoldModel model, String condition) {
+    String normalized = condition;
+    for (String column : model.getColumns()) {
+      String columnName = column.trim().toUpperCase();
+      normalized =
+          normalized.replaceAll(
+              "(?i)\\b[A-Z][A-Z0-9_]*\\." + Pattern.quote(columnName) + "\\b", "A." + columnName);
+    }
+    return normalized;
+  }
+
   private static String replaceBetweenClauses(
       ScaffoldModel model, Map<String, ScaffoldModel.SearchParam> paramMap, String line) {
     return COLUMN_BETWEEN_PATTERN
@@ -191,7 +205,40 @@ public final class MapperXmlViewFactory {
               String toField = QueryColumnExtractor.toCamelCase(match.group(3));
               String lower =
                   bindExpression(model, paramMap.get(fromField), columnRef, ">=", fromField);
-              String upper = bindExpression(model, paramMap.get(toField), columnRef, "<=", toField);
+              ScaffoldModel.SearchParam upperParam = paramMap.get(toField);
+              String javaType =
+                  model.getTypeMap().getOrDefault(columnName(columnRef).toUpperCase(), "");
+              if (upperParam != null && upperParam.isDate() && "LocalDateTime".equals(javaType)) {
+                String upperStart = model.dialect().timestampExpression(toField, "000000");
+                return Matcher.quoteReplacement(
+                    columnRef
+                        + " "
+                        + xmlOperator(">=")
+                        + " "
+                        + lower
+                        + " AND "
+                        + columnRef
+                        + " "
+                        + xmlOperator("<")
+                        + " "
+                        + model.dialect().plusOneDay(upperStart));
+              }
+              if (upperParam != null && upperParam.isDate() && "LocalDate".equals(javaType)) {
+                String upperStart = model.dialect().dateExpression(toField);
+                return Matcher.quoteReplacement(
+                    columnRef
+                        + " "
+                        + xmlOperator(">=")
+                        + " "
+                        + lower
+                        + " AND "
+                        + columnRef
+                        + " "
+                        + xmlOperator("<")
+                        + " "
+                        + model.dialect().plusOneDay(upperStart));
+              }
+              String upper = bindExpression(model, upperParam, columnRef, "<=", toField);
               return Matcher.quoteReplacement(columnRef + " BETWEEN " + lower + " AND " + upper);
             });
   }
@@ -202,7 +249,7 @@ public final class MapperXmlViewFactory {
       String columnRef,
       String operator,
       String fieldName) {
-    if (param == null || !param.isDate() || !"=".equals(operator)) {
+    if (param == null || !param.isDate()) {
       return columnRef
           + " "
           + xmlOperator(operator)
@@ -211,6 +258,21 @@ public final class MapperXmlViewFactory {
     }
 
     String javaType = model.getTypeMap().getOrDefault(columnName(columnRef).toUpperCase(), "");
+    if (isUpperBound(operator, fieldName) && "LocalDateTime".equals(javaType)) {
+      String upperStart = model.dialect().timestampExpression(fieldName, "000000");
+      return columnRef + " " + xmlOperator("<") + " " + model.dialect().plusOneDay(upperStart);
+    }
+    if (isUpperBound(operator, fieldName) && "LocalDate".equals(javaType)) {
+      String upperStart = model.dialect().dateExpression(fieldName);
+      return columnRef + " " + xmlOperator("<") + " " + model.dialect().plusOneDay(upperStart);
+    }
+    if (!"=".equals(operator)) {
+      return columnRef
+          + " "
+          + xmlOperator(operator)
+          + " "
+          + bindExpression(model, param, columnRef, operator, fieldName);
+    }
     if ("LocalDateTime".equals(javaType)) {
       String start = model.dialect().timestampExpression(fieldName, "000000");
       return columnRef
@@ -253,8 +315,7 @@ public final class MapperXmlViewFactory {
     }
     String javaType = model.getTypeMap().getOrDefault(columnName(columnRef).toUpperCase(), "");
     if ("LocalDateTime".equals(javaType)) {
-      String suffix = isUpperBound(operator, fieldName) ? "235959" : "000000";
-      return model.dialect().timestampExpression(fieldName, suffix);
+      return model.dialect().timestampExpression(fieldName, "000000");
     }
     if ("LocalDate".equals(javaType)) {
       return model.dialect().dateExpression(fieldName);

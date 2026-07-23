@@ -10,8 +10,7 @@ public final class ScaffoldArtifactRenderer {
       Map.of(
           "LIST", "list",
           "EXCEL", "excel",
-          "CRUD", "crud",
-          "CRUD_PANEL", "crud-panel");
+          "CRUD", "crud");
 
   private ScaffoldArtifactRenderer() {}
 
@@ -46,7 +45,7 @@ public final class ScaffoldArtifactRenderer {
     }
     if (artifact == Artifact.MENU_SQL) {
       String mode = model.screenMode();
-      boolean crudMode = "CRUD".equals(mode) || "CRUD_PANEL".equals(mode);
+      boolean crudMode = "CRUD".equals(mode);
       return Map.of(
           "model", model,
           "canCreate", crudMode ? "Y" : "N",
@@ -55,6 +54,10 @@ public final class ScaffoldArtifactRenderer {
           "canDownload", "EXCEL".equals(mode) ? "Y" : "N",
           "canMaskView", model.includePrivacy() ? "Y" : "N");
     }
+    if (artifact == Artifact.PAGE_JS) {
+      String rowHeaders = model.getRequest().isShowRowNumber() ? "['rowNum']" : "[]";
+      return Map.of("model", model, "rowHeaders", rowHeaders);
+    }
     return Map.of("model", model);
   }
 
@@ -62,7 +65,7 @@ public final class ScaffoldArtifactRenderer {
     String directory = PAGE_TEMPLATE_DIRECTORIES.get(model.screenMode());
     if (directory == null) {
       throw new IllegalArgumentException(
-          "지원하지 않는 screenMode입니다: " + model.screenMode() + " (지원: LIST, EXCEL, CRUD, CRUD_PANEL)");
+          "지원하지 않는 screenMode입니다: " + model.screenMode() + " (지원: LIST, EXCEL, CRUD)");
     }
     return directory;
   }

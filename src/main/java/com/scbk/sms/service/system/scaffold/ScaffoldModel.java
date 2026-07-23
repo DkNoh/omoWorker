@@ -103,14 +103,28 @@ public class ScaffoldModel {
     return request.getOrderBy();
   }
 
+  /**
+   * CRUD(create/update) 산출물 생성 여부. 명시적 {@code screenMode}가 권위를 가진다: {@code CRUD}일 때만 {@code true}이며
+   * legacy {@code includeCreateUpdate} boolean은 모순되어도 무시된다. {@code screenMode}가 비어있을 때만 legacy
+   * boolean fallback으로 동작한다(하위호환).
+   */
   public boolean includeCreateUpdate() {
-    return "CRUD".equals(screenMode())
-        || "CRUD_PANEL".equals(screenMode())
-        || request.isIncludeCreateUpdate();
+    if (StringUtils.hasText(request.getScreenMode())) {
+      return "CRUD".equals(screenMode());
+    }
+    return request.isIncludeCreateUpdate();
   }
 
+  /**
+   * 엑셀 산출물 생성 여부. 명시적 {@code screenMode}가 권위를 가진다: {@code EXCEL}일 때만 {@code true}이며 legacy {@code
+   * includeExcel} boolean은 모순되어도 무시된다. {@code screenMode}가 비어있을 때만 legacy boolean fallback으로
+   * 동작한다(하위호환).
+   */
   public boolean includeExcel() {
-    return "EXCEL".equals(screenMode()) || request.isIncludeExcel();
+    if (StringUtils.hasText(request.getScreenMode())) {
+      return "EXCEL".equals(screenMode());
+    }
+    return request.isIncludeExcel();
   }
 
   public boolean includePrivacy() {
@@ -411,6 +425,8 @@ public class ScaffoldModel {
     }
     return switch (maskType.trim().toLowerCase()) {
       case "name", "nm" -> "maskName";
+      case "email" -> "maskEmail";
+      case "birth", "birthdate", "birth_date" -> "maskBirthDate";
       case "rrn", "ssn" -> "maskRrn";
       case "card", "bizno" -> "maskCard";
       default -> "maskPhone";
@@ -449,6 +465,7 @@ public class ScaffoldModel {
       case "LocalDate" -> "java.time.LocalDate.of(2020, 1, 1)";
       case "LocalDateTime" -> "java.time.LocalDateTime.of(2020, 1, 1, 0, 0)";
       case "BigDecimal" -> "java.math.BigDecimal.ONE";
+      case "byte[]" -> "new byte[] {1}";
       default -> "\"1\"";
     };
   }
@@ -457,6 +474,7 @@ public class ScaffoldModel {
     return switch (javaType) {
       case "LocalDate" -> "2020-01-01";
       case "LocalDateTime" -> "2020-01-01T00:00:00";
+      case "byte[]" -> "AQ==";
       default -> "1";
     };
   }

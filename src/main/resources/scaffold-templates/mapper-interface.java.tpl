@@ -7,7 +7,7 @@ import java.util.List;
 [# th:if="${model.includeExcel()}"]import java.util.Map;
 [/][# th:each="pkImport : ${model.pkParamImports()}"]import [( ${pkImport} )];
 [/]import org.apache.ibatis.annotations.Mapper;
-[# th:if="${model.includeCreateUpdate()}"]import org.apache.ibatis.annotations.Param;
+[# th:if="${model.includeCreateUpdate() or model.includePrivacy()}"]import org.apache.ibatis.annotations.Param;
 [/]
 /** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 @Mapper
@@ -17,7 +17,7 @@ public interface [( ${model.domainClass()} )]Mapper {
 
     List<[( ${model.domainClass()} )]VO> selectList([( ${model.domainClass()} )]SearchRequestDTO request);
 [# th:if="${model.includePrivacy()}"]
-    [( ${model.domainClass()} )]VO selectDetail([( ${model.pkJavaType()} )] [( ${model.pkFieldName()} )]);
+    [( ${model.domainClass()} )]VO selectDetail(@Param("[( ${model.pkFieldName()} )]") [( ${model.pkJavaType()} )] [( ${model.pkFieldName()} )]);
 [/][# th:if="${model.includeCreateUpdate()}"]
     int insert([( ${model.domainClass()} )]UpdateRequestDTO request);
 

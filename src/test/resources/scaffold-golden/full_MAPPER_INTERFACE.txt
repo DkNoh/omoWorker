@@ -16,7 +16,7 @@ public interface SmsHistoryMapper {
 
     List<SmsHistoryVO> selectList(SmsHistorySearchRequestDTO request);
 
-    SmsHistoryVO selectDetail(Long smsHistoryId);
+    SmsHistoryVO selectDetail(@Param("smsHistoryId") Long smsHistoryId);
 
     int insert(SmsHistoryUpdateRequestDTO request);
 

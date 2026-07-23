@@ -14,6 +14,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 class ScaffoldTemplateTest {
@@ -125,19 +129,23 @@ class ScaffoldTemplateTest {
     String code = render(CONTROLLER, model(false, true, true));
 
     // then
-    assertThat(code).contains("@PrivacyLog(action = \"발송이력조회 목록 조회\")");
+    assertThat(code).contains("@PrivacyLog(action = \"발송이력조회 목록 조회\", recordParameters = false)");
     assertThat(code).contains("@PrivacyLog(action = \"발송이력조회 엑셀 다운로드\")");
   }
 
   @Test
   void 개인정보만_포함해도_unmask용_RequestParam을_import한다() {
     // when
-    String code = render(CONTROLLER, model(false, false, true));
+    ScaffoldModel privacyModel = model(false, false, true);
+    String code = render(CONTROLLER, privacyModel);
+    String mapper = render(MAPPER_INTERFACE, privacyModel);
 
     // then
     assertThat(code).contains("import org.springframework.web.bind.annotation.RequestParam;");
     assertThat(code).contains("getUnmaskedDetail(@RequestParam String");
     assertThat(code).doesNotContain("@PostMapping");
+    assertThat(mapper).contains("import org.apache.ibatis.annotations.Param;");
+    assertThat(mapper).contains("selectDetail(@Param(\"id\") String id)");
   }
 
   @Test
@@ -215,8 +223,17 @@ class ScaffoldTemplateTest {
 
     // then
     assertThat(code).contains("MockMvcBuilders.standaloneSetup");
+    assertThat(code).contains(".setControllerAdvice(new GlobalExceptionHandler())");
     assertThat(code).contains("get(\"/sms/history/data\")");
     assertThat(code).contains("jsonPath(\"$.code\").value(200)");
+    assertThat(code).contains("ArgumentCaptor<SmsHistorySearchRequestDTO>");
+    assertThat(code).contains("then(service).should(times(1)).search(captor.capture())");
+    assertThat(code).contains("captor.getValue().getPage()).isEqualTo(2)");
+    assertThat(code).contains("captor.getValue().getStartDt()).isEqualTo(\"1\")");
+    assertThat(code).contains(".param(\"page\", \"invalid\")");
+    assertThat(code).contains("then(service).shouldHaveNoInteractions()");
+    assertThat(code).contains("status().isMethodNotAllowed()");
+    assertThat(code).contains("new CustomException(ErrorCode.INTERNAL_SERVER_ERROR)");
   }
 
   @Test
@@ -224,11 +241,11 @@ class ScaffoldTemplateTest {
     // when
     String code = render(CONTROLLER_TEST, model(false, false, false));
 
-    // then : CUD가 없는 화면은 create/update/delete 엔드포인트도, then(service) 검증도 없다
+    // then : CUD가 없는 화면은 create/update/delete 엔드포인트만 생성하지 않는다
     assertThat(code).doesNotContain("/create");
     assertThat(code).doesNotContain("/update");
     assertThat(code).doesNotContain("/delete");
-    assertThat(code).doesNotContain("then(service)");
+    assertThat(code).contains("then(service).should(times(1)).search(captor.capture())");
   }
 
   @Test
@@ -239,16 +256,20 @@ class ScaffoldTemplateTest {
     // then : 성공 메시지는 ApiResponse.data가 아니라 message 필드에 담긴다
     assertThat(code).contains("post(\"/sms/history/create\")");
     assertThat(code).contains("jsonPath(\"$.message\").value(\"등록되었습니다.\")");
-    assertThat(code).contains("then(service).should().create(any())");
+    assertThat(code).contains("then(service).should(times(1)).create(captor.capture())");
 
     assertThat(code).contains("post(\"/sms/history/update\")");
     assertThat(code).contains("jsonPath(\"$.message\").value(\"수정되었습니다.\")");
-    assertThat(code).contains("then(service).should().update(any())");
+    assertThat(code).contains("then(service).should(times(1)).update(captor.capture())");
 
     assertThat(code).contains("post(\"/sms/history/delete\")");
     assertThat(code).contains(".param(\"receiverNo\", \"1\")");
     assertThat(code).contains("jsonPath(\"$.message\").value(\"삭제되었습니다.\")");
-    assertThat(code).contains("then(service).should().delete(\"1\")");
+    assertThat(code).contains("then(service).should(times(1)).delete(\"1\")");
+    assertThat(code).contains("잘못된_JSON은_400이고_서비스를_호출하지_않는다");
+    assertThat(code).contains("지원하지_않는_ContentType은_415이고_서비스를_호출하지_않는다");
+    assertThat(code).contains("선언되지_않은_필드는_UpdateRequestDTO에_매핑되지_않는다");
+    assertThat(code).contains("mapped.has(\"unexpectedSystemField\")").contains("isFalse()");
   }
 
   @Test
@@ -267,7 +288,20 @@ class ScaffoldTemplateTest {
 
     // then
     assertThat(code).contains("\\\"sendType\\\":\\\"1\\\"");
-    assertThat(code).doesNotContain(".content(\"{}\")");
+    assertThat(code).contains("필수값이_누락되면_400이고_서비스를_호출하지_않는다");
+    assertThat(code).contains("필수_문자열이_공백이면_400이고_서비스를_호출하지_않는다");
+    assertThat(code).contains(".content(\"{}\")");
+    assertThat(code).contains("jsonPath(\"$.errors\").isArray()");
+  }
+
+  @Test
+  void ControllerTest의_byte_배열_샘플은_Base64_JSON과_동일한_배열값을_사용한다() {
+    // given
+    ScaffoldModel model = model(true, false, false);
+
+    // when / then
+    assertThat(model.sampleParamValue("byte[]")).isEqualTo("AQ==");
+    assertThat(model.sampleValue("byte[]")).isEqualTo("new byte[] {1}");
   }
 
   @Test
@@ -407,6 +441,35 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void scaffold_UI와_리소스는_오직_LIST_EXCEL_CRUD만_노출하고_CRUD_PANEL을_참조하지_않는다() throws Exception {
+    // given : scaffold UI 정적 자원
+    String html = Files.readString(Path.of("src/main/resources/templates/system/scaffold.html"));
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+
+    assertThat(screenModeOptionValues(html)).containsExactlyInAnyOrder("LIST", "EXCEL", "CRUD");
+    assertThat(html).doesNotContain("CRUD_PANEL");
+    assertThat(js).doesNotContain("CRUD_PANEL");
+    assertThat(Files.exists(Path.of("src/main/resources/scaffold-templates/crud-panel"))).isFalse();
+    assertThat(Files.exists(Path.of("src/main/resources/scaffold-cases/basic_notice.json")))
+        .isFalse();
+  }
+
+  /** <code>#screenMode</code> select 의 option value 집합을 추출한다. */
+  private static Set<String> screenModeOptionValues(String html) {
+    Matcher select =
+        Pattern.compile("<select\\s+id=\"screenMode\"[\\s\\S]*?</select>").matcher(html);
+    if (!select.find()) {
+      return Set.of();
+    }
+    Set<String> values = new TreeSet<>();
+    Matcher option = Pattern.compile("value=\"([^\"]+)\"").matcher(select.group());
+    while (option.find()) {
+      values.add(option.group(1));
+    }
+    return values;
+  }
+
+  @Test
   void JS는_날짜_타입_컬럼에_공통_포매터를_부착한다() {
     // when : SEND_DT는 LocalDate, RECEIVER_NO는 String
     String js = render(PAGE_JS, model(false, false, false));
@@ -531,7 +594,7 @@ class ScaffoldTemplateTest {
             "A.SEND_DT <![CDATA[ >= ]]> TO_TIMESTAMP(#{sendDtFrom} || '000000', 'YYYYMMDDHH24MISS')");
     assertThat(xml)
         .contains(
-            "A.SEND_DT <![CDATA[ <= ]]> TO_TIMESTAMP(#{sendDtTo} || '235959', 'YYYYMMDDHH24MISS')");
+            "A.SEND_DT <![CDATA[ < ]]> TO_TIMESTAMP(#{sendDtTo} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY");
   }
 
   @Test
@@ -590,7 +653,7 @@ class ScaffoldTemplateTest {
     ScaffoldRequestDTO request = new ScaffoldRequestDTO();
     request.setModuleName("sms");
     request.setDomainId("customer-search");
-    request.setDomainClass("CustormerSearch");
+    request.setDomainClass("CustomerSearch");
     request.setDomainName("고객별조회");
     request.setRawQuery(
         """
@@ -606,7 +669,7 @@ class ScaffoldTemplateTest {
                 GROUP BY H.ID
             ) S ON S.ID = T.ID
             WHERE 1=1
-            AND T.NAME = $outer_var
+            AND (T.NAME = $outer_var OR T.NAME LIKE '%' || $outer_var || '%')
             """);
     request.setOrderBy("T.ID DESC");
     ScaffoldModel model =
@@ -648,7 +711,11 @@ class ScaffoldTemplateTest {
     int scEnd = xml.indexOf("</sql>", scStart);
     String searchConditions = xml.substring(scStart, scEnd);
     assertThat(searchConditions).contains("<if test=\"outerVar != null and outerVar != ''\">");
-    assertThat(searchConditions).contains("AND T.NAME = #{outerVar}");
+    assertThat(searchConditions)
+        .contains("AND (A.NAME = #{outerVar} OR A.NAME LIKE '%' || #{outerVar} || '%')");
+    assertThat(searchConditions)
+        .doesNotContain("outerVar != null and outerVar != '' and outerVar != null");
+    assertThat(searchConditions).doesNotContain("T.NAME");
     assertThat(baseQuery).doesNotContain("$outer_var");
     assertThat(baseQuery).doesNotContain("#{outerVar}");
   }
@@ -704,10 +771,10 @@ class ScaffoldTemplateTest {
     // when
     String xml = render(MAPPER_XML, model);
 
-    // then : 하한은 000000, 상한은 235959 suffix로 당일 inclusive 범위
+    // then : 하한은 당일 자정, 상한은 다음 날 자정 미만인 반개방 범위
     assertThat(xml)
         .contains(
-            "A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')");
+            "A.REG_DTTM <![CDATA[ >= ]]> TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND A.REG_DTTM <![CDATA[ < ]]> TO_TIMESTAMP(#{endDate} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY");
     assertThat(xml)
         .contains(
             "<if test=\"startDate != null and startDate != '' and endDate != null and endDate != ''\">");
@@ -741,10 +808,10 @@ class ScaffoldTemplateTest {
     // when
     String xml = render(MAPPER_XML, model);
 
-    // then : LocalDate는 TO_DATE로 양끝을 모두 당일 inclusive로 변환
+    // then : LocalDate도 종료일 다음 날 미만인 반개방 범위로 변환
     assertThat(xml)
         .contains(
-            "A.START_DT BETWEEN TO_DATE(#{startDate}, 'YYYYMMDD') AND TO_DATE(#{endDate}, 'YYYYMMDD')");
+            "A.START_DT <![CDATA[ >= ]]> TO_DATE(#{startDate}, 'YYYYMMDD') AND A.START_DT <![CDATA[ < ]]> TO_DATE(#{endDate}, 'YYYYMMDD') + INTERVAL '1' DAY");
     assertThat(xml).doesNotContain("$start_date");
     assertThat(xml).doesNotContain("$end_date");
   }
@@ -814,11 +881,11 @@ class ScaffoldTemplateTest {
     String xml = render(MAPPER_XML, model);
     assertThat(xml)
         .contains(
-            "A.REG_DTTM BETWEEN TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')");
+            "A.REG_DTTM <![CDATA[ >= ]]> TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS') AND A.REG_DTTM <![CDATA[ < ]]> TO_TIMESTAMP(#{endDate} || '000000', 'YYYYMMDDHH24MISS') + INTERVAL '1' DAY");
   }
 
   @Test
-  void 컬럼옵션은_숨김_헤더_너비_정렬_날짜포맷_마스킹을_JS에_반영한다() {
+  void 컬럼옵션은_표시형식과_서버_마스킹을_생성물에_반영한다() {
     // given
     ScaffoldRequestDTO request = requestWithOptions();
     request.setColumnOptions(
@@ -830,6 +897,7 @@ class ScaffoldTemplateTest {
 
     // when
     String js = render(PAGE_JS, optionModel);
+    String service = render(SERVICE, optionModel);
 
     // then
     assertThat(js)
@@ -837,9 +905,11 @@ class ScaffoldTemplateTest {
     assertThat(js)
         .contains(
             "header: '발송일시', name: 'sendDt', align: 'center', width: 170, formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')");
-    assertThat(js)
-        .contains(
-            "header: '수신번호', name: 'receiverNo', align: 'left', width: 180, formatter: ({ value }) => TuiCommon.maskValue(value, 'PHONE')");
+    assertThat(js).contains("header: '수신번호', name: 'receiverNo', align: 'left', width: 180 }");
+    assertThat(js).doesNotContain("TuiCommon.maskValue");
+    assertThat(service).contains("vo.setReceiverNo(MaskingUtil.maskPhone(vo.getReceiverNo()));");
+    assertThat(optionModel.maskingMethodName("EMAIL")).isEqualTo("maskEmail");
+    assertThat(optionModel.maskingMethodName("BIRTH_DATE")).isEqualTo("maskBirthDate");
     assertThat(js).doesNotContain("function formatDate(value, pattern)");
     assertThat(js).doesNotContain("function maskValue(value, type)");
   }
@@ -1081,102 +1151,21 @@ class ScaffoldTemplateTest {
     assertThatThrownBy(() -> renderSelected(model, PAGE_HTML, PAGE_JS))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("지원하지 않는 screenMode입니다: DETAIL")
-        .hasMessageContaining("LIST, EXCEL, CRUD, CRUD_PANEL");
+        .hasMessageContaining("(지원: LIST, EXCEL, CRUD)");
   }
 
   @Test
-  void CRUD_PANEL은_패널형_HTML과_JS를_생성한다() {
+  void 제거된_CRUD_PANEL_화면모드는_명시적으로_거부한다() {
+    // given
     ScaffoldRequestDTO request = requestWithOptions();
     request.setScreenMode("CRUD_PANEL");
-    request.setPkColumn("SMS_HISTORY_ID");
-    request.setLockColumn("UPD_DTTM");
-    ScaffoldModel panelModel = optionModel(request);
-
-    Map<String, String> files = renderSelected(panelModel, PAGE_HTML, PAGE_JS);
-    String html = files.get("history.html");
-    String js = files.get("history.js");
-
-    assertThat(panelModel.includeCreateUpdate()).isTrue();
-    assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
-    assertThat(html).contains("th:replace=\"~{fragments/toast-grid :: gridCard}\"");
-    assertThat(html).contains("id=\"detail-panel\"");
-    assertThat(html).contains("id=\"detail-form\"");
-    assertThat(html).contains("th:if=\"${pageAuth.create}\"");
-    assertThat(html).contains("th:if=\"${pageAuth.create or pageAuth.update}\"");
-    assertThat(html).contains("th:if=\"${pageAuth.delete}\"");
-    assertThat(html).contains("name=\"smsHistoryId\"");
-    assertThat(html).contains("name=\"beforeUpdDttm\"");
-    assertThat(html).contains("data-readonly-field=\"smsHistoryId\"");
-    assertThat(html).doesNotContain("tui-auto-modal");
-
-    assertThat(js).contains("new TuiPageBuilder({");
-    assertThat(js).contains("ApiClient.post(API.create, payload)");
-    assertThat(js).contains("ApiClient.post(API.update, payload)");
-    assertThat(js).contains("ApiClient.remove(API.delete, pkParams())");
-    assertThat(js).contains("FormBinder.bind(SELECTOR.form, row)");
-    assertThat(js).contains("FormBinder.toObject(SELECTOR.form)");
-    assertThat(js).contains("FieldFormat.validateForm(els.form)");
-    assertThat(js).contains("FieldFormat.applyFieldFormats(els.form)");
-    assertThat(js).contains("state.mode === 'create' && auth.create === true");
-    assertThat(js).contains("state.mode === 'update' && auth.update === true");
-    assertThat(js).contains("root = document) => root.querySelector(selector)");
-    assertThat(js).doesNotContain("document.getElementById");
-    assertThat(js).doesNotContain("axios.");
-    assertThat(js).doesNotContain("autoModal");
-    assertThat(js).doesNotContain("modalActions");
-    assertThat(js).doesNotContain("JustValidate");
-
-    assertThat(render(MENU_SQL, panelModel)).contains("'Y', 'Y', 'Y',");
-  }
-
-  @Test
-  void CRUD_PANEL은_조회조건_SELECT_RADIO와_필드_포맷_옵션을_반영한다() {
-    ScaffoldRequestDTO request = requestWithOptions();
-    request.setScreenMode("CRUD_PANEL");
-    request.setPkColumn("SMS_HISTORY_ID");
-    request.setSearchParamOptions(
-        List.of(
-            searchOption("sendType", "SELECT", "NONE", "SMS:SMS,LMS:LMS"),
-            searchOption("sendStatus", "RADIO", "NONE", "S:성공,F:실패")));
-    ScaffoldColumnOptionDTO phone =
-        columnOption("RECEIVER_NO", true, true, true, "수신번호", 160, "left", "NONE", "PHONE");
-    phone.setInputMask("phone");
-    phone.setValidate("required|phone");
-    request.setColumnOptions(List.of(phone));
     ScaffoldModel model = optionModel(request);
 
-    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
-    String html = files.get("history.html");
-
-    assertThat(html).contains("<select id=\"sendType\"");
-    assertThat(html).contains("class=\"form-select scaffold-search-control\"");
-    assertThat(html).contains("<option value=\"SMS\">SMS</option>");
-    assertThat(html).contains("role=\"radiogroup\"");
-    assertThat(html).contains("type=\"radio\" name=\"sendStatus\" value=\"S\">성공");
-    assertThat(html).contains("id=\"f-receiverNo\"");
-    assertThat(html).contains("data-mask=\"phone\"");
-    assertThat(html).contains("data-validate=\"required|phone\"");
-  }
-
-  @Test
-  void CRUD_PANEL은_modalVisible_true_읽기전용_필드를_표시하고_false는_숨긴다() {
-    ScaffoldRequestDTO request = requestWithOptions();
-    request.setScreenMode("CRUD_PANEL");
-    request.setPkColumn("SMS_HISTORY_ID");
-    request.setColumnOptions(
-        List.of(
-            columnOption("SEND_STATUS", true, true, false, "발송상태", 120, "center", "NONE", "NONE"),
-            columnOption("RECEIVER_NO", true, false, false, "수신번호", 160, "left", "NONE", "PHONE")));
-    ScaffoldModel model = optionModel(request);
-
-    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
-    String html = files.get("history.html");
-    String js = files.get("history.js");
-
-    assertThat(html).contains("data-readonly-field=\"sendStatus\"");
-    assertThat(html).doesNotContain("data-readonly-field=\"receiverNo\"");
-    assertThat(js).contains("bindReadonlyFields(row)");
-    assertThat(js).contains("[data-readonly-field]");
+    // when / then
+    assertThatThrownBy(() -> renderSelected(model, PAGE_HTML, PAGE_JS))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("지원하지 않는 screenMode입니다: CRUD_PANEL")
+        .hasMessageContaining("지원: LIST, EXCEL, CRUD");
   }
 
   @Test
@@ -1454,6 +1443,23 @@ class ScaffoldTemplateTest {
   }
 
   @Test
+  void EXCEL_JS는_PAGE_AUTH_누락시_다운로드를_차단하는_fail_closed_가드를_사용한다() {
+    // given
+    ScaffoldRequestDTO request = requestWithOptions();
+    request.setScreenMode("EXCEL");
+    ScaffoldModel model = optionModel(request);
+
+    // when
+    Map<String, String> files = renderSelected(model, PAGE_HTML, PAGE_JS);
+    String js = files.get("history.js");
+
+    // then : fail-open 패턴(window.PAGE_AUTH && ...)이 없어야 한다
+    assertThat(js).doesNotContain("window.PAGE_AUTH && window.PAGE_AUTH.download !== true");
+    // then : fail-closed 패턴(!window.PAGE_AUTH || ...)이 있어야 한다
+    assertThat(js).contains("!window.PAGE_AUTH || window.PAGE_AUTH.download !== true");
+  }
+
+  @Test
   void CRUD는_모달_fragment와_편집_폼과_저장삭제_버튼을_생성한다() {
     ScaffoldRequestDTO request = requestWithOptions();
     request.setScreenMode("CRUD");
@@ -1502,5 +1508,307 @@ class ScaffoldTemplateTest {
     assertThat(js).doesNotContain("autoModal");
     assertThat(js).doesNotContain("modalActions");
     assertThat(js).doesNotContain("JustValidate");
+  }
+
+  // === Task 7: 명시적 screenMode 가 legacy feature flag 보다 우선한다 ===
+
+  @Test
+  void 명시적_LIST_화면모드는_모순된_includeCreateUpdate_참을_무시하고_순수_LIST로_정규화한다() {
+    // given : screenMode=LIST 와 legacy includeCreateUpdate=true 가 충돌
+    ScaffoldRequestDTO request = requestWithOptions();
+    request.setScreenMode("LIST");
+    request.setIncludeCreateUpdate(true); // legacy CRUD 단서 - 무시되어야 한다
+    request.setPkColumn("SMS_HISTORY_ID");
+    ScaffoldModel model = optionModel(request);
+
+    // when / then : 명시적 screenMode 가 권위를 가진다
+    assertThat(model.screenMode()).isEqualTo("LIST");
+    assertThat(model.includeCreateUpdate()).isFalse();
+    assertThat(model.includeExcel()).isFalse();
+
+    // 산출물 : CRUD 엔드포인트/UpdateRequestDTO 가 생성되지 않는다
+    String controller = render(CONTROLLER, model);
+    assertThat(controller).doesNotContain("@PostMapping(\"/create\")");
+    assertThat(controller).doesNotContain("@PostMapping(\"/update\")");
+    assertThat(controller).doesNotContain("UpdateRequestDTO");
+    assertThat(ScaffoldArtifactRenderer.renderAll(model))
+        .doesNotContainKey("SmsHistoryUpdateRequestDTO.java");
+
+    // 메뉴 권한 : LIST 는 CREATE/UPDATE/DELETE/DOWNLOAD 모두 N
+    String menu = render(MENU_SQL, model);
+    assertThat(menu).contains("'Y', 'N', 'N', 'N',"); // CAN_READ, CREATE, UPDATE, DELETE
+    assertThat(menu).contains("'N', 'N', 'N', 'N',"); // APPROVE, CANCEL, DOWNLOAD, MASK
+  }
+
+  @Test
+  void 명시적_CRUD_화면모드는_모순된_includeExcel_참을_무시하고_엑셀_산출물을_만들지_않는다() {
+    // given : screenMode=CRUD 와 legacy includeExcel=true 가 충돌
+    ScaffoldRequestDTO request = requestWithOptions();
+    request.setScreenMode("CRUD");
+    request.setIncludeExcel(true); // legacy 엑셀 단서 - 무시되어야 한다
+    request.setPkColumn("SMS_HISTORY_ID");
+    request.setLockColumn("UPD_DTTM");
+    ScaffoldModel model = optionModel(request);
+
+    // when / then : 명시적 CRUD 가 권위 - legacy excel 은 무시된다
+    assertThat(model.screenMode()).isEqualTo("CRUD");
+    assertThat(model.includeCreateUpdate()).isTrue();
+    assertThat(model.includeExcel()).isFalse();
+
+    // 산출물 : CRUD 엔드포인트는 유지되되 엑셀 엔드포인트/의존성은 빠진다
+    String controller = render(CONTROLLER, model);
+    assertThat(controller).contains("@PostMapping(\"/create\")");
+    assertThat(controller).doesNotContain("@GetMapping(\"/excel\")");
+    assertThat(controller).doesNotContain("HttpServletResponse");
+    assertThat(render(SERVICE, model)).doesNotContain("ExcelUtil");
+    assertThat(render(MAPPER_INTERFACE, model)).doesNotContain("excel");
+
+    // 메뉴 권한 : CRUD → CREATE/UPDATE/DELETE=Y, DOWNLOAD=N
+    String menu = render(MENU_SQL, model);
+    assertThat(menu).contains("'Y', 'Y', 'Y', 'Y',"); // CAN_READ, CREATE, UPDATE, DELETE
+    assertThat(menu).contains("'N', 'N', 'N', 'N',"); // APPROVE, CANCEL, DOWNLOAD, MASK
+  }
+
+  @Test
+  void 빈_screenMode는_legacy_boolean_플래그를_그대로_반영한다() {
+    // given : screenMode 미지정 + legacy includeCreateUpdate=true (하위호환)
+    ScaffoldRequestDTO crudRequest = requestWithOptions();
+    crudRequest.setScreenMode(null);
+    crudRequest.setIncludeCreateUpdate(true);
+    crudRequest.setIncludeExcel(false);
+    crudRequest.setPkColumn("SMS_HISTORY_ID");
+    crudRequest.setLockColumn("UPD_DTTM");
+    ScaffoldModel crudModel = optionModel(crudRequest);
+
+    // when / then : legacy fallback 이 그대로 동작한다 (CRUD)
+    assertThat(crudModel.screenMode()).isEqualTo("CRUD");
+    assertThat(crudModel.includeCreateUpdate()).isTrue();
+    assertThat(crudModel.includeExcel()).isFalse();
+
+    // given : screenMode 공백 + legacy includeExcel=true (하위호환)
+    ScaffoldRequestDTO excelRequest = requestWithOptions();
+    excelRequest.setScreenMode("   ");
+    excelRequest.setIncludeCreateUpdate(false);
+    excelRequest.setIncludeExcel(true);
+    ScaffoldModel excelModel = optionModel(excelRequest);
+
+    // when / then : legacy fallback 이 그대로 동작한다 (EXCEL)
+    assertThat(excelModel.screenMode()).isEqualTo("EXCEL");
+    assertThat(excelModel.includeExcel()).isTrue();
+    assertThat(excelModel.includeCreateUpdate()).isFalse();
+  }
+
+  // === showRowNumber: 그리드 No 표시 옵션 ===
+
+  @Test
+  void DTO_showRowNumber_기본값은_true이다() {
+    // given / when
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+
+    // then
+    assertThat(request.isShowRowNumber()).isTrue();
+  }
+
+  @Test
+  void DTO_showRowNumber_명시적_false는_false를_유지한다() {
+    // given / when
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setShowRowNumber(false);
+
+    // then
+    assertThat(request.isShowRowNumber()).isFalse();
+  }
+
+  @Test
+  void scaffold_UI_그리드_No_체크박스가_존재하고_체크되어있다() throws Exception {
+    // given / when
+    String html = Files.readString(Path.of("src/main/resources/templates/system/scaffold.html"));
+
+    // then
+    assertThat(html).contains("id=\"showRowNumber\"");
+    assertThat(html).contains("checked");
+    assertThat(html).contains("그리드 No 표시");
+  }
+
+  @Test
+  void scaffold_JS_buildRequest에_showRowNumber를_직렬화한다() throws Exception {
+    // given / when
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+
+    // then
+    assertThat(js).contains("showRowNumber: document.querySelector('#showRowNumber').checked");
+  }
+
+  @Test
+  void LIST_JS는_기본값_그리드_No를_생성한다() {
+    // given
+    ScaffoldModel m = model(false, false, false);
+
+    // when
+    String js = render(PAGE_JS, m);
+
+    // then
+    assertThat(js).contains("rowHeaders: ['rowNum']");
+  }
+
+  @Test
+  void LIST_JS_showRowNumber_false는_빈_배열을_생성한다() {
+    // given
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("history");
+    request.setDomainClass("SmsHistory");
+    request.setDomainName("발송이력조회");
+    request.setRawQuery(
+        "SELECT A.SEND_DT, A.RECEIVER_NO FROM SMS_HISTORY A WHERE 1=1\nAND A.SEND_DT >= $start_dt");
+    request.setOrderBy("A.SEND_DT DESC, A.HIST_ID DESC");
+    request.setShowRowNumber(false);
+    ScaffoldModel m =
+        new ScaffoldModel(
+            request,
+            List.of("SEND_DT", "RECEIVER_NO"),
+            List.of("startDt"),
+            Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
+
+    // when
+    String js = render(PAGE_JS, m);
+
+    // then
+    assertThat(js).contains("rowHeaders: []");
+    assertThat(js).doesNotContain("rowHeaders: ['rowNum']");
+  }
+
+  @Test
+  void EXCEL_JS는_기본값_그리드_No를_생성한다() {
+    // given
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("history");
+    request.setDomainClass("SmsHistory");
+    request.setDomainName("발송이력조회");
+    request.setRawQuery(
+        "SELECT A.SEND_DT, A.RECEIVER_NO FROM SMS_HISTORY A WHERE 1=1\nAND A.SEND_DT >= $start_dt");
+    request.setOrderBy("A.SEND_DT DESC, A.HIST_ID DESC");
+    request.setIncludeExcel(true);
+    ScaffoldModel m =
+        new ScaffoldModel(
+            request,
+            List.of("SEND_DT", "RECEIVER_NO"),
+            List.of("startDt"),
+            Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
+
+    // when
+    String js = render(PAGE_JS, m);
+
+    // then
+    assertThat(js).contains("rowHeaders: ['rowNum']");
+  }
+
+  @Test
+  void EXCEL_JS_showRowNumber_false는_빈_배열을_생성한다() {
+    // given
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("history");
+    request.setDomainClass("SmsHistory");
+    request.setDomainName("발송이력조회");
+    request.setRawQuery(
+        "SELECT A.SEND_DT, A.RECEIVER_NO FROM SMS_HISTORY A WHERE 1=1\nAND A.SEND_DT >= $start_dt");
+    request.setOrderBy("A.SEND_DT DESC, A.HIST_ID DESC");
+    request.setIncludeExcel(true);
+    request.setShowRowNumber(false);
+    ScaffoldModel m =
+        new ScaffoldModel(
+            request,
+            List.of("SEND_DT", "RECEIVER_NO"),
+            List.of("startDt"),
+            Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
+
+    // when
+    String js = render(PAGE_JS, m);
+
+    // then
+    assertThat(js).contains("rowHeaders: []");
+    assertThat(js).doesNotContain("rowHeaders: ['rowNum']");
+  }
+
+  @Test
+  void CRUD_JS는_기본값_그리드_No를_생성한다() {
+    // given
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("history");
+    request.setDomainClass("SmsHistory");
+    request.setDomainName("발송이력조회");
+    request.setRawQuery(
+        "SELECT A.SEND_DT, A.RECEIVER_NO FROM SMS_HISTORY A WHERE 1=1\nAND A.SEND_DT >= $start_dt");
+    request.setOrderBy("A.SEND_DT DESC, A.HIST_ID DESC");
+    request.setIncludeCreateUpdate(true);
+    request.setPkColumn("RECEIVER_NO");
+    ScaffoldModel m =
+        new ScaffoldModel(
+            request,
+            List.of("SEND_DT", "RECEIVER_NO"),
+            List.of("startDt"),
+            Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
+
+    // when
+    String js = render(PAGE_JS, m);
+
+    // then
+    assertThat(js).contains("rowHeaders: ['rowNum']");
+  }
+
+  @Test
+  void CRUD_JS_showRowNumber_false는_빈_배열을_생성한다() {
+    // given
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("history");
+    request.setDomainClass("SmsHistory");
+    request.setDomainName("발송이력조회");
+    request.setRawQuery(
+        "SELECT A.SEND_DT, A.RECEIVER_NO FROM SMS_HISTORY A WHERE 1=1\nAND A.SEND_DT >= $start_dt");
+    request.setOrderBy("A.SEND_DT DESC, A.HIST_ID DESC");
+    request.setIncludeCreateUpdate(true);
+    request.setPkColumn("RECEIVER_NO");
+    request.setShowRowNumber(false);
+    ScaffoldModel m =
+        new ScaffoldModel(
+            request,
+            List.of("SEND_DT", "RECEIVER_NO"),
+            List.of("startDt"),
+            Map.of("SEND_DT", "LocalDate", "RECEIVER_NO", "String"));
+
+    // when
+    String js = render(PAGE_JS, m);
+
+    // then
+    assertThat(js).contains("rowHeaders: []");
+    assertThat(js).doesNotContain("rowHeaders: ['rowNum']");
+  }
+
+  @Test
+  void old_case_JSON_without_showRowNumber_field_deserializes_to_true() throws Exception {
+    // given : Jackson ObjectMapper로 JSON 파싱 — showRowNumber 필드가 없는 경우
+    com.fasterxml.jackson.databind.ObjectMapper mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    String jsonWithoutField =
+        """
+        {
+          "moduleName": "sms",
+          "domainId": "history",
+          "domainClass": "SmsHistory",
+          "domainName": "발송이력조회",
+          "rawQuery": "SELECT A.ID FROM T A",
+          "orderBy": "A.ID"
+        }
+        """;
+
+    // when
+    ScaffoldRequestDTO request = mapper.readValue(jsonWithoutField, ScaffoldRequestDTO.class);
+
+    // then : 기본값 true
+    assertThat(request.isShowRowNumber()).isTrue();
   }
 }

@@ -195,6 +195,10 @@ class ScaffoldOutputGoldenTest {
   /**
    * full: 6컬럼 topology + CRUD + PK=SMS_HISTORY_ID + lock=UPD_DTTM + Excel + Privacy + masking +
    * validate.
+   *
+   * <p>screenMode를 명시하지 않고 legacy {@code includeCreateUpdate=true} + {@code includeExcel=true}로 설정해
+   * 빈-mode legacy 결합(CRUD+Excel) fallback을 의도적으로 검증한다. 명시적 screenMode가 feature flag보다 우선하는 규약(Task
+   * 7) 아래에서도 동일한 산출물(CRUD 모드 + 엑셀)을 내도록 한다.
    */
   private ScaffoldModel fullModel() {
     ScaffoldRequestDTO request = requestWithOptions();
@@ -204,7 +208,7 @@ class ScaffoldOutputGoldenTest {
         columnOption("SEND_TYPE", true, true, true, "발송유형", 120, "center", "NONE", "NONE");
     sendType.setValidate("required");
     request.setColumnOptions(List.of(receiverNo, sendType));
-    request.setScreenMode("CRUD");
+    request.setIncludeCreateUpdate(true);
     request.setPkColumn("SMS_HISTORY_ID");
     request.setLockColumn("UPD_DTTM");
     request.setIncludePrivacy(true);

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. 업무 로직은 TODO 위치에 직접 추가한다. */
+/** 개발자 소유 수동 참조: scaffold 복사 후 커스터마이즈한 window.open CRUD 예제. 재생성하지 않고 직접 수정한다. */
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/basic/notice")

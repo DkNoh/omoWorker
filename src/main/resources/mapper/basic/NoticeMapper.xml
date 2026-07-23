@@ -5,7 +5,7 @@
 
 <mapper namespace="com.scbk.sms.mapper.basic.NoticeMapper">
 
-    <!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->
+    <!-- 개발자 소유 수동 참조: scaffold 복사 후 커스터마이즈한 window.open CRUD 예제. 재생성하지 않고 직접 수정한다. -->
     <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).
          비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,
          단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->

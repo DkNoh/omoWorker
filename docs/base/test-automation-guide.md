@@ -12,15 +12,19 @@
 
 ## 1층 — scaffold 테스트 생성
 
-scaffold 산출물에 테스트 2종이 포함된다 (기본 11종, CRUD 모드 시 UpdateRequestDTO + Rules 추가로 최대 13종).
+scaffold 산출물에 테스트 2종이 포함된다 (LIST/EXCEL 모드 기준 11종, CRUD 모드 시 UpdateRequestDTO 추가로 12종).
 
 | 산출물 | 검증 내용 |
 |---|---|
 | `{Domain}ServiceTest.java` | Mapper를 Mockito mock 처리. `search()`가 count/selectList를 호출하고 `PageResponseDTO`로 감싸는지. CUD 옵션 시 위임 검증 추가 |
-| `{Domain}ControllerTest.java` | standalone MockMvc로 `/data` 호출 → 200 + `ApiResponse` 포맷(`$.code`, `$.data.totalCount`) 검증. CRUD 옵션 시 `/create`, `/update`, `/delete`까지 함께 생성 — 200 + 성공 메시지(`$.message`, 예: "등록되었습니다.")와 Service 위임(`then(service).should()...`) 검증 |
+| `{Domain}ControllerTest.java` | standalone MockMvc + `GlobalExceptionHandler`로 HTTP/API 계약을 검증한다. `/data`는 정상 응답, 검색·페이징 DTO 매핑(`ArgumentCaptor`), Service 1회 호출, 잘못된 숫자 파라미터 400, 미지원 HTTP 메서드 405, Service 예외의 공통 `ApiResponse`를 검증한다. CRUD는 `/create`·`/update`·`/delete` 정상 응답과 DTO/PK 매핑, 필수값 누락·공백 400, malformed JSON 400, 미지원 Content-Type 415, 실패 시 Service 미호출, 선언되지 않은 JSON 필드의 화이트리스트 제외를 추가 검증한다. 필수값 테스트는 생성 DTO에 `@NotBlank`/`@NotNull` 대상이 있을 때만 생성한다. |
 
 생성된 테스트는 골격이다. **`// TODO: 업무 규칙 테스트` 부분을 채우는 것이 사람/AI의 몫**이며,
 업무 규칙(상태 전이, 검증 조건, 마스킹)이 있는 화면은 TODO를 채우기 전까지 부분 완료다.
+
+ControllerTest의 자동 생성 범위는 HTTP 경계와 DTO 바인딩까지다. 메뉴 권한은 `MenuAuthServiceTest`,
+업무 상태 전이와 소유권 검증은 도메인 Service 테스트에서 별도로 작성한다. 스캐폴드가 아직 생성하지 않는
+`@Size`, `@Pattern`, `@Min`, `@Max` 경계값 테스트도 자동 생성 대상이 아니다.
 
 ## 2층 — 컨벤션 테스트 (`src/test/java/com/scbk/sms/ConventionTest.java`)
 

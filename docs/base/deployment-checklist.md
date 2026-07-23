@@ -121,6 +121,53 @@ mvn -DskipTests package      -> WAR 생성 성공
 8. @PrivacyLog 부착 메서드 호출 시 TB_PRIVACY_AUDIT_LOG에 (EMP_ID, DEP_ID) 기록
 ```
 
+## 5.5. 폐쇄망 Maven 환경 설정 (Wrapper + 캐시 사전 시딩)
+
+폐쇄망에서 `mvnw`가 정상 기동하려면 다음 3가지를 사전에 반입한다.
+
+### 5.5.1. Maven Wrapper 3.9.9 배포본 시딩
+
+`~/.m2/wrapper/dists/apache-maven-3.9.9/` 하위에 Wrapper가 기대하는 구조로 복사한다.
+
+```text
+~/.m2/wrapper/dists/apache-maven-3.9.9/
+  <hash>/
+    bin/mvn, bin/mvnw
+    lib/*.jar
+    conf/settings.xml
+```
+
+`mvnw` 스크립트는 `MAVEN_USER_HOME`이 가리키는 위치에서 `wrapper/dists/`를 탐색한다.
+폐쇄망에서 이 경로가 비어 있으면 Wrapper가 네트워크에서 배포본을 다운로드하려 하고,
+`-o` 플래그는 **배포본 다운로드를 차단하지 않는다**. `-o`는 Maven 의존성 해석에만 적용된다.
+
+### 5.5.2. 의존성/플러그인 리포지토리 캐시 시딩
+
+`~/.m2/repository/` 하위에 프로젝트가 사용하는 모든 의존성과 플러그인 아티팩트를 복사한다.
+`task-2-airgap-scaffold-e2e.txt`의 캐시 매니페스트(4568 entries)를 기준으로 시딩할 수 있다.
+
+### 5.5.3. settings.xml (선택)
+
+마이크로소프트 사내 리포지토리 미러나 인증 정보가 필요하면 `~/.m2/settings.xml`을 복사한다.
+**비밀번호, 토큰, 개인정보를 포함하지 않는다.** 환경변수(`SMS_DB_PASSWORD` 등)를 우선한다.
+
+### 5.5.4. 격리된 Maven 홈에서 검증
+
+```text
+# 격리된 HOME에서 Wrapper 버전 확인
+HOME=/tmp/airgap-home MAVEN_USER_HOME=/tmp/airgap-home/.m2 \
+  ./mvnw -o --version
+  -> Maven 3.9.9 표시, 배포본 경로가 격리 HOME 내부
+
+# 격리된 홈에서 offline verify
+HOME=/tmp/airgap-home MAVEN_USER_HOME=/tmp/airgap-home/.m2 \
+  ./mvnw -o verify
+  -> BUILD SUCCESS, 318 tests, Spotless 0 violations
+```
+
+격리된 홈에 Wrapper 배포본과 리포지토리가 모두 사전 시딩되어 있으면 `-o` 플래그만으로
+전체 빌드가 완료된다. 배포본이 없으면 `-o` 플래그와 무관하게 Wrapper가 네트워크 다운로드를 시도한다.
+
 ## 6. Jenkins 잡 구성
 
 사내 Jenkins에 push마다 빌드 게이트를 실행하는 잡을 만든다.

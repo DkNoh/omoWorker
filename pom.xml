@@ -26,6 +26,7 @@
         <logstash-logback.version>7.4</logstash-logback.version>
         <spotless.version>2.43.0</spotless.version>
         <jacoco.version>0.8.11</jacoco.version>
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -172,7 +173,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Djava.awt.headless=true</argLine>
+                    <argLine>@{argLine} -Djava.awt.headless=true</argLine>
                 </configuration>
             </plugin>
             <!-- Code style gate -->

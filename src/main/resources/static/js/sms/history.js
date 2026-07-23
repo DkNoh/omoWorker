@@ -1,34 +1,38 @@
-// Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
+// Scaffold 생성(EXCEL). 생성 후 개발자가 직접 수정해 소유한다.
 document.addEventListener('DOMContentLoaded', function () {
+    const API = {
+        excel: '/sms/history/excel'
+    };
+
     const pageBuilder = new TuiPageBuilder({
         el: 'grid',
         apiUrl: '/sms/history/data',
-        searchInputs: ['sendType', 'sendStatus', 'sentAt', 'receiverNo'],
+        searchInputs: ['sendType', 'sendStatus', 'startDt', 'endDt', 'receiverNo'],
         searchDefaults: {},
-        rowHeaders: ['rowNum'],
+        rowHeaders: [],
         columns: [
             { header: 'SMS_HISTORY_ID', name: 'smsHistoryId', align: 'center', width: 150 },
             { header: 'REQUEST_ID', name: 'requestId', align: 'center', width: 150 },
-            { header: 'SENT_AT', name: 'sentAt', align: 'center', width: 150, editable: true, formatter: TuiCommon.fmt.date },
-            { header: 'RECEIVER_NO', name: 'receiverNo', align: 'center', width: 150, editable: true },
-            { header: 'SENDER_NO', name: 'senderNo', align: 'center', width: 150, editable: true },
-	            { header: 'SEND_TYPE', name: 'sendType', align: 'center', width: 150, editable: true,
-	              formatter: TuiCommon.badgeByValue({
-	                  labels: { SMS: 'SMS', LMS: 'LMS', MMS: 'MMS', ALIMTALK: '알림톡' },
-	                  tones: {
-	                      SMS: 'bg-primary-subtle text-primary-emphasis border border-primary-subtle',
-	                      LMS: 'bg-info-subtle text-info-emphasis border border-info-subtle',
-	                      MMS: 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle',
-	                      ALIMTALK: 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'
-	                  }
-	              }) },
-            { header: 'SEND_STATUS', name: 'sendStatus', align: 'center', width: 150, editable: true,
-              formatter: TuiCommon.badgeByValue({
-                  labels: { SUCCESS: '성공', FAIL: '실패', WAIT: '대기' },
-                  tones: { SUCCESS: 'bg-success', FAIL: 'bg-danger', WAIT: 'bg-warning text-dark' }
-              }) },
-            { header: 'RESULT_CD', name: 'resultCd', align: 'center', width: 150, editable: true },
-            { header: 'RESULT_MSG', name: 'resultMsg', align: 'center', width: 150, editable: true }
+            { header: 'SENT_AT', name: 'sentAt', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
+            { header: 'RECEIVER_NO', name: 'receiverNo', align: 'center', width: 150 },
+            { header: 'SENDER_NO', name: 'senderNo', align: 'center', width: 150 },
+            { header: 'SEND_TYPE', name: 'sendType', align: 'center', width: 150 },
+            { header: 'SEND_STATUS', name: 'sendStatus', align: 'center', width: 150 },
+            { header: 'RESULT_CD', name: 'resultCd', align: 'center', width: 150 },
+            { header: 'RESULT_MSG', name: 'resultMsg', align: 'center', width: 150 }
+
         ]
     });
+
+    const btnExcel = document.querySelector('#btn-excel');
+    if (btnExcel) {
+        btnExcel.addEventListener('click', () => {
+            if (!window.PAGE_AUTH || window.PAGE_AUTH.download !== true) {
+                CommonUtils.toast('엑셀 다운로드 권한이 없습니다.', 'warning');
+                return;
+            }
+            const params = new URLSearchParams(pageBuilder.getSearchParams());
+            window.location.href = API.excel + '?' + params.toString();
+        });
+    }
 });

@@ -23,20 +23,26 @@
     "staleTimeoutMs": 120000,
     "providerConcurrency": {
       "openai": 1,
+      "zai-coding-plan": 2,
       "lmstudio": 1
     },
     "modelConcurrency": {
       "openai/gpt-5.6-sol": 1,
+      "zai-coding-plan/glm-5.2": 2,
       "lmstudio/qwen/qwen3.6-35b-a3b": 1
     }
   },
 
   "agents": {
     "sisyphus": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "medium",
-      "textVerbosity": "medium",
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 16384,
       "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "medium",
+          "maxTokens": 12000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -47,14 +53,19 @@
     "hephaestus": {
       "model": "openai/gpt-5.6-sol",
       "reasoningEffort": "high",
-      "textVerbosity": "medium"
+      "textVerbosity": "medium",
+      "maxTokens": 12000
     },
 
     "atlas": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "medium",
-      "textVerbosity": "medium",
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 16384,
       "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "medium",
+          "maxTokens": 12000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -66,7 +77,12 @@
       "model": "openai/gpt-5.6-sol",
       "reasoningEffort": "high",
       "textVerbosity": "medium",
+      "maxTokens": 12000,
       "fallback_models": [
+        {
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 16384
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -78,7 +94,12 @@
       "model": "openai/gpt-5.6-sol",
       "reasoningEffort": "high",
       "textVerbosity": "medium",
+      "maxTokens": 12000,
       "fallback_models": [
+        {
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 16384
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -87,10 +108,14 @@
     },
 
     "metis": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "medium",
-      "textVerbosity": "medium",
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 12000,
       "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "medium",
+          "maxTokens": 10000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -102,7 +127,12 @@
       "model": "openai/gpt-5.6-sol",
       "reasoningEffort": "high",
       "textVerbosity": "medium",
+      "maxTokens": 10000,
       "fallback_models": [
+        {
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 12000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 6144
@@ -115,8 +145,8 @@
       "maxTokens": 8192,
       "fallback_models": [
         {
-          "model": "openai/gpt-5.6-sol",
-          "reasoningEffort": "medium"
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 12000
         }
       ]
     },
@@ -131,8 +161,8 @@
       },
       "fallback_models": [
         {
-          "model": "openai/gpt-5.6-sol",
-          "reasoningEffort": "low"
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 6144
         }
       ]
     },
@@ -146,8 +176,8 @@
       },
       "fallback_models": [
         {
-          "model": "openai/gpt-5.6-sol",
-          "reasoningEffort": "low"
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 8192
         }
       ]
     }
@@ -159,8 +189,8 @@
       "maxTokens": 3072,
       "fallback_models": [
         {
-          "model": "openai/gpt-5.6-sol",
-          "reasoningEffort": "low"
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 4096
         }
       ]
     },
@@ -170,8 +200,8 @@
       "maxTokens": 4096,
       "fallback_models": [
         {
-          "model": "openai/gpt-5.6-sol",
-          "reasoningEffort": "low"
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 6144
         }
       ]
     },
@@ -181,17 +211,21 @@
       "maxTokens": 6144,
       "fallback_models": [
         {
-          "model": "openai/gpt-5.6-sol",
-          "reasoningEffort": "low"
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 8192
         }
       ]
     },
 
     "unspecified-high": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "medium",
-      "textVerbosity": "medium",
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 12000,
       "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "medium",
+          "maxTokens": 10000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -200,10 +234,14 @@
     },
 
     "deep": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "high",
-      "textVerbosity": "medium",
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 16384,
       "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "high",
+          "maxTokens": 12000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -215,7 +253,12 @@
       "model": "openai/gpt-5.6-sol",
       "reasoningEffort": "xhigh",
       "textVerbosity": "medium",
+      "maxTokens": 16000,
       "fallback_models": [
+        {
+          "model": "zai-coding-plan/glm-5.2",
+          "maxTokens": 16384
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 8192
@@ -224,16 +267,26 @@
     },
 
     "visual-engineering": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "medium",
-      "textVerbosity": "medium"
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 12000,
+      "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "medium",
+          "maxTokens": 10000
+        }
+      ]
     },
 
     "artistry": {
-      "model": "openai/gpt-5.6-sol",
-      "reasoningEffort": "medium",
-      "textVerbosity": "high",
+      "model": "zai-coding-plan/glm-5.2",
+      "maxTokens": 12000,
       "fallback_models": [
+        {
+          "model": "openai/gpt-5.6-sol",
+          "reasoningEffort": "medium",
+          "maxTokens": 10000
+        },
         {
           "model": "lmstudio/qwen/qwen3.6-35b-a3b",
           "maxTokens": 6144

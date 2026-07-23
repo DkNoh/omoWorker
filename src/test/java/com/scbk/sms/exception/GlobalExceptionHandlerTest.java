@@ -1,22 +1,37 @@
 package com.scbk.sms.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.scbk.sms.dto.common.ApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 class GlobalExceptionHandlerTest {
 
   private GlobalExceptionHandler handler;
+  private MockMvc mockMvc;
 
   @BeforeEach
   void setUp() {
     handler = new GlobalExceptionHandler();
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(new InputController()).setControllerAdvice(handler).build();
   }
 
   @Test
@@ -75,4 +90,64 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody().getMessage()).doesNotContain("ORA-00942");
     assertThat(response.getBody().getMessage()).doesNotContain("TB_MENU");
   }
+
+  @Test
+  void 잘못된_JSON은_400_ApiResponse로_변환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(post("/test/json").contentType(MediaType.APPLICATION_JSON).content("{\"value\":"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(400));
+  }
+
+  @Test
+  void 잘못된_숫자_파라미터는_400_ApiResponse로_변환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(get("/test/number").param("value", "invalid"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(400));
+  }
+
+  @Test
+  void 필수_파라미터_누락은_400_ApiResponse로_변환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(get("/test/required"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(400));
+  }
+
+  @Test
+  void 지원하지_않는_ContentType은_415_ApiResponse로_변환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(post("/test/json").contentType(MediaType.TEXT_PLAIN).content("value=1"))
+        .andExpect(status().isUnsupportedMediaType())
+        .andExpect(jsonPath("$.code").value(415));
+  }
+
+  @Test
+  void 지원하지_않는_HTTP_메서드는_405_ApiResponse로_변환한다() throws Exception {
+    // when / then
+    mockMvc
+        .perform(post("/test/required"))
+        .andExpect(status().isMethodNotAllowed())
+        .andExpect(jsonPath("$.code").value(405));
+  }
+
+  @RestController
+  private static class InputController {
+
+    @PostMapping(value = "/test/json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    void json(@RequestBody InputPayload payload) {}
+
+    @GetMapping("/test/number")
+    void number(@RequestParam Integer value) {}
+
+    @GetMapping("/test/required")
+    void required(@RequestParam String value) {}
+  }
+
+  private record InputPayload(Integer value) {}
 }

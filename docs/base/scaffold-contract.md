@@ -4,16 +4,15 @@
 
 > **핵심 원칙**: 스캐폴드는 고품질 출발점을 생성한다. 개발자는 생성된 코드를 직접 수정한다. 템플릿 구조가 바뀌면 `ScaffoldRegenerateMain` 일괄 재생성으로 모든 산출물을 자동 갱신한다.
 
-## 0. screenMode (4종)
+## 0. screenMode (3종)
 
-scaffold는 4종 screenMode 각각에 대해 독립적인 `.tpl` 템플릿 기반 산출물을 생성한다.
+scaffold는 3종 screenMode 각각에 대해 독립적인 `.tpl` 템플릿 기반 산출물을 생성한다.
 
 | screenMode | 형태 | 템플릿 디렉토리 | renderer |
 |---|---|---|---|
 | `LIST` | 검색 + 그리드 (읽기 전용) | `scaffold-templates/list/` | `ScaffoldArtifactRenderer` |
 | `EXCEL` | LIST + 엑셀 다운로드 버튼 | `scaffold-templates/excel/` | `ScaffoldArtifactRenderer` |
 | `CRUD` | LIST + 행 클릭 시 편집 모달 + 신규 버튼 | `scaffold-templates/crud/` | `ScaffoldArtifactRenderer` |
-| `CRUD_PANEL` | 검색 + 그리드 + 우측 패널 | `scaffold-templates/crud-panel/` | `ScaffoldArtifactRenderer` |
 
 CRUD 모달은 개발자 수동 모달 표준 인프라(`fragments/modal-base.html` + `static/js/common/modal-manager.js`)를 사용한다. 알 수 없는 screenMode는 `IllegalArgumentException`으로 거부된다.
 
@@ -22,7 +21,7 @@ CRUD 모달은 개발자 수동 모달 표준 인프라(`fragments/modal-base.ht
 | 산출물 | 비고 |
 |---|---|
 | {Domain}SearchRequestDTO.java | PageRequestDTO 상속, Lombok @Data |
-| {Domain}UpdateRequestDTO.java | CRUD/CRUD_PANEL 모드만. 화이트리스트. validate=required 시 @NotBlank/@NotNull |
+| {Domain}UpdateRequestDTO.java | CRUD 모드만. 화이트리스트. validate=required 시 @NotBlank/@NotNull |
 | {Domain}VO.java | Lombok @Data. maskType 컬럼은 MaskingUtil 적용 |
 | {Domain}Mapper.java | interface |
 | {Domain}Mapper.xml | baseQuery include, searchConditions 공통화, 쿼리 시그니처 |
@@ -32,7 +31,7 @@ CRUD 모달은 개발자 수동 모달 표준 인프라(`fragments/modal-base.ht
 | {Domain}ControllerTest.java | MockMvc, ApiResponse 포맷 검증 |
 | {domainId}.html | screen-convention 골격, screenMode별 .tpl 템플릿 |
 | {domainId}.js | TuiPageBuilder, screenMode별 .tpl 템플릿 |
-| 메뉴등록.sql | screenMode별 최소 권한 CAN_* (`CRUD`/`CRUD_PANEL`은 C/U/D 포함) |
+| 메뉴등록.sql | screenMode별 최소 권한 CAN_* (`CRUD`는 C/U/D 포함) |
 
 ## 2. 개발자 워크플로우
 
@@ -67,8 +66,8 @@ CRUD 모달은 개발자 수동 모달 표준 인프라(`fragments/modal-base.ht
 | 마스킹 | includePrivacy + maskType -> MaskingUtil 실제 호출 (목록/엑셀) |
 | 검증 | validate=required -> @NotBlank/@NotNull 서버 어노테이션 |
 | 원문 상세 | includePrivacy -> /unmask endpoint + getUnmaskedDetail + @PrivacyLog |
-| 권한 | screenMode별 최소 CAN_* (LIST/EXCEL->READ, CRUD/CRUD_PANEL->CRUD 4종, privacy->+MASK_VIEW) |
-| 화면 템플릿 | 4종 screenMode 각각 `.tpl` 템플릿 + `ScaffoldArtifactRenderer` 공통 라우팅. 목록은 `TuiPageBuilder`, 통신은 `ApiClient`, 폼 바인딩은 `FormBinder`, 입력 포맷/검증은 `FieldFormat`, 모달은 `ModalManager` + `fragments/modal-base.html`을 사용한다. |
+| 권한 | screenMode별 최소 CAN_* (LIST/EXCEL->READ, CRUD->CRUD 3종, privacy->+MASK_VIEW) |
+| 화면 템플릿 | 3종 screenMode 각각 `.tpl` 템플릿 + `ScaffoldArtifactRenderer` 공통 라우팅. 목록은 `TuiPageBuilder`, 통신은 `ApiClient`, 폼 바인딩은 `FormBinder`, 입력 포맷/검증은 `FieldFormat`, 모달은 `ModalManager` + `fragments/modal-base.html`을 사용한다. |
 | SQL | 쿼리 시그니처(/* Mapper.method */), baseQuery DRY, searchConditions 공통화 |
 | 적용 | 미리보기는 신규/변경없음/덮어쓰기를 표시한다. 사용자가 적용을 확정하면 기존 파일은 생성 결과로 덮어쓴다. 메타 파일(scaffold-cases/*.json)도 함께 저장된다. |
 

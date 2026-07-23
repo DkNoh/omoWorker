@@ -20,9 +20,10 @@ QuerySpec(조회 SQL + `$변수`)에서 화면 1세트의 복사용 코드와 �
 | domainId (3단계 URL) | v2 baseline 중 `/campaign/sms/register`처럼 3단계 URL인 화면은 `domainId`에 내부 슬래시 1개를 허용해 `sms/register`로 입력한다. `screenUrl`은 `/{moduleName}/{domainId}`이므로 그대로 `/campaign/sms/register`가 된다 |
 | rawQuery | `$변수` 검색조건 규약 포함 SQL |
 | orderBy | `A.SEND_DT DESC, A.HIST_ID DESC` — 결정적 정렬 입력 필수 (v2에 없던 신규 입력) |
-| screenMode | `LIST`, `EXCEL`, `CRUD`, `CRUD_PANEL` |
+| screenMode | `LIST`, `EXCEL`, `CRUD` |
 | targetTable | CRUD 기준 수정 대상 테이블. 미입력 시 `FROM`의 첫 테이블을 서버에서 추론 |
 | includePrivacy | 개인정보 포함 시 `@PrivacyLog` 생성 |
+| showRowNumber | 그리드 행 번호(No) 표시 여부. 기본값 Y(true). false 시 생성 JS의 `rowHeaders: []` |
 | searchParamOptions | 검색 파라미터별 입력 타입/기본값/콤보·라디오 옵션 |
 | columnOptions | 컬럼별 그리드 표시여부/수정 화면 표시여부/수정 가능여부/헤더명/너비/정렬/날짜 포맷/마스킹 타입 |
 | pkColumns / lockColumn | update/delete WHERE 기준 PK 목록, 낙관적 잠금 컬럼. `pkColumn` 단일 입력은 하위 호환용으로만 유지 |
@@ -82,10 +83,11 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
   - `modalVisible=false`: 이름은 기존 요청 JSON 호환을 위해 유지하지만 CRUD 수정 화면에는 표시하지 않는다. PK와 낙관적 잠금 값은 hidden으로 보관할 수 있다.
   - `editable=true`: CRUD 모드에서만 의미가 있다. 수정 화면 input, `*UpdateRequestDTO`, Mapper XML `UPDATE SET` 대상에 포함한다.
   - `editable=false`: CRUD 수정 화면에 읽기전용으로 표시할 수 있지만 update payload와 `*UpdateRequestDTO`에는 포함하지 않는다.
-- `screenMode`는 `LIST`/`EXCEL`/`CRUD`/`CRUD_PANEL` 4종으로 화면 범위를 분리한다.
+- `screenMode`는 `LIST`/`EXCEL`/`CRUD` 3종으로 화면 범위를 분리한다. 알 수 없는 screenMode는 `IllegalArgumentException`으로 거부된다.
 - `LIST`/`EXCEL` 생성물은 행 클릭·더블클릭 상세보기와 자동 모달을 만들지 않는다. 필요한 업무 화면은 생성 후 개발자가 명시적으로 추가한다.
-- `CRUD`는 `.tpl`에 정의된 수정 모달을 행 클릭으로 열고 `/update`, `/delete` endpoint를 호출한다. `CRUD_PANEL`은 같은 수정 기능을 패널로 제공한다. 실제 권한 판정은 기존 `MenuAuthInterceptor`의 URL suffix 권한 규칙을 따른다.
+- `CRUD`는 `.tpl`에 정의된 수정 모달을 행 클릭으로 열고 `/update`, `/delete` endpoint를 호출한다. 실제 권한 판정은 기존 `MenuAuthInterceptor`의 URL suffix 권한 규칙을 따른다.
 - 생성 JS는 `ApiClient`/`FormBinder`/`querySelector` 규약을 따른다. CSRF와 오류 처리는 `common-utils.js` axios 인터셉터가 담당한다.
+- 생성 JS의 `rowHeaders`는 `showRowNumber` 입력에 따라 결정한다. 기본값 Y(`['rowNum']`), N(`[]`). TuiPageBuilder는 `rowHeaders` 미지정 시 rowNum으로 복원하므로 N은 명시적 빈 배열을 생성해야 한다.
 - CRUD 모드는 실제 DB 메타데이터의 PK를 기본값으로 사용한다. 단일 PK와 복합 PK를 모두 `pkColumns`로 다루며, 조회 SQL 결과에 모든 PK 컬럼이 없으면 생성을 막는다.
 - PK가 없는 테이블은 CRUD 생성을 막고 LIST/EXCEL 조회 전용만 허용한다. 임의 `_ID` 컬럼을 PK처럼 추정하지 않는다.
 - 선택한 `lockColumn`은 낙관적 잠금 조건으로 사용한다. 조회 SQL 결과와 targetTable 메타데이터에 포함되어야 하며, PK 컬럼은 lockColumn으로 선택할 수 없다. nullable 컬럼은 null-safe WHERE 조건으로 생성한다.
@@ -118,13 +120,15 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 
 v2는 컨트롤러 1파일 800줄이었으나, v3는 파일 300줄 규칙에 따라 분리해 핵심 로직을 단위 테스트로 고정했다.
 
-## 개발자 수동 수정 예제
+## 개발자 수동 수정 예제 — `basic/notice` 이중 편집 (간편 모달 + 게시판 팝업)
 
-scaffold 기본 산출물에는 상세보기 동작을 넣지 않는다. 업무상 별도 창이 필요한 경우 `basic/notice` 구현을 수동 수정 예제로 사용한다.
+scaffold 기본 산출물에는 상세보기 동작을 넣지 않는다. 업무상 별도 창이 필요한 경우 `basic/notice` 구현을 수동 수정 예제로 사용한다. 이 코드는 공통 생성 기능이 아니라 개발자가 생성 후 소유하는 화면별 예제다.
 
-- `static/js/basic/notice.js`: 그리드 `dblclick`을 화면에서 직접 바인딩하고 `window.open`으로 팝업을 연다.
-- `templates/basic/notice-popup.html`, `static/js/basic/notice-popup.js`: 팝업 조회·수정 폼과 부모 창 갱신 메시지를 구현한다.
-- 이 코드는 공통 생성 기능이 아니라 개발자가 생성 후 소유하는 화면별 예제다. 필요한 권한, 단건 조회 API, origin 검증을 화면 요구사항에 맞게 함께 구현한다.
+- `static/js/basic/notice.js`: 그리드 행 클릭(`click`)으로 간편 수정 모달을 연다. 상세 API 로 content/updDttm 을 온전히 채운 뒤 `ModalManager` + `FormBinder` 로 모달 폼을 바인딩한다. 등록 버튼(`btn-create`) 은 빈 모달을 연다. 명시적 '게시판 팝업 예제' 버튼(`btn-popup-example`) 은 선택된 행의 게시판 팝업(`window.open`) 을 연다. 미선택 시 warning 토스트.
+- `templates/basic/notice-popup.html`, `static/js/basic/notice-popup.js`: 팝업 조회·수정 폼과 부모 창 갱신 메시지(`noticeChanged`, operation-specific Korean toast) 를 구현한다. 팝업 전용 크롬 숨김 스타일, fail-closed 권한, detail 바인딩 실패 시 쓰기 차단, 정적 origin 검증, `VALID_OPERATIONS` 화이트리스트 보존.
+- 이 구현은 완전한 developer-owned 이중 편집 참조다. 행 클릭 간편 모달(수정), 빈 창 신규 생성(등록), 명시적 팝업 예제 버튼(선택 행 게시판 팝업), 상세보기, 수정, 삭제, 동일 origin 부모 창 갱신·닫기를 포함한다.
+- 필요한 권한, 단건 조회 API, origin 검증을 화면 요구사항에 맞게 함께 구현한다.
+- 이 화면은 scaffold-cases에 포함되지 않으며, scaffold 재생성으로 자동 생성되지 않는다.
 
 ## 의존성 (폐쇄망 반입 확인 완료)
 
@@ -139,6 +143,18 @@ scaffold 기본 산출물에는 상세보기 동작을 넣지 않는다. 업무�
 ```text
 mvn -Dtest=ScaffoldTemplateTest,QueryColumnExtractorTest,GlobalModelAdviceTest,AuthSourceGuardTest test  PASS
 mvn test                                                                                                  PASS
+```
+
+2026-07-22 기준 (폐쇄망 scaffold E2E 검증):
+
+```text
+# 집중 scaffold 테스트 (87건)
+./mvnw -o -Dtest=ScaffoldTemplateTest,ScaffoldOutputGoldenTest,ScaffoldGeneratedSourceCompileTest,ScaffoldFileApplierTest,ScaffoldRegenerateMainTest,ScaffoldServiceTest test  PASS (87 tests, 0 failures)
+
+# 전체 verify (318건)
+./mvnw -o verify  PASS (318 tests, 0 failures, Spotless 0 violations, 140 files clean)
+
+# 골든 파일 — 70건 변경 없음 (base=11, keyword=11, crud/full/postgres/db2=12 each)
 ```
 
 Mockito 테스트는 `src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker`에서 subclass mock maker를 사용하도록 고정해 JDK self-attach 문제를 피한다.

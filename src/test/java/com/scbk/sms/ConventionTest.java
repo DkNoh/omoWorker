@@ -161,7 +161,7 @@ class ConventionTest {
   // 같이 재생성 + apply해야 게이트를 통과한다. 마커가 없는 mapper xml(scaffold 이전 파일)은 제외.
 
   @Test
-  void Scaffold_산출물_MapperXML은_baseQuery에_WHERE와_if가_없다() throws IOException {
+  void Scaffold_산출물_MapperXML은_baseQuery_최상위_depth0에_WHERE나_if가_없다() throws IOException {
     List<String> violations = new ArrayList<>();
     try (Stream<Path> files = Files.walk(MAPPER_DIR)) {
       files
@@ -179,17 +179,65 @@ class ConventionTest {
                   return;
                 }
                 String baseQuery = content.substring(start, end);
-                if (baseQuery.contains("WHERE") || baseQuery.contains("<if")) {
+                if (hasTopLevelWhereOrIf(baseQuery)) {
                   violations.add(
-                      p + " (baseQuery에 WHERE 또는 <if>가 있음. 검색조건은 searchConditions로 이동해야 함)");
+                      p
+                          + " (baseQuery 최상위(depth 0)에 WHERE/<if>/raw $variable가 있음. "
+                          + "depth>=1 서브쿼리 내부는 허용)");
                 }
               });
     }
     assertThat(violations)
         .as(
-            "Scaffold 산출물 baseQuery는 SELECT/FROM만 포함해야 한다. WHERE/검색조건은 searchConditions로. "
-                + "(scaffold-contract.md §3)")
+            "Scaffold 산출물 baseQuery의 최상위(depth 0)에는 WHERE/<if>/raw $variable이 없어야 한다. "
+                + "LEFT JOIN 서브쿼리 내부(depth>=1)의 WHERE/<if>/$variable은 파라미터화 + <if> 가드로 "
+                + "제자리 감싸기를 허용한다. (scaffold-contract.md §3)")
         .isEmpty();
+  }
+
+  // baseQuery에서 depth 0(서브쿼리 바깥)에만 WHERE/<if>/raw $variable이 있는지 검사한다.
+  // splitRawQuery와 동일한 depth/문자열 리터럴 규칙을 사용한다.
+  private static boolean hasTopLevelWhereOrIf(String baseQuery) {
+    String lower = baseQuery.toLowerCase();
+    int depth = 0;
+    boolean inSingle = false;
+    for (int i = 0; i < lower.length(); i++) {
+      char c = lower.charAt(i);
+      if (inSingle) {
+        if (c == '\'') {
+          inSingle = false;
+        }
+        continue;
+      }
+      if (c == '\'') {
+        inSingle = true;
+        continue;
+      }
+      if (c == '(') {
+        depth++;
+        continue;
+      }
+      if (c == ')') {
+        depth--;
+        continue;
+      }
+      if (depth != 0) {
+        continue;
+      }
+      if (c == '<' && i + 3 <= lower.length() && lower.substring(i, i + 3).equals("<if")) {
+        return true;
+      }
+      if (c == '$' && i + 1 < lower.length() && Character.isLetterOrDigit(lower.charAt(i + 1))) {
+        return true;
+      }
+      if (i + 5 <= lower.length()
+          && lower.substring(i, i + 5).equals("where")
+          && (i == 0 || !Character.isLetterOrDigit(lower.charAt(i - 1)))
+          && (i + 5 == lower.length() || !Character.isLetterOrDigit(lower.charAt(i + 5)))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test
@@ -242,6 +290,47 @@ class ConventionTest {
         .as(
             "Scaffold 산출물 MapperXML은 각 쿼리에 /* Mapper.method */ 시그니처를 포함해야 한다 "
                 + "(mybatis-oracle.md, scaffold-contract.md §3)")
+        .isEmpty();
+  }
+
+  @Test
+  void basic_notice_수동_참조_스택은_재생성_마커를_남기지_않고_일관된_수동_소유_문구를_가진다() throws IOException {
+    String ownershipHeader = "수동 참조: scaffold 복사 후 커스터마이즈한 window.open CRUD 예제. 재생성하지 않고 직접 수정한다.";
+    List<Path> noticeStack =
+        List.of(
+            Path.of("src/main/java/com/scbk/sms/controller/basic/NoticeController.java"),
+            Path.of("src/main/java/com/scbk/sms/service/basic/NoticeService.java"),
+            Path.of("src/main/java/com/scbk/sms/mapper/basic/NoticeMapper.java"),
+            Path.of("src/main/java/com/scbk/sms/dto/basic/NoticeSearchRequestDTO.java"),
+            Path.of("src/main/java/com/scbk/sms/dto/basic/NoticeUpdateRequestDTO.java"),
+            Path.of("src/main/java/com/scbk/sms/vo/basic/NoticeVO.java"),
+            Path.of("src/main/resources/mapper/basic/NoticeMapper.xml"),
+            Path.of("src/main/resources/templates/basic/notice.html"),
+            Path.of("src/main/resources/templates/basic/notice-popup.html"),
+            Path.of("src/main/resources/static/js/basic/notice.js"),
+            Path.of("src/main/resources/static/js/basic/notice-popup.js"),
+            Path.of("src/test/java/com/scbk/sms/controller/basic/NoticeControllerTest.java"),
+            Path.of("src/test/java/com/scbk/sms/service/basic/NoticeServiceTest.java"));
+    List<String> markerViolations = new ArrayList<>();
+    List<String> ownershipViolations = new ArrayList<>();
+    for (Path p : noticeStack) {
+      String content = read(p);
+      if (content.contains(SCAFFOLD_MARKER)) {
+        markerViolations.add(p + " (재생성 마커 Scaffold 생성(v1) 잔존)");
+      }
+      if (!content.contains(ownershipHeader)) {
+        ownershipViolations.add(p + " (수동 소유 헤더 누락)");
+      }
+    }
+    assertThat(markerViolations)
+        .as(
+            "basic/notice 수동 참조 스택은 scaffold 재생성 마커(Scaffold 생성(v1))를 남기지 않는다 "
+                + "(scaffold-contract.md).")
+        .isEmpty();
+    assertThat(ownershipViolations)
+        .as(
+            "basic/notice 수동 참조 스택의 모든 파일은 동일한 수동 소유 헤더로 일관되게 표시한다 "
+                + "(copy-and-customize window.open CRUD reference).")
         .isEmpty();
   }
 

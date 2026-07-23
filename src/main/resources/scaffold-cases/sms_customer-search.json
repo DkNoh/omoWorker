@@ -1,0 +1,172 @@
+{
+  "request" : {
+    "moduleName" : "sms",
+    "domainId" : "customer-search",
+    "domainClass" : "CustomerSearch",
+    "domainName" : "고객별 조회",
+    "rawQuery" : "SELECT\n    C.CUSTOMER_ID AS CUSTOMER_ID,\n    C.CUSTOMER_NM AS CUSTOMER_NM,\n    C.MOBILE_NO AS MOBILE_NO,\n    C.EMAIL AS EMAIL,\n    C.BIRTH_DT AS BIRTH_DT,\n    C.GENDER_CD AS GENDER_CD,\n    C.AGREE_YN AS AGREE_YN,\n    C.USE_YN AS USE_YN,\n    C.REG_DTTM AS REG_DTTM\nFROM SMS.CUSTOMER C\nWHERE 1 = 1\n  AND (C.CUSTOMER_NM LIKE '%' || $search_keyword || '%' OR C.MOBILE_NO LIKE '%' || $search_keyword || '%')\n  AND C.AGREE_YN = $agree_yn\n  AND C.USE_YN = $use_yn",
+    "orderBy" : "C.CUSTOMER_ID",
+    "includeCreateUpdate" : true,
+    "includeExcel" : false,
+    "includePrivacy" : true,
+    "screenMode" : "CRUD",
+    "targetTable" : "SMS.CUSTOMER",
+    "pkColumn" : "CUSTOMER_ID",
+    "pkColumns" : [ "CUSTOMER_ID" ],
+    "lockColumn" : "",
+    "searchParamOptions" : [ {
+      "name" : "searchKeyword",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "agreeYn",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "useYn",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    } ],
+    "columnOptions" : [ {
+      "columnName" : "CUSTOMER_ID",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : false,
+      "headerName" : "CUSTOMER_ID",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "CUSTOMER_NM",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "CUSTOMER_NM",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "MOBILE_NO",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "MOBILE_NO",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "EMAIL",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "EMAIL",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "BIRTH_DT",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "BIRTH_DT",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "GENDER_CD",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "GENDER_CD",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "AGREE_YN",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "AGREE_YN",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "USE_YN",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "USE_YN",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "REG_DTTM",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : false,
+      "headerName" : "REG_DTTM",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    } ],
+    "menuOption" : {
+      "menuId" : "SMS_CUSTOMER_SEARCH",
+      "parentMenuId" : "",
+      "roleCode" : "ROLE_ADMIN",
+      "sortOrd" : 99
+    }
+  },
+  "columns" : [ "CUSTOMER_ID", "CUSTOMER_NM", "MOBILE_NO", "EMAIL", "BIRTH_DT", "GENDER_CD", "AGREE_YN", "USE_YN", "REG_DTTM" ],
+  "searchVars" : [ "searchKeyword", "agreeYn", "useYn" ],
+  "typeMap" : {
+    "CUSTOMER_ID" : "Integer",
+    "CUSTOMER_NM" : "String",
+    "MOBILE_NO" : "String",
+    "EMAIL" : "String",
+    "BIRTH_DT" : "String",
+    "GENDER_CD" : "String",
+    "AGREE_YN" : "String",
+    "USE_YN" : "String",
+    "REG_DTTM" : "LocalDateTime"
+  },
+  "dialect" : "ORACLE"
+}

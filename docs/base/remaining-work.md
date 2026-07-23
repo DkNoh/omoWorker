@@ -12,7 +12,7 @@ MenuSqlTemplate가 screenMode 기준으로 CAN_* 기본값을 최소 권한으�
 
 - ✅ `LIST`: `CAN_READ=Y`, 나머지 `N`
 - ✅ `EXCEL`: `CAN_READ=Y`, `CAN_DOWNLOAD=Y`
-- 과거 기록: 제거된 `DETAIL` screenMode는 `CAN_READ=Y`를 생성했다. 현재 지원 대상은 `LIST`/`EXCEL`/`CRUD`/`CRUD_PANEL` 4종이다.
+- 과거 기록: 제거된 `DETAIL` screenMode는 `CAN_READ=Y`를 생성했다. 현재 지원 대상은 `LIST`/`EXCEL`/`CRUD` 3종이다.
 - ✅ `CRUD`: `CAN_READ/CREATE/UPDATE/DELETE=Y`
 - ✅ 개인정보 화면(`includePrivacy`): `CAN_MASK_VIEW=Y`
 - 스캐폴드 화면에서 권한 체크박스를 직접 수정할 수 있게 할지 결정한다. (미해결)

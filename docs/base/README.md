@@ -43,6 +43,7 @@ v3는 화면을 먼저 많이 만드는 프로젝트가 아니다. 먼저 폐쇄
 | `test-automation-guide.md` | 테스트 자동화 3층 구조 (scaffold 생성/컨벤션/Jenkins) |
 | `../메뉴.md` | 메뉴/역할/권한 관리 화면 설계 메모와 Oracle DDL 예시 |
 | `../승인.md` | 메뉴 권한과 분리된 공통 승인 시스템 설계 메모와 Oracle DDL 예시 |
+| `../js분석.md` | `/sms/customer-search` 화면 JavaScript 분석(초기 로드, 검색, 페이징, 행 클릭 모달, CRUD 흐름). CustomerSearch/공통 그리드·모달·HTTP 모듈 작업 시에만 읽는다. |
 
 ## 설계 방향
 

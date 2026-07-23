@@ -34,3 +34,7 @@
 - `target/`, `build/`, `node_modules/`, `static/lib/`, `static/vendor/` 등은 진입하지 않는다.
 - 각 문서는 실제 코드에서 확인한 내용만 기록한다.
 - 클래스/메서드/SQL 언급 시 파일 경로와 줄 위치를 함께 기록한다.
+
+## 추가 분석 문서 (화면 단위)
+
+- [고객별 조회 JavaScript 분석](../js분석.md) — `/sms/customer-search` 화면의 초기 로드/검색/페이징/행 클릭 수정 모달/저장/삭제 흐름과 확인된 제약. CustomerSearch 화면이나 공통 그리드·모달·HTTP 모듈을 다룰 때만 읽는다.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 수동 커스텀: scaffold 생성 후 window.open 수정 팝업을 추가한 예제다. -->
+<!-- 개발자 소유 수동 참조: scaffold 복사 후 커스터마이즈한 window.open CRUD 예제. 재생성하지 않고 직접 수정한다. -->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{defaultLayout}">
@@ -25,6 +25,7 @@
                 <div class="col-auto"><input type="text" id="useYn" class="form-control scaffold-search-control" aria-label="useYn"></div>
                 <div class="col-auto ms-auto d-flex gap-2">
                     <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary px-3" aria-label="신규 등록"><i data-lucide="plus" aria-hidden="true"></i><span>등록</span></button>
+                    <button type="button" id="btn-popup-example" class="btn btn-outline-secondary px-3" aria-label="선택 행 게시판 팝업 예제"><i data-lucide="external-link" aria-hidden="true"></i><span>게시판 팝업 예제</span></button>
                     <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
                     <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
                 </div>
@@ -33,6 +34,63 @@
     </div>
 
     <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
+
+    <th:block th:replace="~{fragments/modal-base :: layout(
+        modalId='notice-modal',
+        title='공지사항',
+        size='modal-lg',
+        bodyContent=~{::#modal-body},
+        footerContent=~{::#modal-footer}
+    )}">
+        <div id="modal-body">
+            <form id="notice-modal-form" class="row g-3" autocomplete="off" novalidate>
+                <input type="hidden" name="noticeId" id="notice-modal-noticeId">
+                <input type="hidden" name="beforeUpdDttm" id="notice-modal-beforeUpdDttm">
+                <div class="col-12">
+                    <label for="notice-modal-title" class="form-label">제목</label>
+                    <input type="text" class="form-control" name="title" id="notice-modal-title" maxlength="200">
+                </div>
+                <div class="col-12">
+                    <label for="notice-modal-content" class="form-label">내용</label>
+                    <textarea class="form-control" name="content" id="notice-modal-content" rows="8"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="notice-modal-noticeType" class="form-label">공지유형</label>
+                    <input type="text" class="form-control" name="noticeType" id="notice-modal-noticeType" maxlength="50">
+                </div>
+                <div class="col-md-6">
+                    <label for="notice-modal-useYn" class="form-label">사용여부</label>
+                    <select class="form-select" name="useYn" id="notice-modal-useYn">
+                        <option value="Y">Y</option>
+                        <option value="N">N</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="notice-modal-startDt" class="form-label">게시시작일시</label>
+                    <input type="datetime-local" class="form-control" name="startDt" id="notice-modal-startDt">
+                </div>
+                <div class="col-md-6">
+                    <label for="notice-modal-endDt" class="form-label">게시종료일시</label>
+                    <input type="datetime-local" class="form-control" name="endDt" id="notice-modal-endDt">
+                </div>
+                <div class="col-md-6">
+                    <label for="notice-modal-viewCnt" class="form-label">조회수</label>
+                    <input type="number" class="form-control" name="viewCnt" id="notice-modal-viewCnt" readonly>
+                </div>
+            </form>
+        </div>
+        <th:block id="modal-footer">
+            <button type="button" class="btn btn-danger me-auto d-none" id="notice-modal-btn-delete" th:if="${pageAuth.delete}">
+                <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+            </button>
+            <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">
+                <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="notice-modal-btn-save" th:if="${pageAuth.create or pageAuth.update}">
+                <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+            </button>
+        </th:block>
+    </th:block>
 
 </main>
 <th:block layout:fragment="script">

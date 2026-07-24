@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.sms.SmsHistoryMapper">
+
+    <!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->
+    <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).
+         비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,
+         단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->
+
+    <sql id="searchConditions">
+        <where>
+            <if test="sendDt != null and sendDt != ''">
+                AND A.SEND_DT <![CDATA[ >= ]]> CONVERT(datetime2, STUFF(STUFF(STUFF(STUFF(STUFF(#{sendDt} + '000000', 13, 0, ':'), 11, 0, ':'), 9, 0, 'T'), 7, 0, '-'), 5, 0, '-')) AND A.SEND_DT <![CDATA[ < ]]> DATEADD(DAY, 1, CONVERT(datetime2, STUFF(STUFF(STUFF(STUFF(STUFF(#{sendDt} + '000000', 13, 0, ':'), 11, 0, ':'), 9, 0, 'T'), 7, 0, '-'), 5, 0, '-')))
+            </if>
+        </where>
+    </sql>
+
+    <sql id="baseQuery">
+            SELECT A.SMS_HISTORY_ID, A.SEND_DT, A.SEND_TYPE, A.SEND_STATUS, A.RECEIVER_NO, A.UPD_DTTM
+            FROM SMS_HISTORY A
+    </sql>
+
+    <select id="count" resultType="int">
+        /* SmsHistoryMapper.count */
+        SELECT COUNT(1) FROM (
+        <include refid="baseQuery"/>
+        ) A
+        <include refid="searchConditions"/>
+    </select>
+
+    <select id="selectList" resultType="com.scbk.sms.vo.sms.SmsHistoryVO">
+        /* SmsHistoryMapper.selectList */
+        SELECT A.*
+        FROM (
+        <include refid="baseQuery"/>
+        ) A
+        <include refid="searchConditions"/>
+        ORDER BY A.SEND_DT DESC, A.SMS_HISTORY_ID DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <insert id="insert">
+        /* SmsHistoryMapper.insert */
+        INSERT INTO SMS_HISTORY (
+            SEND_DT,
+            SEND_TYPE,
+            SEND_STATUS,
+            RECEIVER_NO,
+            UPD_DTTM
+        ) VALUES (
+            #{sendDt,jdbcType=TIMESTAMP},
+            #{sendType,jdbcType=VARCHAR},
+            #{sendStatus,jdbcType=VARCHAR},
+            #{receiverNo,jdbcType=VARCHAR},
+            SYSDATETIME()
+        )
+    </insert>
+
+    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
+    <update id="update">
+        /* SmsHistoryMapper.update */
+        UPDATE SMS_HISTORY
+           SET SEND_DT = #{sendDt,jdbcType=TIMESTAMP},
+               SEND_TYPE = #{sendType,jdbcType=VARCHAR},
+               SEND_STATUS = #{sendStatus,jdbcType=VARCHAR},
+               RECEIVER_NO = #{receiverNo,jdbcType=VARCHAR},
+               UPD_DTTM = SYSDATETIME()
+         WHERE SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
+           AND (UPD_DTTM = #{beforeUpdDttm,jdbcType=TIMESTAMP}
+                OR (UPD_DTTM IS NULL AND #{beforeUpdDttm,jdbcType=TIMESTAMP} IS NULL))
+    </update>
+
+    <delete id="delete">
+        /* SmsHistoryMapper.delete */
+        DELETE FROM SMS_HISTORY WHERE SMS_HISTORY_ID = #{smsHistoryId,jdbcType=NUMERIC}
+    </delete>
+
+</mapper>

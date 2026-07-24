@@ -43,7 +43,7 @@ class ScaffoldOutputGoldenTest {
   private static final String SELECTOR = System.getProperty("golden.record.models");
 
   private static final Set<String> KNOWN_MODELS =
-      Set.of("base", "crud", "full", "postgres", "db2", "keyword");
+      Set.of("base", "crud", "full", "postgres", "db2", "mssql", "keyword");
 
   @BeforeAll
   static void validateSelector() {
@@ -224,6 +224,11 @@ class ScaffoldOutputGoldenTest {
   /** db2: equality-date + lock topology, dialect DB2. */
   private ScaffoldModel db2Model() {
     return equalityDateLockModel(ScaffoldDialect.DB2);
+  }
+
+  /** mssql: equality-date + lock topology, dialect MSSQL. */
+  private ScaffoldModel mssqlModel() {
+    return equalityDateLockModel(ScaffoldDialect.MSSQL);
   }
 
   private ScaffoldModel equalityDateLockModel(ScaffoldDialect dialect) {
@@ -485,6 +490,11 @@ class ScaffoldOutputGoldenTest {
   @Test
   void db2() {
     verify("db2", db2Model());
+  }
+
+  @Test
+  void mssql() {
+    verify("mssql", mssqlModel());
   }
 
   @Test

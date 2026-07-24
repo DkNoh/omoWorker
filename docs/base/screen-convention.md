@@ -14,8 +14,11 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 | 날짜 입력 | Toast UI DatePicker — `static/lib/tui-date-picker.min.js`, `static/lib/tui-date-picker.css` |
 | HTTP 클라이언트 | axios — `static/lib/axios.min.js` |
 | 엑셀 | xlsx — `static/lib/xlsx.full.min.js` |
+| 입력 마스킹 | IMask — `static/lib/imask.min.js` (`field-format.js`가 `data-mask` 요소에 부착, 전화번호/금액 포맷) |
+| 폼 검증 | JustValidate — `static/lib/just-validate.min.js` (`field-format.js`/`modal-manager.js`가 선택 사용) |
+| 위지윅 에디터 | Toast UI Editor — `static/lib/toastui-editor/3.2.2/` (defaultLayout이 아닌 `basic/notice-popup.html`에서 화면 단위로 로드) |
 | 아이콘 | lucide 로컬 번들 — `static/lib/lucide.js`, `data-lucide` 속성으로 렌더링 |
-| 공통 CSS | `static/css/admin-common.css` |
+| 공통 CSS | `static/css/admin-common.css`(디자인 토큰: `--sms-*` 정의·CoreUI `--cui-*` 별칭), `admin-layout.css`(쉘/레이아웃), `admin-ui-bridge.css`(CoreUI 브리지) — 토큰 계층은 `DESIGN.md` 참조 |
 | 공통 JS | `static/js/common/notify.js`, `http-client.js`, `modal-manager.js`, `common-utils.js`, `form-binder.js`, `field-format.js`, `tui-common.js`, `tui-page-builder.js` (의존 순서대로 로드) |
 | 날짜 라이브러리 | day.js — `static/lib/dayjs.min.js` + `ko.js` (한국어 locale 전역 활성화: `dayjs.locale('ko')`) |
 

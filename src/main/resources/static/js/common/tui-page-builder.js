@@ -143,8 +143,8 @@ class TuiPageBuilder {
                 if (el && !el.value.trim()) {
                     if (typeof CommonUtils !== 'undefined') {
                         CommonUtils.toast('필수 검색 조건을 입력해 주세요.', 'warning');
-                    } else {
-                        alert('필수 검색 조건을 입력해 주세요.');
+                    } else if (window.Notify) {
+                        window.Notify.alert('필수 검색 조건을 입력해 주세요.');
                     }
                     el.focus();
                     return; // 검증 실패 시 API 호출 중단
@@ -159,8 +159,8 @@ class TuiPageBuilder {
             if (dayjs(startDateEl.value).isAfter(dayjs(endDateEl.value))) {
                 if (typeof CommonUtils !== 'undefined') {
                     CommonUtils.toast('시작일은 종료일보다 클 수 없습니다.', 'warning');
-                } else {
-                    alert('시작일은 종료일보다 클 수 없습니다.');
+                } else if (window.Notify) {
+                    window.Notify.alert('시작일은 종료일보다 클 수 없습니다.');
                 }
                 startDateEl.focus();
                 return; // 검증 실패 시 API 호출 중단

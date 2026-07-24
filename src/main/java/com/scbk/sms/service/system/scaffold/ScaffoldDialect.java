@@ -127,6 +127,55 @@ public enum ScaffoldDialect {
     public String plusOneDay(String expression) {
       return expression + " + 1 DAY";
     }
+  },
+  MSSQL {
+    @Override
+    public String emptyResultQuery(String sql) {
+      // MSSQL 파생 테이블에는 별칭이 필수다. WHERE 1=0으로 빈 결과셋을 만들어 메타데이터만 읽는다.
+      return "SELECT * FROM (" + sql + ") scaffold_src WHERE 1 = 0";
+    }
+
+    @Override
+    public String pageClause() {
+      // MSSQL 2012+ OFFSET/FETCH. ORDER BY 절이 반드시 앞에 있어야 한다(scaffold는 정렬을 필수로 받는다).
+      return "OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY";
+    }
+
+    @Override
+    public String currentTimestamp() {
+      return "SYSDATETIME()";
+    }
+
+    @Override
+    public String currentDate() {
+      return "CAST(SYSDATETIME() AS DATE)";
+    }
+
+    @Override
+    public String currentTimestampString() {
+      return "FORMAT(SYSDATETIME(), 'yyyyMMddHHmmss')";
+    }
+
+    @Override
+    public String dateExpression(String fieldName) {
+      // style 112 = yyyymmdd ISO. 'YYYYMMDD' 문자열을 date로 변환한다.
+      return "CONVERT(date, #{" + fieldName + "}, 112)";
+    }
+
+    @Override
+    public String timestampExpression(String fieldName, String suffix) {
+      // 'YYYYMMDDHHMMSS'(14자리)를 언어 중립 ISO 'YYYY-MM-DDTHH:MM:SS'로 재조립해 datetime2로 변환한다.
+      // MSSQL에는 TO_TIMESTAMP(문자열, 포맷)가 없어 STUFF로 구분자를 삽입한다. 오른쪽부터 삽입해 위치를 고정한다.
+      String concat = "#{" + fieldName + "} + '" + suffix + "'";
+      return "CONVERT(datetime2, STUFF(STUFF(STUFF(STUFF(STUFF("
+          + concat
+          + ", 13, 0, ':'), 11, 0, ':'), 9, 0, 'T'), 7, 0, '-'), 5, 0, '-'))";
+    }
+
+    @Override
+    public String plusOneDay(String expression) {
+      return "DATEADD(DAY, 1, " + expression + ")";
+    }
   };
 
   public abstract String emptyResultQuery(String sql);
@@ -167,11 +216,12 @@ public enum ScaffoldDialect {
       case "ORACLE" -> ORACLE;
       case "POSTGRES", "POSTGRESQL" -> POSTGRES;
       case "DB2" -> DB2;
+      case "MSSQL", "SQLSERVER", "SQL_SERVER", "MS_SQL" -> MSSQL;
       default ->
           throw new IllegalArgumentException(
               "Unsupported sms.scaffold.db-platform: "
                   + value
-                  + " (allowed: oracle, postgres, db2)");
+                  + " (allowed: oracle, postgres, db2, mssql)");
     };
   }
 
@@ -184,15 +234,20 @@ public enum ScaffoldDialect {
         typeName == null ? "" : typeName.toUpperCase(Locale.ROOT).split("\\(")[0].trim();
     return switch (normalized) {
       case "NUMBER", "NUMERIC", "DECIMAL" -> scale > 0 ? "BigDecimal" : integerType(precision);
+      case "MONEY", "SMALLMONEY" -> "BigDecimal";
       case "DATE" -> "LocalDate";
       case "TIMESTAMP",
               "TIMESTAMP WITH TIME ZONE",
               "TIMESTAMP WITH LOCAL TIME ZONE",
               "TIMESTAMPTZ",
-              "DATETIME" ->
+              "DATETIME",
+              "DATETIME2",
+              "SMALLDATETIME",
+              "DATETIMEOFFSET" ->
           "LocalDateTime";
-      case "CLOB", "NCLOB", "TEXT" -> "String";
-      case "BLOB", "BYTEA" -> "byte[]";
+      case "BIT" -> "Integer";
+      case "CLOB", "NCLOB", "TEXT", "NTEXT" -> "String";
+      case "BLOB", "BYTEA", "IMAGE" -> "byte[]";
       default -> "String";
     };
   }

@@ -29,7 +29,7 @@ QuerySpec(조회 SQL + `$변수`)에서 화면 1세트의 복사용 코드와 �
 | pkColumns / lockColumn | update/delete WHERE 기준 PK 목록, 낙관적 잠금 컬럼. `pkColumn` 단일 입력은 하위 호환용으로만 유지 |
 | menuOption | `menuId`, `parentMenuId`, `roleCode`, `sortOrd` |
 
-DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-platform` 값으로 명시한다. 허용값은 `oracle`, `postgres`, `db2`다.
+DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-platform` 값으로 명시한다. 허용값은 `oracle`, `postgres`, `db2`, `mssql`(MSSQL 2012+)이다. MSSQL 타입 추론을 실제로 사용하려면 `mssql-jdbc` 드라이버를 `ojdbc11`처럼 `runtime` 스코프로 `pom.xml`에 추가하고 폐쇄망 `~/.m2/repository`에 시딩해야 한다(코드 생성 자체는 드라이버 없이 동작한다).
 
 `$start_dt` 하나가 SearchRequestDTO 필드(`startDt`) + 화면 검색 input + XML `<if>` 동적조건 + `#{startDt}` 바인딩으로 동시 생성된다.
 
@@ -96,7 +96,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 - Mapper XML의 `UPDATE SET`도 `editable=true` 컬럼만 생성한다. `REG_ID`, `REG_DTTM`, PK, 권한/소유자/감사 컬럼은 기본적으로 editable 대상에서 제외한다.
 - 생성 HTML 버튼은 lucide 로컬 아이콘(`data-lucide`)을 사용한다. CDN은 사용하지 않는다.
 - CRUD Mapper XML은 `targetTable`, editable 컬럼, `pkColumns`, lock 컬럼 기준으로 `INSERT/UPDATE/DELETE`를 생성한다.
-- DB별 현재시각/날짜 변환/페이징 SQL은 `ScaffoldDialect`가 생성한다. Oracle은 `SYSTIMESTAMP`, Postgres는 `CURRENT_TIMESTAMP`, DB2는 `CURRENT TIMESTAMP`를 사용한다.
+- DB별 현재시각/날짜 변환/페이징 SQL은 `ScaffoldDialect`가 생성한다. Oracle은 `SYSTIMESTAMP`, Postgres는 `CURRENT_TIMESTAMP`, DB2는 `CURRENT TIMESTAMP`, MSSQL은 `SYSDATETIME()`을 사용한다.
 - 개인정보 Y이면 `/data`, `/excel`에 `@PrivacyLog` 자동 부착 + `MaskingUtil` 적용 지점 TODO 표시
 - 엑셀은 `ExcelUtil` 연결. Mapper의 Map 반환은 ExcelUtil 계약상 예외로 허용
 
@@ -109,7 +109,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 | `service/system/scaffold/ScaffoldFileApplier.java` | 생성물 경로 매핑 및 파일 저장 |
 | `service/system/scaffold/QueryColumnExtractor.java` | 컬럼/검색변수/CRUD 대상 테이블 추출 |
 | `service/system/scaffold/ColumnTypeInferrer.java` | 실제 DB 기준 타입 추론 |
-| `service/system/scaffold/ScaffoldDialect.java` | Oracle/Postgres/DB2별 페이징, 날짜 변환, 현재시각 SQL 분기 |
+| `service/system/scaffold/ScaffoldDialect.java` | Oracle/Postgres/DB2/MSSQL별 페이징, 날짜 변환, 현재시각 SQL 분기 |
 | `service/system/scaffold/ScaffoldMetadataReader.java` | JDBC 메타데이터 기반 PK/nullable 컬럼 조회 |
 | `service/system/scaffold/ScaffoldArtifactRenderer.java` | 산출물 파일명·`.tpl` 경로·생성 조건을 한 곳에서 관리하는 공통 렌더러 |
 | `service/system/scaffold/MapperXmlViewFactory.java` | Mapper XML 템플릿에 전달할 SQL 구조 데이터 계산 |

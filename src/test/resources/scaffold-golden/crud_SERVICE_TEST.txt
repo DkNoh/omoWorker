@@ -19,8 +19,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+/**
+ * SmsHistoryService의 기본 조회·충돌 계약 테스트.
+ *
+ * <p>생성 후 업무 검증, 상태 전이, 마스킹과 트랜잭션 경계 시나리오를 이 클래스에 추가한다.
+ */
 @ExtendWith(MockitoExtension.class)
-/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 class SmsHistoryServiceTest {
 
     @Mock

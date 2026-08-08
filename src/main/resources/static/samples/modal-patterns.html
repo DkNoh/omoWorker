@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  모달 패턴 정적 샘플 — 모달 종류/사이즈/확인 다이얼로그
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/modal-patterns.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  시연 내용:
+  - 폼 모달 (기본): fragments/modal-base.html 구조의 modal-md + 폼/검증/저장·삭제
+  - 큰 모달:       modal-base 구조의 modal-lg + 2열 폼
+  - 확인 다이얼로그: SweetAlert2 기반 Notify.confirm / Notify.alert 공통 팝업
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 아래 정적 모달 사본은 fragments/modal-base.html fragment 로 교체한다.
+     (모달 DOM id 규약은 fragments/modal-base.html 주석 참고)
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md "모달 화면 패턴"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>모달 패턴 — 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script src="../lib/sweetalert2/11.26.25/sweetalert2.all.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../lib/sweetalert2/11.26.25/sweetalert2.min.css" />
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .modal-patterns-order-control {
+            width: min(100%, 140px);
+        }
+
+        .modal-patterns-date-control {
+            width: min(100%, 160px);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>모달 패턴 <small class="text-body-sm">(화면 패턴 &gt; 모달)</small></h2>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <h3 class="fs-6 fw-semibold mb-0">모달 열기</h3>
+                        <span class="text-caption">fragments/modal-base.html + ModalManager</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" id="btn-open-form-modal" class="btn btn-primary px-4" aria-label="폼 모달 열기">
+                            <i data-lucide="pencil" aria-hidden="true"></i><span>폼 모달 (기본)</span>
+                        </button>
+                        <button type="button" id="btn-open-large-modal" class="btn btn-outline-primary px-4" aria-label="큰 모달 열기">
+                            <i data-lucide="file" aria-hidden="true"></i><span>큰 모달</span>
+                        </button>
+                        <button type="button" id="btn-open-confirm" class="btn btn-outline-danger px-4" aria-label="확인 다이얼로그 열기">
+                            <i data-lucide="triangle-alert" aria-hidden="true"></i><span>확인 다이얼로그</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- fragments/modal-base.html 의 정적 사본 — modalId: form-modal, size: modal-md -->
+            <div class="modal fade" id="form-modal" tabindex="-1" aria-hidden="true" data-coreui-backdrop="static">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="form-modal-title">공지 등록</h5>
+                            <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body p-0">
+                            <form id="notice-form" autocomplete="off" novalidate>
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="noticeTitle">제목</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <input type="text" class="form-control" id="noticeTitle" name="noticeTitle"
+                                               maxlength="100" placeholder="제목을 입력하세요"
+                                               data-validate="required|maxlength:100" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="noticeWriter">작성자</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <input type="text" class="form-control" id="noticeWriter" name="noticeWriter"
+                                               value="샘플사용자" maxlength="50" placeholder="작성자명을 입력하세요"
+                                               data-validate="required|maxlength:50" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label align-items-start">
+                                        <label class="form-detail-required" for="noticeContent">내용</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control align-items-start">
+                                        <textarea class="form-control" id="noticeContent" name="noticeContent"
+                                                  rows="4" placeholder="내용을 입력하세요"
+                                                  data-validate="required" required></textarea>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger me-auto" id="form-modal-btn-delete">
+                                <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">
+                                <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" id="form-modal-btn-save">
+                                <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- fragments/modal-base.html 의 정적 사본 — modalId: large-modal, size: modal-lg -->
+            <div class="modal fade" id="large-modal" tabindex="-1" aria-hidden="true" data-coreui-backdrop="static">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="large-modal-title">항목 상세 설정</h5>
+                            <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body p-0">
+                            <form id="config-form" autocomplete="off" novalidate>
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label class="form-detail-required" for="configCode">코드</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="text" class="form-control" id="configCode" name="configCode"
+                                               maxlength="20" placeholder="예: CFG-0001"
+                                               data-validate="required|maxlength:20" required>
+                                    </div>
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label class="form-detail-required" for="configName">명칭</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="text" class="form-control" id="configName" name="configName"
+                                               maxlength="50" placeholder="명칭을 입력하세요"
+                                               data-validate="required|maxlength:50" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label class="form-detail-required" for="configType">구분</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <select class="form-select" id="configType" name="configType"
+                                                data-validate="required" required>
+                                            <option value="">구분을 선택하세요</option>
+                                            <option value="COMMON">공통</option>
+                                            <option value="SYSTEM">시스템</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label for="sortOrd">정렬순서</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="number" class="form-control modal-patterns-order-control"
+                                               id="sortOrd" name="sortOrd" min="0" max="9999"
+                                               inputmode="numeric" placeholder="0" data-validate="number">
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <span class="form-detail-required" id="config-use-yn-label">사용여부</span>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <div class="d-flex gap-4" role="radiogroup" aria-labelledby="config-use-yn-label">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="configUseYes"
+                                                       name="useYn" value="Y" checked required>
+                                                <label class="form-check-label" for="configUseYes">사용</label>
+                                            </div>
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="configUseNo"
+                                                       name="useYn" value="N" required>
+                                                <label class="form-check-label" for="configUseNo">미사용</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label for="applyDate">적용일자</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="text" class="form-control modal-patterns-date-control"
+                                               id="applyDate" name="applyDate" placeholder="YYYY-MM-DD"
+                                               autocomplete="off" inputmode="numeric" data-mask="date">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger me-auto d-none" id="large-modal-btn-delete">
+                                <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">
+                                <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" id="large-modal-btn-save">
+                                <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/modal-patterns.js"></script>
+</body>
+</html>

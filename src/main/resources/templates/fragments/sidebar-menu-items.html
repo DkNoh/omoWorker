@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="render(items, depth)">
+    <th:block th:each="menuItem : ${items}">
+        <li class="nav-group"
+            th:if="${menuItem.children != null and !#lists.isEmpty(menuItem.children)}">
+            <a class="nav-link nav-group-toggle" href="#" th:if="${menuItem.menuUrl == null}">
+                <th:block th:switch="${menuItem.menuNm}">
+                    <i th:case="'기본메뉴'" data-lucide="home" class="nav-icon flex-shrink-0"></i>
+                    <i th:case="'SMS발송조회'" data-lucide="message-square-search" class="nav-icon flex-shrink-0"></i>
+                    <i th:case="'캠페인SMS'" data-lucide="send" class="nav-icon flex-shrink-0"></i>
+                    <i th:case="'시스템관리'" data-lucide="sliders-horizontal" class="nav-icon flex-shrink-0"></i>
+                    <i th:case="'시스템관리 계정관리'" data-lucide="users" class="nav-icon flex-shrink-0"></i>
+                    <i th:case="'통계 관리'" data-lucide="chart-no-axes-combined" class="nav-icon flex-shrink-0"></i>
+                    <i th:case="*" th:attr="data-lucide=${depth == 0 ? 'list' : 'folder'}"
+                       class="nav-icon flex-shrink-0"></i>
+                </th:block>
+                <span th:text="${menuItem.menuNm}" class="text-truncate">메뉴 그룹</span>
+            </a>
+            <a class="nav-link sidebar-parent-link text-truncate"
+               th:if="${menuItem.menuUrl != null}"
+               th:href="@{${menuItem.menuUrl}}">
+                <i th:attr="data-lucide=${depth == 0 ? 'file' : 'file-text'}"
+                   class="nav-icon flex-shrink-0"></i>
+                <span th:text="${menuItem.menuNm}" class="text-truncate">화면 메뉴</span>
+            </a>
+            <button type="button"
+                    class="nav-link nav-group-toggle sidebar-submenu-toggle"
+                    th:if="${menuItem.menuUrl != null}"
+                    th:attr="aria-label=${menuItem.menuNm + ' 하위 메뉴 펼치기'}">
+                <span class="visually-hidden" th:text="${menuItem.menuNm + ' 하위 메뉴'}">하위 메뉴</span>
+            </button>
+            <ul class="nav-group-items">
+                <th:block th:replace="~{fragments/sidebar-menu-items :: render(${menuItem.children}, ${depth + 1})}"></th:block>
+            </ul>
+        </li>
+
+        <li class="nav-item"
+            th:unless="${menuItem.children != null and !#lists.isEmpty(menuItem.children)}">
+            <a class="nav-link text-truncate"
+               th:href="@{${menuItem.menuUrl != null ? menuItem.menuUrl : '#'}}">
+                <span th:text="${menuItem.menuNm}">메뉴 링크</span>
+            </a>
+        </li>
+    </th:block>
+</th:block>
+</body>
+</html>

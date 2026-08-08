@@ -1,5 +1,10 @@
-// Scaffold 생성(LIST). 생성 후 개발자가 직접 수정해 소유한다.
+/**
+ * @fileoverview SmsHistory LIST 화면 초기화.
+ * QuerySpec 검색조건과 컬럼 옵션을 TuiPageBuilder 계약으로 연결한다.
+ * 최초 생성 후에는 개발자가 직접 수정해 소유한다.
+ */
 document.addEventListener('DOMContentLoaded', function () {
+    /* Builder가 Grid 생성, 검색 이벤트, 날짜 입력, 서버 페이징과 최초 조회를 일괄 처리한다. */
     const pageBuilder = new TuiPageBuilder({
         el: 'grid',
         apiUrl: '/sms/history/data',
@@ -8,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rowHeaders: ['rowNum'],
         columns: [
             { header: 'SEND_DT', name: 'sendDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date },
-            { header: 'RECEIVER_NO', name: 'receiverNo', align: 'center', width: 150 }
+            { header: 'RECEIVER_NO', name: 'receiverNo', align: 'center', minWidth: 150 }
 
         ]
     });

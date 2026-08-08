@@ -4,6 +4,9 @@ spring:
     url: ${SMS_DB_URL:jdbc:p6spy:oracle:thin:@localhost:1521/SMS}
     username: ${SMS_DB_USERNAME:SMS}
     password: ${SMS_DB_PASSWORD:1234}
+    hikari:
+      data-source-properties:
+        remarksReporting: true
 
 sms:
   auth:

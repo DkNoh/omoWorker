@@ -6,8 +6,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectItem;
 
-/** Mapper XML 템플릿에 전달할 구조화된 SQL 데이터를 계산한다. XML 렌더링은 공통 artifact renderer가 담당한다. */
+/**
+ * QuerySpec을 Mapper XML 템플릿이 바로 반복 출력할 수 있는 구조화된 SQL 조각으로 변환한다.
+ *
+ * <p>단순 직접 SELECT만 검색조건을 원본 alias 안쪽에 배치하고 직접 COUNT로 최적화한다. JOIN 파생식, 집계, 서브쿼리, 집합 연산처럼
+ * 의미가 달라질 수 있는 쿼리는 외부 래퍼 구조를 유지한다. CRUD SQL은 {@link ScaffoldModel}이 검증한 실제 PK와 수정 허용 컬럼만 사용한다.
+ * 이 클래스는 SQL 구조를 계산할 뿐 XML 문자열 렌더링은 {@link ScaffoldArtifactRenderer}에 맡긴다.
+ */
 public final class MapperXmlViewFactory {
 
   private static final Pattern SEARCH_VAR_PATTERN = Pattern.compile("\\$([a-zA-Z0-9_]+)");
@@ -17,19 +30,37 @@ public final class MapperXmlViewFactory {
       Pattern.compile(
           "([A-Za-z0-9_\\.]+)\\s+BETWEEN\\s+\\$([a-zA-Z0-9_]+)\\s+AND\\s+\\$([a-zA-Z0-9_]+)",
           Pattern.CASE_INSENSITIVE);
+  private static final Pattern SUBQUERY_PATTERN =
+      Pattern.compile("\\(\\s*SELECT\\b", Pattern.CASE_INSENSITIVE);
+  private static final Pattern AGGREGATE_PATTERN =
+      Pattern.compile(
+          "\\b(?:COUNT|SUM|AVG|MIN|MAX|LISTAGG|STRING_AGG|ARRAY_AGG|JSON_AGG|JSON_ARRAYAGG|XMLAGG|STDDEV|VARIANCE|GROUPING)\\s*\\(",
+          Pattern.CASE_INSENSITIVE);
+  private static final Pattern WINDOW_PATTERN =
+      Pattern.compile("\\bOVER\\s*\\(", Pattern.CASE_INSENSITIVE);
 
   private MapperXmlViewFactory() {}
 
+  /**
+   * 조회·검색·CRUD 바인딩을 하나의 Mapper XML view로 구성한다.
+   *
+   * @throws IllegalStateException CRUD 대상 테이블이나 PK/수정 컬럼 계약이 불완전한 경우
+   */
   public static MapperXmlView create(ScaffoldModel model) {
     if (model.includeCreateUpdate() && model.targetTable().isEmpty()) {
       throw new IllegalStateException(
           "CRUD 모드는 targetTable이 필요합니다. 조회 SQL에서 FROM 테이블을 추론할 수 없으면 수정 대상 테이블을 입력하세요.");
     }
     validateCrudModel(model);
+    String[] queryParts = splitRawQuery(model.rawQuery());
+    QueryShape queryShape = analyzeQuery(model.rawQuery(), !queryParts[1].trim().isEmpty());
 
     return new MapperXmlView(
-        buildBaseQueryLines(model),
-        buildSearchConditions(model),
+        buildBaseQueryLines(model, queryParts[0]),
+        buildSearchConditions(model, queryParts[1], queryShape),
+        queryShape.searchConditionsInsideBaseQuery(),
+        queryShape.usesDirectCount(),
+        queryShape.directCountFromClause(),
         model.includeCreateUpdate() ? buildInsertValues(model) : List.of(),
         model.includeCreateUpdate() ? buildUpdateAssignments(model) : List.of(),
         model.includeCreateUpdate() ? buildPkBindings(model) : List.of(),
@@ -65,10 +96,91 @@ public final class MapperXmlViewFactory {
     return new String[] {rawQuery, ""};
   }
 
-  private static List<String> buildBaseQueryLines(ScaffoldModel model) {
-    String[] parts = splitRawQuery(model.rawQuery());
+  private static QueryShape analyzeQuery(String rawQuery, boolean hasSeparatedWhere) {
+    try {
+      net.sf.jsqlparser.statement.Statement statement =
+          CCJSqlParserUtil.parse(safeParseQuery(rawQuery));
+      if (!(statement instanceof Select select) || select.getPlainSelect() == null) {
+        return QueryShape.outerSafe();
+      }
+      PlainSelect plainSelect = select.getPlainSelect();
+      // 의미론이 확실한 단순 행 조회에서만 내부 검색조건/직접 COUNT 최적화를 허용한다.
+      if (!isSimpleRowQuery(select, plainSelect, rawQuery)) {
+        return QueryShape.outerSafe();
+      }
+
+      String defaultSearchColumn = firstDirectColumn(plainSelect);
+      if (!hasSeparatedWhere && defaultSearchColumn.isEmpty()) {
+        return QueryShape.outerSafe();
+      }
+      String directCountFromClause =
+          hasItems(plainSelect.getJoins()) ? "" : "FROM " + plainSelect.getFromItem();
+      return new QueryShape(
+          SearchConditionPlacement.INNER, defaultSearchColumn, directCountFromClause);
+    } catch (Exception ignored) {
+      return QueryShape.outerSafe();
+    }
+  }
+
+  private static boolean isSimpleRowQuery(
+      Select select, PlainSelect plainSelect, String rawQuery) {
+    if (!(plainSelect.getFromItem() instanceof Table)
+        || hasNonTableJoin(plainSelect.getJoins())
+        || hasNonDirectSelectItem(plainSelect.getSelectItems())
+        || hasItems(select.getWithItemsList())
+        || plainSelect.getDistinct() != null
+        || plainSelect.getGroupBy() != null
+        || plainSelect.getHaving() != null
+        || plainSelect.getQualify() != null
+        || plainSelect.getOracleHierarchical() != null
+        || hasItems(select.getOrderByElements())
+        || select.getLimit() != null
+        || select.getLimitBy() != null
+        || select.getOffset() != null
+        || select.getFetch() != null
+        || select.getForClause() != null
+        || plainSelect.getTop() != null
+        || plainSelect.getSkip() != null
+        || plainSelect.getFirst() != null
+        || hasItems(plainSelect.getWindowDefinitions())) {
+      return false;
+    }
+
+    String safeQuery = safeParseQuery(rawQuery);
+    return !SUBQUERY_PATTERN.matcher(safeQuery).find()
+        && !AGGREGATE_PATTERN.matcher(safeQuery).find()
+        && !WINDOW_PATTERN.matcher(safeQuery).find();
+  }
+
+  private static boolean hasNonTableJoin(List<Join> joins) {
+    return joins != null && joins.stream().anyMatch(join -> !(join.getRightItem() instanceof Table));
+  }
+
+  private static boolean hasNonDirectSelectItem(List<SelectItem<?>> selectItems) {
+    return selectItems == null
+        || selectItems.isEmpty()
+        || selectItems.stream().anyMatch(item -> !(item.getExpression() instanceof Column));
+  }
+
+  private static boolean hasItems(List<?> items) {
+    return items != null && !items.isEmpty();
+  }
+
+  private static String firstDirectColumn(PlainSelect plainSelect) {
+    List<SelectItem<?>> selectItems = plainSelect.getSelectItems();
+    if (selectItems == null || selectItems.isEmpty()) {
+      return "";
+    }
+    return selectItems.get(0).getExpression() instanceof Column column ? column.toString() : "";
+  }
+
+  private static String safeParseQuery(String query) {
+    return query == null ? "" : query.replaceAll("\\$([a-zA-Z0-9_]+)", "NULL");
+  }
+
+  private static List<String> buildBaseQueryLines(ScaffoldModel model, String baseQuery) {
     Map<String, ScaffoldModel.SearchParam> paramMap = buildParamMap(model);
-    return parts[0]
+    return baseQuery
         .lines()
         .filter(line -> !line.trim().isEmpty())
         .map(line -> buildBaseQueryLine(model, paramMap, line))
@@ -112,22 +224,28 @@ public final class MapperXmlViewFactory {
     return paramMap;
   }
 
-  private static List<SearchCondition> buildSearchConditions(ScaffoldModel model) {
+  private static List<SearchCondition> buildSearchConditions(
+      ScaffoldModel model,
+      String rawConditions,
+      QueryShape queryShape) {
     Map<String, ScaffoldModel.SearchParam> paramMap = buildParamMap(model);
 
-    String[] parts = splitRawQuery(model.rawQuery());
-    if (parts[1].trim().isEmpty()
+    if (rawConditions.trim().isEmpty()
         && model.getSearchVars().isEmpty()
         && !model.getColumns().isEmpty()) {
       String firstColumn = model.getColumns().get(0).trim().toUpperCase();
+      String searchColumn =
+          queryShape.searchConditionsInsideBaseQuery()
+              ? queryShape.defaultSearchColumn()
+              : "A." + firstColumn;
       return List.of(
           new SearchCondition(
               "searchKeyword != null and searchKeyword != ''",
-              "AND A." + firstColumn + " LIKE '%' || #{searchKeyword} || '%'"));
+              "AND " + searchColumn + " LIKE '%' || #{searchKeyword} || '%'"));
     }
 
     List<SearchCondition> conditions = new ArrayList<>();
-    for (String line : parts[1].split("\\R")) {
+    for (String line : rawConditions.split("\\R")) {
       String trimmed = line.trim();
       if (trimmed.isEmpty() || trimmed.replace(" ", "").equalsIgnoreCase("1=1")) {
         continue;
@@ -136,7 +254,8 @@ public final class MapperXmlViewFactory {
       if (!line.contains("$")) {
         String normalized = trimmed.toUpperCase().startsWith("AND ") ? trimmed : "AND " + trimmed;
         conditions.add(
-            new SearchCondition("", escapeSqlText(normalizeOuterAliases(model, normalized))));
+            new SearchCondition(
+                "", escapeSqlText(normalizeSearchAliases(model, normalized, queryShape))));
         continue;
       }
 
@@ -156,7 +275,8 @@ public final class MapperXmlViewFactory {
       if (!normalized.toUpperCase().startsWith("AND ")) {
         normalized = "AND " + normalized;
       }
-      conditions.add(new SearchCondition(test, normalizeOuterAliases(model, normalized)));
+      conditions.add(
+          new SearchCondition(test, normalizeSearchAliases(model, normalized, queryShape)));
     }
     return List.copyOf(conditions);
   }
@@ -192,6 +312,15 @@ public final class MapperXmlViewFactory {
               "(?i)\\b[A-Z][A-Z0-9_]*\\." + Pattern.quote(columnName) + "\\b", "A." + columnName);
     }
     return normalized;
+  }
+
+  private static String normalizeSearchAliases(
+      ScaffoldModel model,
+      String condition,
+      QueryShape queryShape) {
+    return queryShape.searchConditionsInsideBaseQuery()
+        ? condition
+        : normalizeOuterAliases(model, condition);
   }
 
   private static String replaceBetweenClauses(
@@ -452,6 +581,9 @@ public final class MapperXmlViewFactory {
   public record MapperXmlView(
       List<String> baseQueryLines,
       List<SearchCondition> searchConditions,
+      boolean searchConditionsInsideBaseQuery,
+      boolean usesDirectCount,
+      String directCountFromClause,
       List<SqlBinding> insertValues,
       List<SqlBinding> updateAssignments,
       List<SqlBinding> pkBindings,
@@ -464,4 +596,27 @@ public final class MapperXmlViewFactory {
   }
 
   public record SqlBinding(String column, String expression) {}
+
+  private enum SearchConditionPlacement {
+    INNER,
+    OUTER_SAFE
+  }
+
+  private record QueryShape(
+      SearchConditionPlacement searchConditionPlacement,
+      String defaultSearchColumn,
+      String directCountFromClause) {
+
+    private static QueryShape outerSafe() {
+      return new QueryShape(SearchConditionPlacement.OUTER_SAFE, "", "");
+    }
+
+    private boolean searchConditionsInsideBaseQuery() {
+      return searchConditionPlacement == SearchConditionPlacement.INNER;
+    }
+
+    private boolean usesDirectCount() {
+      return !directCountFromClause.isEmpty();
+    }
+  }
 }

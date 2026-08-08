@@ -1,0 +1,84 @@
+/* =====================================================================
+   omoWorker Detail Form Pattern
+   ---------------------------------------------------------------------
+   Shared row layout for register/edit (detail form) screens.
+
+   Layering (see DESIGN.md):
+     1. coreui.min.css          — base component library
+     2. admin-common.css        — --sms-* tokens + --cui-* aliases
+     3. admin-layout.css        — admin shell layout
+     4. admin-ui-bridge.css     — TUI grid / autocomplete bridges
+     5. admin-form-detail.css   — THIS FILE. Detail form row pattern.
+
+   Screens consume these classes directly. Do not re-declare the row
+   layout in layout:fragment="css" — only screen-specific styles go
+   there. Live references: static/samples/message-edit.html and
+   static/samples/campaign-register.html
+   ===================================================================== */
+
+.form-detail-row {
+    min-height: 68px;
+    border-bottom: 1px solid var(--sms-border-subtle);
+}
+
+/* modal-base의 기본 1rem 여백을 상쇄해 상세행 라벨 배경과 구분선이 모달 가장자리까지 이어지게 한다. */
+.form-detail-modal-form {
+    margin: calc(-1 * var(--cui-modal-padding, 1rem));
+}
+
+.form-detail-row:last-child {
+    border-bottom: 0;
+}
+
+.form-detail-label {
+    display: flex;
+    align-items: center;
+    min-height: 68px;
+    padding: var(--sms-space-3) var(--sms-space-4);
+    color: var(--sms-text-strong);
+    background: var(--sms-bg-surface-alt);
+    font-weight: var(--sms-fw-semibold);
+    word-break: keep-all;
+}
+
+.form-detail-control {
+    display: flex;
+    align-items: center;
+    min-height: 68px;
+    padding: var(--sms-space-3) var(--sms-space-4);
+}
+
+.form-detail-required::after {
+    content: " *";
+    color: var(--sms-danger);
+}
+
+.form-detail-required {
+    white-space: nowrap;
+}
+
+.form-detail-counter.is-over {
+    color: var(--sms-danger) !important;
+    font-weight: var(--sms-fw-semibold);
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .form-detail-label {
+        padding-inline: var(--sms-space-1);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .form-detail-label,
+    .form-detail-control {
+        min-height: auto;
+    }
+
+    .form-detail-label {
+        padding-bottom: var(--sms-space-2);
+    }
+
+    .form-detail-control {
+        padding-top: var(--sms-space-2);
+    }
+}

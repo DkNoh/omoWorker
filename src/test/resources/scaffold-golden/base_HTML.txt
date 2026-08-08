@@ -9,11 +9,13 @@
 <body>
 <main layout:fragment="content">
 
+    <!-- 화면 제목: 메뉴명과 같은 업무 화면명을 사용한다. -->
     <div class="content-header">
         <h2>발송이력조회</h2>
     </div>
 
-        <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+    <!-- QuerySpec의 $검색변수에서 생성된 검색영역. id는 SearchRequestDTO 필드명과 일치한다. -->
+    <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
         <div class="card-body">
             <div class="row align-items-center g-3 flex-wrap">
                 <div class="col-auto"><label for="startDt" class="col-form-label fw-bold">startDt</label></div>
@@ -26,10 +28,12 @@
         </div>
     </div>
 
-    <div th:replace="~{fragments/toast-grid :: gridCard}"></div>
+    <!-- 공통 Grid/건수/페이지 크기/페이지네이션 골격. 실제 컬럼과 조회는 화면 JS가 설정한다. -->
+    <div th:replace="~{fragments/toast-grid :: gridCard(null, null, null, null)}"></div>
 
 </main>
 <th:block layout:fragment="script">
+    <!-- 공통 라이브러리는 defaultLayout이 먼저 로드하고 화면별 초기화 코드만 여기서 불러온다. -->
     <script th:src="@{/js/sms/history.js}"></script>
 </th:block>
 </body>

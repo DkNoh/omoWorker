@@ -19,8 +19,8 @@ INSERT INTO SMS.TB_MENU_AUTH (
     USE_YN, REG_ID
 ) VALUES (
     'SMS_HISTORY', 'ROLE_ADMIN',
-    'Y', 'N', 'N', 'N',
-    'N', 'N', 'Y', 'Y',
+    'Y', 'Y', 'Y', 'Y',
+    'N', 'N', 'N', 'N',
     'Y', 'SYSTEM'
 );
 

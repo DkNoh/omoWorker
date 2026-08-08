@@ -8,10 +8,10 @@ package com.scbk.sms.dto.[( ${model.moduleName()} )];
 [/][# th:if="${model.hasEditableRequiredNotNull()}"]import jakarta.validation.constraints.NotNull;
 [/]
 /**
- * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
- * 수정 가능한 필드만 선언하는 화이트리스트 DTO.
- * TODO: 실제 수정을 허용할 필드만 남기고 제거한다.
- *       REG_ID/REG_DTTM, 시스템 필드, 권한 필드는 선언하지 않는다.
+ * 등록·수정 API가 허용하는 입력 필드만 선언한 화이트리스트 DTO.
+ *
+ * <p>Scaffold가 실제 PK, nullable 메타데이터와 컬럼 옵션을 기준으로 최초 골격을 만든다. 생성 후 실제 수정을 허용할 필드만 남기고,
+ * REG_ID/REG_DTTM 같은 감사 필드·시스템 상태·권한 필드는 클라이언트 입력으로 추가하지 않는다.
  */
 @Data
 public class [( ${model.domainClass()} )]UpdateRequestDTO {
@@ -22,7 +22,8 @@ public class [( ${model.domainClass()} )]UpdateRequestDTO {
 [/][# th:if="${!model.pkColumns().isEmpty()}"]    /** PK 필드 (WHERE 조건): [( ${#strings.listJoin(model.pkColumns(), ', ')} )] */
 [# th:each="pk : ${model.pkFields()}"]    private [( ${pk.javaType()} )] [( ${pk.fieldName()} )];
 [/]
-[/][# th:each="column : ${model.editableColumns()}"][# th:if="${column.requiresNotBlank()}"]    @NotBlank
+[/][# th:each="column : ${model.editableColumns()}"]    /** 화면과 Mapper가 함께 사용하는 수정 허용 필드. */
+[# th:if="${column.requiresNotBlank()}"]    @NotBlank
 [/][# th:if="${column.requiresNotNull()}"]    @NotNull
 [/]    private [( ${column.javaType()} )] [( ${column.fieldName()} )];
 [/][# th:if="${!model.lockColumn().isEmpty()}"]

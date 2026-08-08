@@ -205,6 +205,24 @@ TUI Grid 는 bridge CSS(`admin-ui-bridge.css`)로 토큰 주입.
 - **Tokens**: icon `--sms-text-disabled`(48px), title `--sms-fs-section` `--sms-fw-semibold` `--sms-text-body`, hint `--sms-fs-body-sm` `--sms-text-muted`.
 - **Spacing**: padding `var(--sms-space-12) var(--sms-space-6)`, gap `--sms-space-2`.
 
+### Blocking Alert / Confirm (SweetAlert2 bridge)
+
+업무 모달(CoreUI `.modal`) 위에서 표시되는 차단형 알림·확인 팝업은 SweetAlert2가 렌더링한다.
+CoreUI는 동시에 여러 모달을 지원하지 않으므로, 업무 모달과 차단 팝업의 책임을 분리한다.
+
+- **역할 분리**: 업무 모달(등록/수정/상세) = CoreUI + `ModalManager`, 차단 알림/확인 = `Notify.alert` / `Notify.confirm` (SweetAlert2)
+- **API**: `Notify.alert(msg, title, callback)`, `Notify.confirm(msg, callback, title, onCancel)` — 기존 호출부 변경 없음
+- **Dismiss 계약**: confirm의 cancel/backdrop/ESC/close는 모두 `onCancel` 1회 호출. alert의 dismiss는 callback 없이 큐만 진행
+- **Container**: `z-index: var(--sms-z-overlay)` — CoreUI modal(`--sms-z-modal`)과 toast(`--sms-z-toast`)보다 위
+- **Popup**: `--sms-bg-surface`, `--sms-border`, `--sms-radius-lg`, `--sms-shadow-lg`, `--sms-font-sans`
+- **Title**: `--sms-text-strong`, `--sms-fs-section`, `--sms-fw-semibold`, `word-break: keep-all`
+- **Message**: `--sms-text-body`, `--sms-fs-body`, `--sms-lh-body`, `word-break: keep-all`
+- **Confirm button**: `--sms-primary` / hover `--sms-primary-hover` / active `--sms-primary-active`, `:active { translateY(1px) }`
+- **Cancel button**: `--sms-bg-surface` + `--sms-border`, hover `--sms-bg-surface-alt` + `--sms-border-strong` + `--sms-primary` 텍스트
+- **Focus**: `:focus-visible { outline: 2px solid var(--sms-primary); outline-offset: 2px }`
+- **Motion**: 기존 `--sms-transition-fast` 사용. `prefers-reduced-motion`은 전역 규칙(`admin-common.css`)이 적용
+- **Bridge CSS**: `admin-ui-bridge.css`의 `sms-swal-*` 섹션. `buttonsStyling: false` 전제로 vendor 기본 스타일에 의존하지 않음
+
 ### Error State (독립 화면)
 
 `error/error.html`. 미인증 접근도 표시되므로 공통 레이아웃 없이 CoreUI CSS + `admin-common.css` 토큰만 사용.

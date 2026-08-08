@@ -223,4 +223,33 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- prod 빌드: Query Scaffold(local 전용 도구)를 WAR에서 물리 제외 -->
+        <profile>
+            <id>prod</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <configuration>
+                            <packagingExcludes>
+                                WEB-INF/classes/com/scbk/sms/config/ScaffoldProperties.class,
+                                WEB-INF/classes/com/scbk/sms/controller/system/ScaffoldController.class,
+                                WEB-INF/classes/com/scbk/sms/dto/system/Scaffold*.class,
+                                WEB-INF/classes/com/scbk/sms/service/system/ScaffoldService.class,
+                                WEB-INF/classes/com/scbk/sms/service/system/scaffold/**,
+                                WEB-INF/classes/scaffold-templates/**,
+                                WEB-INF/classes/scaffold-cases/**,
+                                WEB-INF/classes/static/js/system/scaffold.js,
+                                WEB-INF/classes/static/css/scaffold-tool.css,
+                                WEB-INF/classes/templates/system/scaffold.html
+                            </packagingExcludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

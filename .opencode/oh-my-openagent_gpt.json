@@ -27,7 +27,7 @@
     },
     "modelConcurrency": {
       "openai/gpt-5.6-sol": 1,
-      "lmstudio/qwen/qwen3.6-35b-a3b": 1
+      "lmstudio/qwen/qwen3.6-27b": 1
     }
   },
 
@@ -39,7 +39,7 @@
       "maxTokens": 12000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -59,7 +59,7 @@
       "maxTokens": 12000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -72,7 +72,7 @@
       "maxTokens": 12000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -85,7 +85,7 @@
       "maxTokens": 12000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -98,7 +98,7 @@
       "maxTokens": 10000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -111,14 +111,14 @@
       "maxTokens": 10000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 6144
         }
       ]
     },
 
     "sisyphus-junior": {
-      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "model": "lmstudio/qwen/qwen3.6-27b",
       "maxTokens": 8192,
       "fallback_models": [
         {
@@ -130,7 +130,7 @@
     },
 
     "explore": {
-      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "model": "lmstudio/qwen/qwen3.6-27b",
       "maxTokens": 4096,
       "permission": {
         "edit": "deny",
@@ -147,7 +147,7 @@
     },
 
     "librarian": {
-      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "model": "lmstudio/qwen/qwen3.6-27b",
       "maxTokens": 6144,
       "permission": {
         "edit": "deny",
@@ -165,7 +165,7 @@
 
   "categories": {
     "quick": {
-      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "model": "lmstudio/qwen/qwen3.6-27b",
       "maxTokens": 3072,
       "fallback_models": [
         {
@@ -177,7 +177,7 @@
     },
 
     "writing": {
-      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "model": "lmstudio/qwen/qwen3.6-27b",
       "maxTokens": 4096,
       "fallback_models": [
         {
@@ -189,7 +189,7 @@
     },
 
     "unspecified-low": {
-      "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+      "model": "lmstudio/qwen/qwen3.6-27b",
       "maxTokens": 6144,
       "fallback_models": [
         {
@@ -207,7 +207,7 @@
       "maxTokens": 10000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -220,7 +220,7 @@
       "maxTokens": 12000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -233,7 +233,7 @@
       "maxTokens": 16000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 8192
         }
       ]
@@ -253,7 +253,7 @@
       "maxTokens": 10000,
       "fallback_models": [
         {
-          "model": "lmstudio/qwen/qwen3.6-35b-a3b",
+          "model": "lmstudio/qwen/qwen3.6-27b",
           "maxTokens": 6144
         }
       ]

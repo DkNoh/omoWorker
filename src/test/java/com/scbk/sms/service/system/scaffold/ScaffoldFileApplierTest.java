@@ -167,6 +167,29 @@ class ScaffoldFileApplierTest {
     assertThat(Files.readString(existing)).isEqualTo("새로 생성된 scaffold 내용");
   }
 
+  @Test
+  void 기존_산출물과_대소문자만_다른_domainClass는_적용_전에_거부한다() throws Exception {
+    // given: macOS의 기본 파일시스템에서는 두 경로가 같은 파일로 취급되어 기존 소스를 덮어쓸 수 있다.
+    ScaffoldRequestDTO request = request("sms", "history", "Smshistory");
+    Path existing =
+        tempDir.resolve("src/main/java/com/scbk/sms/mapper/sms/SmsHistoryMapper.java");
+    Files.createDirectories(existing.getParent());
+    Files.writeString(existing, "기존 SmsHistory mapper");
+
+    ScaffoldFileApplier applier = new ScaffoldFileApplier(tempDir);
+
+    // when / then
+    assertThatThrownBy(
+            () ->
+                applier.apply(
+                    request, Map.of("SmshistoryMapper.java", "새 Smshistory mapper")))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("대소문자 충돌")
+        .hasMessageContaining("SmshistoryMapper.java")
+        .hasMessageContaining("SmsHistoryMapper.java");
+    assertThat(Files.readString(existing)).isEqualTo("기존 SmsHistory mapper");
+  }
+
   private ScaffoldRequestDTO request(String moduleName, String domainId, String domainClass) {
     ScaffoldRequestDTO request = new ScaffoldRequestDTO();
     request.setModuleName(moduleName);

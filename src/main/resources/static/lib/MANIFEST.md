@@ -29,6 +29,9 @@ CDN을 쓰지 않고 로컬에 박제(vendoring)한 프론트엔드 라이브러
 | toastui-editor/3.2.2/toastui-editor-all.min.js | TOAST UI Editor | 3.2.2 | https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js | MIT | 2026-07-13 | 공지 팝업 본문 에디터. `all` 번들(의존 포함), UMD 전역 `toastui.Editor`. SHA-256 `f50e1b7c0fc4e5d9a1ccd0d8be78cb3a950ccb3bf676fbf1627810c76aeaedd8`. LICENSE 동봉(tag `editor@3.2.2` / commit `9b94c04`) |
 | toastui-editor/3.2.2/toastui-editor.min.css | TOAST UI Editor | 3.2.2 | https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css | MIT | 2026-07-13 | 에디터 전용 스타일. SHA-256 `c70e24c68fefc205e8e504edc07fd6a5efd3044a623b4be7e3ac16cc8a736ed9` |
 | toastui-editor/3.2.2/LICENSE | TOAST UI Editor | 3.2.2 | https://github.com/nhn/tui.editor/blob/editor@3.2.2/LICENSE | MIT | 2026-07-13 | 표준 MIT 원문. SHA-256 `1c7c070da956f0c3122883c1b4eb706b1b819971082ccde001fe2d241d90e3c0` (raw + GitHub API 동일) |
+| sweetalert2/11.26.25/sweetalert2.all.min.js | SweetAlert2 | 11.26.25 | https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js | MIT | 2026-07-29 | 차단형 alert/confirm 공통 팝업. SHA-256 `4e86f0e22e4771b5b8aac24c613c661806a678b1afa284d03cf6ad03d3e21a0a` |
+| sweetalert2/11.26.25/sweetalert2.min.css | SweetAlert2 | 11.26.25 | https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css | MIT | 2026-07-29 | SweetAlert2 스타일. SHA-256 `a1173e56fd474be04ddbefa81bd75cc465627ef2f5db261792e7d25fb7871743` |
+| sweetalert2/11.26.25/LICENSE | SweetAlert2 | 11.26.25 | https://raw.githubusercontent.com/sweetalert2/sweetalert2/v11.26.25/LICENSE | MIT | 2026-07-29 | MIT 원문. SHA-256 `879aa33feba35b3428c6485fc17cddd8c820d7a8780281aa945e60582a28c4b4` |
 
 ## static/vendor
 

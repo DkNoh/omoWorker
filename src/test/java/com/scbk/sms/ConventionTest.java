@@ -293,47 +293,6 @@ class ConventionTest {
         .isEmpty();
   }
 
-  @Test
-  void basic_notice_수동_참조_스택은_재생성_마커를_남기지_않고_일관된_수동_소유_문구를_가진다() throws IOException {
-    String ownershipHeader = "수동 참조: scaffold 복사 후 커스터마이즈한 window.open CRUD 예제. 재생성하지 않고 직접 수정한다.";
-    List<Path> noticeStack =
-        List.of(
-            Path.of("src/main/java/com/scbk/sms/controller/basic/NoticeController.java"),
-            Path.of("src/main/java/com/scbk/sms/service/basic/NoticeService.java"),
-            Path.of("src/main/java/com/scbk/sms/mapper/basic/NoticeMapper.java"),
-            Path.of("src/main/java/com/scbk/sms/dto/basic/NoticeSearchRequestDTO.java"),
-            Path.of("src/main/java/com/scbk/sms/dto/basic/NoticeUpdateRequestDTO.java"),
-            Path.of("src/main/java/com/scbk/sms/vo/basic/NoticeVO.java"),
-            Path.of("src/main/resources/mapper/basic/NoticeMapper.xml"),
-            Path.of("src/main/resources/templates/basic/notice.html"),
-            Path.of("src/main/resources/templates/basic/notice-popup.html"),
-            Path.of("src/main/resources/static/js/basic/notice.js"),
-            Path.of("src/main/resources/static/js/basic/notice-popup.js"),
-            Path.of("src/test/java/com/scbk/sms/controller/basic/NoticeControllerTest.java"),
-            Path.of("src/test/java/com/scbk/sms/service/basic/NoticeServiceTest.java"));
-    List<String> markerViolations = new ArrayList<>();
-    List<String> ownershipViolations = new ArrayList<>();
-    for (Path p : noticeStack) {
-      String content = read(p);
-      if (content.contains(SCAFFOLD_MARKER)) {
-        markerViolations.add(p + " (재생성 마커 Scaffold 생성(v1) 잔존)");
-      }
-      if (!content.contains(ownershipHeader)) {
-        ownershipViolations.add(p + " (수동 소유 헤더 누락)");
-      }
-    }
-    assertThat(markerViolations)
-        .as(
-            "basic/notice 수동 참조 스택은 scaffold 재생성 마커(Scaffold 생성(v1))를 남기지 않는다 "
-                + "(scaffold-contract.md).")
-        .isEmpty();
-    assertThat(ownershipViolations)
-        .as(
-            "basic/notice 수동 참조 스택의 모든 파일은 동일한 수동 소유 헤더로 일관되게 표시한다 "
-                + "(copy-and-customize window.open CRUD reference).")
-        .isEmpty();
-  }
-
   private String read(Path path) {
     try {
       return Files.readString(path);

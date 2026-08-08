@@ -8,8 +8,8 @@ INSERT INTO SMS.TB_MENU (
     MENU_ID, PARENT_MENU_ID, MENU_NM, MENU_URL,
     MENU_LEVEL, SORT_ORD, MENU_TYPE, DISPLAY_YN, USE_YN, SYSTEM_YN, REG_ID
 ) VALUES (
-    'BASIC_NOTICE', '/* TODO: 상위 메뉴 ID */', '공지사항', '/basic/notice',
-    2, 99, 'M', 'Y', 'Y', 'N', 'SYSTEM'
+    'BASIC_NOTICE_LIST', 'BASIC_NOTICE', '공지사항 목록', '/basic/notice',
+    3, 10, 'M', 'Y', 'Y', 'N', 'SYSTEM'
 );
 
 INSERT INTO SMS.TB_MENU_AUTH (
@@ -18,7 +18,7 @@ INSERT INTO SMS.TB_MENU_AUTH (
     CAN_APPROVE, CAN_CANCEL, CAN_DOWNLOAD, CAN_MASK_VIEW,
     USE_YN, REG_ID
 ) VALUES (
-    'BASIC_NOTICE', 'ROLE_ADMIN',
+    'BASIC_NOTICE_LIST', 'ROLE_ADMIN',
     'Y', 'Y', 'Y', 'Y',
     'N', 'N', 'N', 'N',
     'Y', 'SYSTEM'

@@ -140,7 +140,8 @@ BEGIN
 
     upsert_menu('G_BASIC', NULL, '기본메뉴', NULL, 1, 10, 'G');
     upsert_menu('BASIC_INTRO', 'G_BASIC', 'SMS관리시스템 안내', '/basic/intro', 2, 10, 'M');
-    upsert_menu('BASIC_NOTICE', 'G_BASIC', '공지사항', '/basic/notice', 2, 20, 'M');
+    upsert_menu('BASIC_NOTICE', 'G_BASIC', '공지사항', NULL, 2, 20, 'G');
+    upsert_menu('BASIC_NOTICE_LIST', 'BASIC_NOTICE', '공지사항 목록', '/basic/notice', 3, 10, 'M');
     upsert_menu('BASIC_MESSAGE', 'G_BASIC', '메시지조회', '/basic/message', 2, 30, 'M');
     upsert_menu('BASIC_USER_SEARCH', 'G_BASIC', '사용자조회', '/basic/user-search', 2, 40, 'M');
     upsert_menu('BASIC_MFA', 'G_BASIC', 'MFA사용자관리', '/basic/mfa', 2, 50, 'M');

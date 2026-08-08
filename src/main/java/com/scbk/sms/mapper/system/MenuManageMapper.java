@@ -26,6 +26,12 @@ public interface MenuManageMapper {
   /** 단건 조회. 시스템 메뉴 보호 판정과 삭제/수정 대상 존재 여부 확인에 사용한다. */
   MenuManageVO selectByMenuId(@Param("menuId") String menuId);
 
+  /** 정렬순서 배정 중 다른 트랜잭션의 메뉴 등록/이동을 직렬화한다. */
+  void lockForSortAllocation();
+
+  /** 같은 부모를 가진 형제 메뉴의 다음 정렬순서(MAX + 10). */
+  int selectNextSortOrd(@Param("parentMenuId") String parentMenuId);
+
   /** URL 중복 검사(본인 제외). MENU_TYPE='M'만 URL을 가지므로 menuUrl이 비어있으면 호출하지 않는다. */
   int countByUrlExceptMenuId(@Param("menuUrl") String menuUrl, @Param("menuId") String menuId);
 
@@ -42,6 +48,10 @@ public interface MenuManageMapper {
 
   /** MENU_ID는 WHERE 에만 쓴다. SET 에 포함하지 않는다 (MENU_ID 변경 금지 규약). */
   int update(MenuUpdateRequestDTO request);
+
+  /** 부모 이동으로 레벨이 바뀌면 모든 자손 레벨을 동일한 차이만큼 이동한다. */
+  int shiftDescendantMenuLevels(
+      @Param("menuId") String menuId, @Param("levelDelta") int levelDelta);
 
   /** TB_MENU_AUTH 행을 메뉴 단위로 일괄 삭제. TB_MENU 삭제 전/권한 교체 시 호출한다. */
   int deleteMenuAuthByMenuId(@Param("menuId") String menuId);

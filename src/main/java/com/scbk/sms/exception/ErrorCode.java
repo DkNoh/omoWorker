@@ -26,7 +26,11 @@ public enum ErrorCode {
   MENU_TYPE_URL_INVALID(
       HttpStatus.BAD_REQUEST, "M003", "그룹(G) 메뉴는 URL을 가질 수 없고, 메뉴(M)는 URL이 필수입니다."),
   DUPLICATE_MENU_ID(HttpStatus.CONFLICT, "M004", "이미 존재하는 메뉴 ID입니다."),
-  MENU_HAS_CHILDREN(HttpStatus.BAD_REQUEST, "M005", "하위 메뉴가 있어 삭제할 수 없습니다.");
+  MENU_HAS_CHILDREN(HttpStatus.BAD_REQUEST, "M005", "하위 메뉴가 있어 삭제할 수 없습니다."),
+  MENU_PARENT_INVALID(
+      HttpStatus.BAD_REQUEST, "M006", "상위 메뉴는 존재하는 메뉴여야 합니다."),
+  MENU_HIERARCHY_INVALID(
+      HttpStatus.BAD_REQUEST, "M007", "메뉴를 자기 자신이나 하위 메뉴 아래로 이동할 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;

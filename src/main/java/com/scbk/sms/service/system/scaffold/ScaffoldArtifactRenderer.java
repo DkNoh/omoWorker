@@ -3,7 +3,12 @@ package com.scbk.sms.service.system.scaffold;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Scaffold 산출물의 파일명, tpl 경로, 생성 조건을 한곳에서 관리하고 공통 렌더러로 생성한다. */
+/**
+ * 산출물 종류, 파일명, 템플릿 경로와 생성 조건을 한곳에서 관리하는 렌더링 오케스트레이터.
+ *
+ * <p>호출부가 파일별 분기 로직을 중복하지 않도록 {@link Artifact}가 산출물 계약을 소유한다. 템플릿에는 기본적으로 {@code model}을
+ * 제공하고, Mapper XML·메뉴 SQL·페이지 JavaScript처럼 별도 계산값이 필요한 산출물만 전용 변수를 추가한다.
+ */
 public final class ScaffoldArtifactRenderer {
 
   private static final Map<String, String> PAGE_TEMPLATE_DIRECTORIES =
@@ -14,6 +19,7 @@ public final class ScaffoldArtifactRenderer {
 
   private ScaffoldArtifactRenderer() {}
 
+  /** 현재 화면 모드에서 활성화된 모든 산출물을 선언 순서대로 렌더링한다. */
   public static Map<String, String> renderAll(ScaffoldModel model) {
     Map<String, String> files = new LinkedHashMap<>();
     for (Artifact artifact : Artifact.values()) {
@@ -24,6 +30,7 @@ public final class ScaffoldArtifactRenderer {
     return files;
   }
 
+  /** 테스트나 부분 미리보기에서 지정한 산출물만 렌더링하되 모드별 생성 조건은 동일하게 적용한다. */
   public static Map<String, String> renderSelected(ScaffoldModel model, Artifact... artifacts) {
     Map<String, String> files = new LinkedHashMap<>();
     for (Artifact artifact : artifacts) {
@@ -34,6 +41,7 @@ public final class ScaffoldArtifactRenderer {
     return files;
   }
 
+  /** 산출물 하나의 템플릿 경로와 컨텍스트 변수를 확정해 TEXT 템플릿을 렌더링한다. */
   public static String render(Artifact artifact, ScaffoldModel model) {
     return ResourceTemplateRenderer.render(
         artifact.templatePath(model), variables(artifact, model));
@@ -70,6 +78,7 @@ public final class ScaffoldArtifactRenderer {
     return directory;
   }
 
+  /** 생성 가능한 파일 종류. enum 선언 순서가 미리보기와 적용 결과의 표시 순서가 된다. */
   public enum Artifact {
     SEARCH_DTO,
     UPDATE_DTO,

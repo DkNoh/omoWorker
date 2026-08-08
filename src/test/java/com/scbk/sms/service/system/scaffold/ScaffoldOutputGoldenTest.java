@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +19,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Scaffold 템플릿(byte-level) golden 회귀 테스트.
+ * Scaffold 대표 템플릿(byte-level) golden 회귀 테스트.
  *
- * <p>현재 리소스 {@code .tpl} 기반 템플릿의 출력을 byte-level로 고정한다. Java 모델과 템플릿의 책임을 변경해도 의도하지 않은 출력 변화가 없는지
- * 검증한다.
+ * <p>LIST/EXCEL/CRUD/전체 옵션의 대표 생성물은 전체 산출물을 고정하고, DB 방언은 실제 차이가 있는 Mapper XML만 고정한다. 개별 SQL
+ * 예외와 세부 옵션은 {@link ScaffoldTemplateTest}의 의미 기반 assertion으로 검증한다.
  *
  * <p>모드:
  *
@@ -43,7 +44,7 @@ class ScaffoldOutputGoldenTest {
   private static final String SELECTOR = System.getProperty("golden.record.models");
 
   private static final Set<String> KNOWN_MODELS =
-      Set.of("base", "crud", "full", "postgres", "db2", "mssql", "keyword");
+      Set.of("base", "excel", "crud", "full", "postgres", "db2", "mssql");
 
   @BeforeAll
   static void validateSelector() {
@@ -80,6 +81,7 @@ class ScaffoldOutputGoldenTest {
 
   private ScaffoldModel model(boolean createUpdate, boolean excel, boolean privacy) {
     ScaffoldRequestDTO request = baseRequest();
+    request.setScreenMode(createUpdate ? "CRUD" : excel ? "EXCEL" : "LIST");
     request.setIncludeCreateUpdate(createUpdate);
     request.setIncludeExcel(excel);
     request.setIncludePrivacy(privacy);
@@ -187,6 +189,11 @@ class ScaffoldOutputGoldenTest {
     return model(false, false, false);
   }
 
+  /** excel: EXCEL 전용 기본 생성물. */
+  private ScaffoldModel excelModel() {
+    return model(false, true, false);
+  }
+
   /** crud: CRUD. pkColumn="RECEIVER_NO". */
   private ScaffoldModel crudModel() {
     return model(true, false, false);
@@ -196,9 +203,8 @@ class ScaffoldOutputGoldenTest {
    * full: 6컬럼 topology + CRUD + PK=SMS_HISTORY_ID + lock=UPD_DTTM + Excel + Privacy + masking +
    * validate.
    *
-   * <p>screenMode를 명시하지 않고 legacy {@code includeCreateUpdate=true} + {@code includeExcel=true}로 설정해
-   * 빈-mode legacy 결합(CRUD+Excel) fallback을 의도적으로 검증한다. 명시적 screenMode가 feature flag보다 우선하는 규약(Task
-   * 7) 아래에서도 동일한 산출물(CRUD 모드 + 엑셀)을 내도록 한다.
+   * <p>전체 옵션은 빈 screenMode의 legacy 결합 fallback으로 CRUD+Excel+Privacy를 함께 검증한다. 명시적 LIST/EXCEL/CRUD
+   * 기본 골격은 base/excel/crud 모델에서 각각 고정한다.
    */
   private ScaffoldModel fullModel() {
     ScaffoldRequestDTO request = requestWithOptions();
@@ -244,17 +250,6 @@ class ScaffoldOutputGoldenTest {
             AND A.SEND_DT = $send_dt
             """);
     return new ScaffoldModel(request, SIX_COLUMNS, List.of("sendDt"), SIX_TYPE_MAP, dialect);
-  }
-
-  /** keyword: empty searchVars + no-WHERE rawQuery — Mapper XML의 LIKE '%' 분기 실행. */
-  private ScaffoldModel keywordModel() {
-    ScaffoldRequestDTO request = baseRequest();
-    request.setRawQuery("SELECT A.NOTICE_ID, A.TITLE FROM SMS.NOTICE A");
-    return new ScaffoldModel(
-        request,
-        List.of("NOTICE_ID", "TITLE"),
-        List.of(),
-        Map.of("NOTICE_ID", "Long", "TITLE", "String"));
   }
 
   // ============================================================================================
@@ -365,8 +360,8 @@ class ScaffoldOutputGoldenTest {
     return selected.contains(modelKey);
   }
 
-  private void verify(String modelKey, ScaffoldModel model) {
-    for (Template template : Template.values()) {
+  private void verify(String modelKey, ScaffoldModel model, List<Template> templates) {
+    for (Template template : templates) {
       if (!template.applies(model)) {
         continue;
       }
@@ -406,6 +401,14 @@ class ScaffoldOutputGoldenTest {
         assertGitEolLf(goldenFile, modelKey + "/" + template.name());
       }
     }
+  }
+
+  private void verifyAll(String modelKey, ScaffoldModel model) {
+    verify(modelKey, model, Arrays.asList(Template.values()));
+  }
+
+  private void verifyMapperXml(String modelKey, ScaffoldModel model) {
+    verify(modelKey, model, List.of(Template.MAPPER_XML));
   }
 
   private void writeGolden(Path goldenFile, String content) {
@@ -469,36 +472,70 @@ class ScaffoldOutputGoldenTest {
 
   @Test
   void base() {
-    verify("base", baseModel());
+    verifyAll("base", baseModel());
+  }
+
+  @Test
+  void excel() {
+    verifyAll("excel", excelModel());
   }
 
   @Test
   void crud() {
-    verify("crud", crudModel());
+    verifyAll("crud", crudModel());
   }
 
   @Test
   void full() {
-    verify("full", fullModel());
+    verifyAll("full", fullModel());
   }
 
   @Test
   void postgres() {
-    verify("postgres", postgresModel());
+    verifyMapperXml("postgres", postgresModel());
   }
 
   @Test
   void db2() {
-    verify("db2", db2Model());
+    verifyMapperXml("db2", db2Model());
   }
 
   @Test
   void mssql() {
-    verify("mssql", mssqlModel());
+    verifyMapperXml("mssql", mssqlModel());
   }
 
   @Test
-  void keyword() {
-    verify("keyword", keywordModel());
+  void golden_범위는_대표_4모델과_DB별_Mapper_XML만_유지한다() throws IOException {
+    if (RECORD) {
+      return;
+    }
+
+    List<String> expected = new ArrayList<>();
+    for (String modelKey : List.of("base", "excel", "crud", "full")) {
+      for (Template template : Template.values()) {
+        if (("base".equals(modelKey) || "excel".equals(modelKey))
+            && template == Template.UPDATE_REQUEST_DTO) {
+          continue;
+        }
+        expected.add(modelKey + "_" + template.name() + ".txt");
+      }
+    }
+    for (String dialect : List.of("postgres", "db2", "mssql")) {
+      expected.add(dialect + "_MAPPER_XML.txt");
+    }
+    expected.sort(String::compareTo);
+
+    List<String> actual;
+    try (var files = Files.list(GOLDEN_DIR)) {
+      actual =
+          files
+              .filter(Files::isRegularFile)
+              .map(path -> path.getFileName().toString())
+              .sorted()
+              .toList();
+    }
+
+    assertThat(actual).containsExactlyElementsOf(expected);
   }
 }

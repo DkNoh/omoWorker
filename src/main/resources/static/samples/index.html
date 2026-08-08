@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  정적 샘플 목록 (인덱스)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/ 또는 /samples/index.html 로 확인한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  이 페이지는 static/samples/ 아래 화면 프로토타입 샘플의 목록이다.
+  각 샘플은 공통 CSS(admin-*.css)로 작성된 정적 HTML로,
+  실제 Thymeleaf 화면으로 전환하는 절차는 각 샘플 파일 상단 주석을 참고한다.
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>정적 샘플 목록</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 토큰(--sms-*)만 사용 */
+        .sample-index-intro {
+            color: var(--sms-text-muted);
+            font-size: var(--sms-fs-body-sm);
+            line-height: var(--sms-lh-body);
+        }
+
+        .sample-card {
+            transition: box-shadow var(--sms-transition-fast), transform var(--sms-transition-fast);
+        }
+
+        .sample-card:hover {
+            box-shadow: var(--sms-shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .sample-card .sample-file {
+            font-family: var(--sms-font-mono);
+            font-size: var(--sms-fs-caption);
+            color: var(--sms-text-muted);
+        }
+
+        .sample-card .sample-desc {
+            font-size: var(--sms-fs-body-sm);
+            color: var(--sms-text-body);
+            min-height: 3.2em;
+        }
+
+        .sample-card .sample-open {
+            font-size: var(--sms-fs-body-sm);
+            font-weight: var(--sms-fw-semibold);
+            color: var(--sms-primary);
+        }
+
+        .sample-category-title {
+            font-size: var(--sms-fs-section);
+            font-weight: var(--sms-fw-semibold);
+            color: var(--sms-text-strong);
+        }
+
+        a.sample-link { text-decoration: none; color: inherit; }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>정적 샘플 목록 <small class="text-body-sm">(화면 프로토타입 인덱스)</small></h2>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <p class="sample-index-intro mb-2">
+                        아래 샘플은 공통 CSS(<code>admin-*.css</code>)로 작성된 <strong>정적 HTML 프로토타입</strong>이다.
+                        파일을 더블클릭(<code>file://</code>)하거나 서버 기동 후 <code>/samples/파일명</code>으로 열 수 있다.
+                    </p>
+                    <p class="sample-index-intro mb-0">
+                        실제 Thymeleaf 화면으로 전환하는 절차는 각 샘플 파일 상단 주석(6단계)을 참고하고,
+                        자세한 내용은 <code>docs/menual/sample-to-screen_manual.md</code>와
+                        <code>docs/base/screen-convention.md</code>를 본다.
+                        prod 프로파일에서는 <code>/samples/**</code>가 404로 차단된다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 목록 (List) -->
+            <h3 class="sample-category-title mb-3">
+                <i data-lucide="list" aria-hidden="true" style="vertical-align:-2px;"></i>
+                목록 화면
+            </h3>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./list-basic.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">목록 기본</h4>
+                                    <span class="badge bg-primary">목록</span>
+                                </div>
+                                <p class="sample-file mb-2">list-basic.html</p>
+                                <p class="sample-desc mb-0">검색조건 + TUI 그리드 + 페이징 + 엑셀. file://에서 mock 데이터가 렌더링된다.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./list-crud.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">목록 + CRUD 모달</h4>
+                                    <span class="badge bg-primary">목록</span>
+                                </div>
+                                <p class="sample-file mb-2">list-crud.html</p>
+                                <p class="sample-desc mb-0">그리드 행 클릭 → 등록/수정 모달(FormBinder) → 저장/삭제. PAGE_AUTH.create 게이트.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./list-basic-modal.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">목록 + 모달 팝업</h4>
+                                    <span class="badge bg-primary">목록</span>
+                                </div>
+                                <p class="sample-file mb-2">list-basic-modal.html</p>
+                                <p class="sample-desc mb-0">모달 내부 조회조건 + 독립 TUI 그리드 + 페이징. 행 클릭 시 수신번호 기준 드릴다운.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./list-form-modal.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">목록 + 등록/수정 폼 모달</h4>
+                                    <span class="badge bg-primary">목록</span>
+                                </div>
+                                <p class="sample-file mb-2">list-form-modal.html</p>
+                                <p class="sample-desc mb-0">공지 등록 스타일 modal-lg 폼(row g-3). 행 클릭 → FormBinder 바인딩, 등록/수정/삭제.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 다중 그리드 (Multi Grid) -->
+            <h3 class="sample-category-title mb-3">
+                <i data-lucide="chart-no-axes-combined" aria-hidden="true" style="vertical-align:-2px;"></i>
+                다중 그리드 화면
+            </h3>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./multi-grid-2.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">다중 그리드 (2개)</h4>
+                                    <span class="badge bg-primary">다중 그리드</span>
+                                </div>
+                                <p class="sample-file mb-2">multi-grid-2.html</p>
+                                <p class="sample-desc mb-0">부서 목록(마스터) + 부서원 목록(디테일). 부서 행 클릭 → 부서원 재조회. TuiPageBuilder 2인스턴스.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./multi-grid-3.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">다중 그리드 (3개)</h4>
+                                    <span class="badge bg-primary">다중 그리드</span>
+                                </div>
+                                <p class="sample-file mb-2">multi-grid-3.html</p>
+                                <p class="sample-desc mb-0">발송대기/성공/실패 현황판. 상태별 독립 조회·페이징. TuiPageBuilder 3인스턴스.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 상세폼 (Detail Form) -->
+            <h3 class="sample-category-title mb-3">
+                <i data-lucide="pencil" aria-hidden="true" style="vertical-align:-2px;"></i>
+                상세폼 화면
+            </h3>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./message-edit.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">상세폼 — 수정</h4>
+                                    <span class="badge bg-success">상세폼</span>
+                                </div>
+                                <p class="sample-file mb-2">message-edit.html</p>
+                                <p class="sample-desc mb-0">단일 컬럼 행 배치, 날짜 선택기, 라디오, 바이트 카운터. admin-form-detail 패턴.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./campaign-register.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">상세폼 — 등록</h4>
+                                    <span class="badge bg-success">상세폼</span>
+                                </div>
+                                <p class="sample-file mb-2">campaign-register.html</p>
+                                <p class="sample-desc mb-0">분할 컬럼(2열) 행 배치 + 메시지 미리보기 합성. 등록폼 변형 예시.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./detail-view.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">조회 전용 상세</h4>
+                                    <span class="badge bg-success">상세폼</span>
+                                </div>
+                                <p class="sample-file mb-2">detail-view.html</p>
+                                <p class="sample-desc mb-0">읽기전용 상세 행(입력 없음). 목록/수정 버튼 배치. 상세 조회 화면 변형.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 분할 (Split) -->
+            <h3 class="sample-category-title mb-3">
+                <i data-lucide="folder-tree" aria-hidden="true" style="vertical-align:-2px;"></i>
+                분할 화면
+            </h3>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./tree-detail.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">트리 + 상세 분할</h4>
+                                    <span class="badge bg-info">분할</span>
+                                </div>
+                                <p class="sample-file mb-2">tree-detail.html</p>
+                                <p class="sample-desc mb-0">좌측 펼침/접힘 트리 + 우측 상세 폼 바인딩. 메뉴 관리 스타일 레이아웃.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 모달 (Modal) -->
+            <h3 class="sample-category-title mb-3">
+                <i data-lucide="external-link" aria-hidden="true" style="vertical-align:-2px;"></i>
+                모달
+            </h3>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./modal-patterns.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">모달 패턴 모음</h4>
+                                    <span class="badge bg-warning text-dark">모달</span>
+                                </div>
+                                <p class="sample-file mb-2">modal-patterns.html</p>
+                                <p class="sample-desc mb-0">폼 모달(modal-md) + 큰 모달(modal-lg) + Notify.confirm 확인 다이얼로그.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 에디터 팝업 (Editor) -->
+            <h3 class="sample-category-title mb-3">
+                <i data-lucide="file" aria-hidden="true" style="vertical-align:-2px;"></i>
+                에디터 팝업
+            </h3>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a class="sample-link" href="./editor-popup.html">
+                        <div class="card shadow-sm border-0 h-100 sample-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h4 class="fs-6 fw-semibold mb-0">에디터 팝업</h4>
+                                    <span class="badge bg-secondary">에디터</span>
+                                </div>
+                                <p class="sample-file mb-2">editor-popup.html</p>
+                                <p class="sample-desc mb-0">Toast UI Editor(wysiwyg) 본문 작성. getMarkdown/setMarkdown + a11y. 화면 단위 에디터 로드.</p>
+                            </div>
+                            <div class="card-footer bg-white border-0 pt-0">
+                                <span class="sample-open">열기 &rarr;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+</body>
+</html>

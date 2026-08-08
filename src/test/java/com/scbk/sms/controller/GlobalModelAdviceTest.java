@@ -2,9 +2,12 @@ package com.scbk.sms.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 
 import com.scbk.sms.auth.SmsUserPrincipal;
 import com.scbk.sms.service.menu.MenuAuthService;
+import com.scbk.sms.service.menu.MenuCacheRevision;
 import com.scbk.sms.service.menu.MenuPermission;
 import com.scbk.sms.service.menu.MenuSource;
 import com.scbk.sms.service.menu.PageAuth;
@@ -32,7 +35,8 @@ class GlobalModelAdviceTest {
     MockEnvironment environment = new MockEnvironment();
     environment.setActiveProfiles("local");
     GlobalModelAdvice advice =
-        new GlobalModelAdvice(menuSource, new MenuAuthService(menuSource), environment);
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), new MenuCacheRevision(), environment);
     SmsUserPrincipal principal = principal();
     ExtendedModelMap model = new ExtendedModelMap();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/sms/history");
@@ -54,7 +58,8 @@ class GlobalModelAdviceTest {
     // given
     MockEnvironment environment = new MockEnvironment().withProperty("sms.auth.mode", "local");
     GlobalModelAdvice advice =
-        new GlobalModelAdvice(menuSource, new MenuAuthService(menuSource), environment);
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), new MenuCacheRevision(), environment);
     SmsUserPrincipal principal = principal();
     ExtendedModelMap model = new ExtendedModelMap();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/sms/history");
@@ -78,7 +83,8 @@ class GlobalModelAdviceTest {
     // given
     MockEnvironment environment = new MockEnvironment();
     GlobalModelAdvice advice =
-        new GlobalModelAdvice(menuSource, new MenuAuthService(menuSource), environment);
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), new MenuCacheRevision(), environment);
     SmsUserPrincipal principal = principal();
     ExtendedModelMap model = new ExtendedModelMap();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/sms/history");
@@ -97,6 +103,66 @@ class GlobalModelAdviceTest {
     assertThat(pageAuth.isUpdate()).isTrue();
     assertThat(pageAuth.isDelete()).isFalse();
     assertThat(pageAuth.isDownload()).isTrue();
+  }
+
+  @Test
+  void 같은_revision에서는_LNB와_pageAuth를_세션에서_재사용한다() {
+    MockEnvironment environment = new MockEnvironment();
+    MenuCacheRevision revision = new MenuCacheRevision();
+    GlobalModelAdvice advice =
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), revision, environment);
+    SmsUserPrincipal principal = principal();
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/sms/history");
+    request.getSession();
+    List<MenuItemVO> menus = List.of(new MenuItemVO());
+    given(menuSource.getMenuTree(principal.getRoleCodes())).willReturn(menus);
+    given(menuSource.hasMenu("/sms/history")).willReturn(true);
+    given(menuSource.getPermissions("/sms/history", principal.getRoleCodes()))
+        .willReturn(EnumSet.of(MenuPermission.READ));
+
+    advice.addLayoutAttributes(principal, new ExtendedModelMap(), request);
+    ExtendedModelMap secondModel = new ExtendedModelMap();
+    advice.addLayoutAttributes(principal, secondModel, request);
+
+    assertThat(secondModel.get("menus")).isSameAs(menus);
+    assertThat(((PageAuth) secondModel.get("pageAuth")).isRead()).isTrue();
+    then(menuSource).should(times(1)).getMenuTree(principal.getRoleCodes());
+    then(menuSource).should(times(1)).hasMenu("/sms/history");
+    then(menuSource).should(times(1)).getPermissions("/sms/history", principal.getRoleCodes());
+  }
+
+  @Test
+  void 메뉴_revision이_바뀌면_기존_세션의_LNB와_pageAuth를_함께_다시_조회한다() {
+    MockEnvironment environment = new MockEnvironment();
+    MenuCacheRevision revision = new MenuCacheRevision();
+    GlobalModelAdvice advice =
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), revision, environment);
+    SmsUserPrincipal principal = principal();
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/sms/history");
+    request.getSession();
+    List<MenuItemVO> oldMenus = List.of(new MenuItemVO());
+    List<MenuItemVO> newMenus = List.of(new MenuItemVO());
+    given(menuSource.getMenuTree(principal.getRoleCodes())).willReturn(oldMenus, newMenus);
+    given(menuSource.hasMenu("/sms/history")).willReturn(true);
+    given(menuSource.getPermissions("/sms/history", principal.getRoleCodes()))
+        .willReturn(
+            EnumSet.of(MenuPermission.READ),
+            EnumSet.of(MenuPermission.READ, MenuPermission.UPDATE));
+
+    advice.addLayoutAttributes(principal, new ExtendedModelMap(), request);
+    revision.invalidateAfterCommit();
+    ExtendedModelMap refreshedModel = new ExtendedModelMap();
+    advice.addLayoutAttributes(principal, refreshedModel, request);
+
+    assertThat(refreshedModel.get("menus")).isSameAs(newMenus);
+    PageAuth refreshedAuth = (PageAuth) refreshedModel.get("pageAuth");
+    assertThat(refreshedAuth.isRead()).isTrue();
+    assertThat(refreshedAuth.isUpdate()).isTrue();
+    then(menuSource).should(times(2)).getMenuTree(principal.getRoleCodes());
+    then(menuSource).should(times(2)).hasMenu("/sms/history");
+    then(menuSource).should(times(2)).getPermissions("/sms/history", principal.getRoleCodes());
   }
 
   @Test
@@ -139,7 +205,8 @@ class GlobalModelAdviceTest {
   private PageAuth popupPageAuth(Set<MenuPermission> basePermissions) {
     MockEnvironment environment = new MockEnvironment();
     GlobalModelAdvice advice =
-        new GlobalModelAdvice(menuSource, new MenuAuthService(menuSource), environment);
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), new MenuCacheRevision(), environment);
     SmsUserPrincipal principal = principal();
     ExtendedModelMap model = new ExtendedModelMap();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/basic/notice/popup");
@@ -164,7 +231,8 @@ class GlobalModelAdviceTest {
     // given : /basic/notice/popup 은 메뉴로 등록되지 않았고 부모 /basic/notice 가 풀 권한을 가진다
     MockEnvironment environment = new MockEnvironment();
     GlobalModelAdvice advice =
-        new GlobalModelAdvice(menuSource, new MenuAuthService(menuSource), environment);
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), new MenuCacheRevision(), environment);
     SmsUserPrincipal principal = principal();
     ExtendedModelMap model = new ExtendedModelMap();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/basic/notice/popup");
@@ -202,7 +270,8 @@ class GlobalModelAdviceTest {
     // given
     MockEnvironment environment = new MockEnvironment();
     GlobalModelAdvice advice =
-        new GlobalModelAdvice(menuSource, new MenuAuthService(menuSource), environment);
+        new GlobalModelAdvice(
+            menuSource, new MenuAuthService(menuSource), new MenuCacheRevision(), environment);
     SmsUserPrincipal principal = principal();
     ExtendedModelMap model = new ExtendedModelMap();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/basic/notice/popup");

@@ -32,3 +32,22 @@ logs/
 
 # OS temp
 *~
+
+# Query Scaffold (local 전용 도구 — 폐쇄망 미반입)
+src/main/java/com/scbk/sms/config/ScaffoldProperties.java
+src/main/java/com/scbk/sms/controller/system/ScaffoldController.java
+src/main/java/com/scbk/sms/dto/system/Scaffold*.java
+src/main/java/com/scbk/sms/service/system/ScaffoldService.java
+src/main/java/com/scbk/sms/service/system/scaffold/
+src/main/resources/scaffold-cases/
+src/main/resources/scaffold-templates/
+src/main/resources/static/css/scaffold-tool.css
+src/main/resources/static/js/system/scaffold.js
+src/main/resources/templates/system/scaffold.html
+src/test/java/com/scbk/sms/service/system/ScaffoldServiceTest.java
+src/test/java/com/scbk/sms/service/system/scaffold/
+src/test/resources/scaffold/
+src/test/resources/scaffold-golden/
+!src/test/resources/scaffold-golden/
+!src/test/resources/scaffold-golden/*.txt
+src/test/resources/scaffold-templates-test/

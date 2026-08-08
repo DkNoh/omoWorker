@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  다중 그리드 정적 샘플 (3 그리드) — 발송 현황 모니터링 (대기 / 성공 / 실패)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/multi-grid-3.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  시연 내용:
+  - 한 화면에 그리드 3개 배치 (발송대기 / 발송성공 / 발송실패)
+  - 그리드마다 고유 ID(readyGrid/successGrid/failGrid 등) + TuiPageBuilder 인스턴스 3개
+  - 각 그리드가 서로 다른 endpoint(상태별 필터)를 조회하고 독립 페이징/총 건수를 가진다
+  - 모든 데이터는 JS 내장 mock — 서버 없이 file://에서 완전 동작
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 아래 세 그리드 카드는 fragments/toast-grid.html 의 gridCard 프래그먼트를
+     인자만 다르게 해서 교체한다 (정적 샘플이라 프래그먼트를 직접 쓸 수 없어
+     동일한 DOM 을 수기 배치한 것이다):
+       ~{fragments/toast-grid :: gridCard('readyGrid','readyPagination','readyTotalCount','readyPageSize')}
+       ~{fragments/toast-grid :: gridCard('successGrid','successPagination','successTotalCount','successPageSize')}
+       ~{fragments/toast-grid :: gridCard('failGrid','failPagination','failTotalCount','failPageSize')}
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+  6. 규약: docs/base/screen-convention.md "목록 화면 패턴"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>발송 현황 모니터링 — 다중 그리드(3) 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .status-badge {
+            font-size: var(--sms-fs-caption);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>발송 현황 모니터링 <small class="text-body-sm">(SMS발송조회 &gt; 현황판)</small></h2>
+            </div>
+
+            <div class="row g-3">
+                <!-- 그리드 1: 발송대기 -->
+                <div class="col-12 col-lg-4">
+                    <!-- fragments/toast-grid :: gridCard('readyGrid','readyPagination','readyTotalCount','readyPageSize') -->
+                    <div class="card shadow-sm border-0 mb-4 toast-grid-card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                            <span class="fs-6 fw-medium d-flex align-items-center gap-2">
+                                <span class="badge bg-secondary status-badge">발송대기</span>
+                                총 <strong class="text-primary" id="readyTotalCount">0</strong>건
+                            </span>
+                            <select id="readyPageSize" class="form-select form-select-sm toast-grid-page-size">
+                                <option value="10">10건</option><option value="20">20건</option><option value="50">50건</option>
+                            </select>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="toast-grid-shell">
+                                <div id="readyGrid" class="toast-grid"></div>
+                                <div class="toast-grid-empty" role="status" aria-live="polite" data-empty-state>
+                                    <i data-lucide="inbox" class="toast-grid-empty-icon" aria-hidden="true"></i>
+                                    <p class="toast-grid-empty-title">대기 중인 발송이 없습니다</p>
+                                    <p class="toast-grid-empty-hint">예약된 발송 건이 없어요.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 py-3">
+                            <div id="readyPagination" class="d-flex justify-content-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 그리드 2: 발송성공 -->
+                <div class="col-12 col-lg-4">
+                    <!-- fragments/toast-grid :: gridCard('successGrid','successPagination','successTotalCount','successPageSize') -->
+                    <div class="card shadow-sm border-0 mb-4 toast-grid-card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                            <span class="fs-6 fw-medium d-flex align-items-center gap-2">
+                                <span class="badge bg-success status-badge">발송성공</span>
+                                총 <strong class="text-primary" id="successTotalCount">0</strong>건
+                            </span>
+                            <select id="successPageSize" class="form-select form-select-sm toast-grid-page-size">
+                                <option value="10">10건</option><option value="20">20건</option><option value="50">50건</option>
+                            </select>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="toast-grid-shell">
+                                <div id="successGrid" class="toast-grid"></div>
+                                <div class="toast-grid-empty" role="status" aria-live="polite" data-empty-state>
+                                    <i data-lucide="inbox" class="toast-grid-empty-icon" aria-hidden="true"></i>
+                                    <p class="toast-grid-empty-title">성공한 발송이 없습니다</p>
+                                    <p class="toast-grid-empty-hint">아직 완료된 발송 건이 없어요.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 py-3">
+                            <div id="successPagination" class="d-flex justify-content-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 그리드 3: 발송실패 -->
+                <div class="col-12 col-lg-4">
+                    <!-- fragments/toast-grid :: gridCard('failGrid','failPagination','failTotalCount','failPageSize') -->
+                    <div class="card shadow-sm border-0 mb-4 toast-grid-card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                            <span class="fs-6 fw-medium d-flex align-items-center gap-2">
+                                <span class="badge bg-danger status-badge">발송실패</span>
+                                총 <strong class="text-primary" id="failTotalCount">0</strong>건
+                            </span>
+                            <select id="failPageSize" class="form-select form-select-sm toast-grid-page-size">
+                                <option value="10">10건</option><option value="20">20건</option><option value="50">50건</option>
+                            </select>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="toast-grid-shell">
+                                <div id="failGrid" class="toast-grid"></div>
+                                <div class="toast-grid-empty" role="status" aria-live="polite" data-empty-state>
+                                    <i data-lucide="inbox" class="toast-grid-empty-icon" aria-hidden="true"></i>
+                                    <p class="toast-grid-empty-title">실패한 발송이 없습니다</p>
+                                    <p class="toast-grid-empty-hint">장애가 발생하지 않았어요.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 py-3">
+                            <div id="failPagination" class="d-flex justify-content-center"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/multi-grid-3.js"></script>
+</body>
+</html>

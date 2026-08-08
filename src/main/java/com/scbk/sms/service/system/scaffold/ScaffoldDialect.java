@@ -3,7 +3,12 @@ package com.scbk.sms.service.system.scaffold;
 import java.sql.Types;
 import java.util.Locale;
 
-/** SQL fragments used by scaffold generation. */
+/**
+ * 지원 DB별로 달라지는 페이징, 날짜 변환, 현재 시각과 JDBC 타입 매핑 계약.
+ *
+ * <p>템플릿과 SQL 조립 코드는 DB 제품명을 직접 분기하지 않고 이 enum을 통해 조각을 요청한다. 새 방언을 추가할 때는 빈 결과 메타데이터
+ * 조회, 페이징, 날짜/시각 검색식, 현재값, JDBC 타입 매핑을 한 묶음으로 검증해야 한다.
+ */
 public enum ScaffoldDialect {
   ORACLE {
     @Override
@@ -178,22 +183,31 @@ public enum ScaffoldDialect {
     }
   };
 
+  /** 원본 SELECT를 실행 결과 0건의 메타데이터 조회 쿼리로 감싼다. */
   public abstract String emptyResultQuery(String sql);
 
+  /** 결정적 ORDER BY 뒤에 붙는 서버 페이징 절을 반환한다. */
   public abstract String pageClause();
 
+  /** 등록·수정 SQL에서 사용할 DB 현재 timestamp 표현식. */
   public abstract String currentTimestamp();
 
+  /** 날짜 컬럼 기본값에 사용할 DB 현재 date 표현식. */
   public abstract String currentDate();
 
+  /** 문자열 감사 컬럼용 {@code YYYYMMDDHH24MISS} 현재 시각 표현식. */
   public abstract String currentTimestampString();
 
+  /** {@code YYYYMMDD} 요청 필드를 DB date로 변환하는 바인딩 표현식. */
   public abstract String dateExpression(String fieldName);
 
+  /** 날짜 요청 필드와 시각 suffix를 DB timestamp로 변환하는 바인딩 표현식. */
   public abstract String timestampExpression(String fieldName, String suffix);
 
+  /** 날짜 상한을 반개구간으로 만들기 위해 표현식에 하루를 더한다. */
   public abstract String plusOneDay(String expression);
 
+  /** JDBC 메타데이터를 생성 DTO/VO에서 사용할 Java 타입명으로 변환한다. */
   public String javaType(String typeName, int jdbcType, int precision, int scale) {
     return switch (jdbcType) {
       case Types.TINYINT, Types.SMALLINT, Types.INTEGER -> "Integer";
@@ -207,6 +221,7 @@ public enum ScaffoldDialect {
     };
   }
 
+  /** 설정 문자열의 별칭을 정규화해 방언을 선택하고, 지원하지 않는 값은 즉시 거부한다. */
   public static ScaffoldDialect from(String value) {
     if (value == null || value.trim().isEmpty()) {
       return ORACLE;

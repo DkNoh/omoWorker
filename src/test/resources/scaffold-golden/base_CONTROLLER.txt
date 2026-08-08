@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
- * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
- * 업무 로직은 TODO 위치에 직접 추가한다.
+ * SmsHistory 화면과 JSON API의 HTTP 진입점.
+ *
+ * <p>요청값 바인딩과 공통 ApiResponse 변환만 담당하며 업무 규칙과 트랜잭션은 Service에 둔다.
+ * Scaffold 최초 생성 후에는 개발자가 직접 수정해 소유하고, 템플릿과 자동 동기화하지 않는다.
  */
 @Controller
 @RequiredArgsConstructor
@@ -24,10 +26,13 @@ public class SmsHistoryController {
 
     private final SmsHistoryService service;
 
+    /** 기본 레이아웃에 결합할 업무 화면을 반환한다. */
     @GetMapping
     public String page() {
         return "sms/history";
     }
+
+    /** 검색조건과 페이지 요청을 전달해 목록을 공통 페이지 응답으로 반환한다. */
 
     @ResponseBody
     @GetMapping("/data")

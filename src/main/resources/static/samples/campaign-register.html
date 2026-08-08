@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  상세폼 정적 샘플 — 캠페인 등록 (분할 컬럼 + 미리보기 합성 예시)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/campaign-register.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 아래 <style>의 화면 전용 스타일을 <th:block layout:fragment="css"> 로 옮긴다.
+     (행 레이아웃은 공통 admin-form-detail.css 에 있으므로 복사하지 않는다.)
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md "상세폼 화면 패턴" + "수정폼 화면 규약"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>캠페인 등록 — 상세폼 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .campaign-date-field {
+            width: min(100%, 190px);
+        }
+
+        .campaign-time-select {
+            width: 82px;
+        }
+
+        .campaign-preview {
+            width: min(100%, 310px);
+            margin: 0 auto;
+            padding: var(--sms-space-2);
+            border: 1px solid var(--sms-border-strong);
+            border-radius: 26px;
+            background: var(--sms-text-strong);
+            box-shadow: var(--sms-shadow-md);
+        }
+
+        .campaign-preview-screen {
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+            overflow: hidden;
+            border-radius: 19px;
+            background: var(--sms-bg-surface-alt);
+        }
+
+        .campaign-preview-statusbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 28px;
+            padding: var(--sms-space-1) var(--sms-space-4);
+            background: var(--sms-bg-surface);
+            font-size: var(--sms-fs-caption);
+            font-weight: var(--sms-fw-semibold);
+            color: var(--sms-text-strong);
+        }
+
+        .campaign-preview-status-icons {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .campaign-preview-status-icons span {
+            display: block;
+            width: 3px;
+            border-radius: var(--sms-radius-pill);
+            background: var(--sms-text-muted);
+        }
+
+        .campaign-preview-status-icons span:nth-child(1) { height: 4px; }
+        .campaign-preview-status-icons span:nth-child(2) { height: 6px; }
+        .campaign-preview-status-icons span:nth-child(3) { height: 8px; }
+
+        .campaign-preview-sensor {
+            width: 64px;
+            height: 5px;
+            margin: var(--sms-space-1) auto var(--sms-space-2);
+            border-radius: var(--sms-radius-pill);
+            background: var(--sms-text-strong);
+        }
+
+        .campaign-preview-header {
+            padding: var(--sms-space-3) var(--sms-space-4);
+            border-top: 1px solid var(--sms-border-subtle);
+            border-bottom: 1px solid var(--sms-border);
+            color: var(--sms-text-strong);
+            background: var(--sms-bg-surface);
+            text-align: center;
+        }
+
+        .campaign-preview-title {
+            font-size: var(--sms-fs-body);
+            font-weight: var(--sms-fw-semibold);
+            line-height: 1.45;
+        }
+
+        .campaign-preview-callback {
+            margin-top: var(--sms-space-1);
+            color: var(--sms-text-muted);
+            font-size: var(--sms-fs-caption);
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .campaign-preview-body {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            padding: var(--sms-space-3);
+            background: var(--sms-bg-muted);
+        }
+
+        .campaign-preview-message {
+            align-self: flex-start;
+            width: fit-content;
+            max-width: 88%;
+            padding: var(--sms-space-3) var(--sms-space-4);
+            border: 1px solid var(--sms-border-subtle);
+            border-radius: var(--sms-radius-sm) var(--sms-radius-lg) var(--sms-radius-lg) var(--sms-radius-lg);
+            color: var(--sms-text-body);
+            background: var(--sms-bg-surface);
+            box-shadow: var(--sms-shadow-xs);
+            font-size: var(--sms-fs-body-sm);
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: keep-all;
+            overflow-wrap: anywhere;
+        }
+
+        .campaign-preview-message.is-empty {
+            color: var(--sms-text-disabled);
+        }
+
+        .campaign-preview-device-bottom {
+            padding: var(--sms-space-2) var(--sms-space-4) var(--sms-space-3);
+            background: var(--sms-bg-surface);
+        }
+
+        .campaign-preview-home-indicator {
+            width: 84px;
+            height: 4px;
+            margin: 0 auto;
+            border-radius: var(--sms-radius-pill);
+            background: var(--sms-text-strong);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>캠페인 등록 <small class="text-body-sm">(캠페인 SMS &gt; 캠페인 등록)</small></h2>
+            </div>
+
+            <form id="campaign-form" autocomplete="off" novalidate>
+                <input type="hidden" id="sendAt" name="sendAt">
+                <input type="hidden" id="sendType" name="sendType" value="SMS">
+
+                <div class="row g-4">
+                    <section class="col-12 col-xl-8" aria-labelledby="campaign-form-title">
+                        <div class="card shadow-sm border-0 mb-0">
+                            <div class="card-header bg-white py-3">
+                                <div class="d-flex align-items-center justify-content-between gap-3">
+                                    <h3 class="fs-6 fw-semibold mb-0" id="campaign-form-title">캠페인 정보</h3>
+                                    <span class="text-caption"><span class="text-danger">*</span> 필수 입력</span>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-0">
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="messagePurpose">구분</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <select class="form-select" id="messagePurpose" name="messagePurpose"
+                                                data-validate="required" required>
+                                            <option value="">선택</option>
+                                            <option value="NOTICE">공지성</option>
+                                            <option value="ADVERTISEMENT">광고성</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="campaignName">캠페인명</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <input type="text" class="form-control" id="campaignName" name="campaignName"
+                                               maxlength="100" placeholder="캠페인명을 입력하세요"
+                                               data-validate="required|maxlength:100" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="sendDate">전송일시</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <div class="d-flex flex-nowrap align-items-center gap-2">
+                                            <div class="campaign-date-field">
+                                                <div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input w-100">
+                                                    <input type="text" id="sendDate" autocomplete="off"
+                                                           aria-label="전송일자" placeholder="YYYY-MM-DD" required>
+                                                    <span class="tui-ico-date" aria-hidden="true"></span>
+                                                </div>
+                                                <div id="sendDatePickerLayer" class="scaffold-date-picker-layer"></div>
+                                            </div>
+                                            <select class="form-select campaign-time-select" id="sendHour"
+                                                    aria-label="전송 시" required></select>
+                                            <span aria-hidden="true">시</span>
+                                            <select class="form-select campaign-time-select" id="sendMinute"
+                                                    aria-label="전송 분" required></select>
+                                            <span aria-hidden="true">분</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <span class="form-detail-required" id="callback-type-label">회신종류</span>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <div class="d-flex flex-wrap gap-4" role="radiogroup"
+                                             aria-labelledby="callback-type-label">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="callbackWireless"
+                                                       name="callbackType" value="WIRELESS" required>
+                                                <label class="form-check-label" for="callbackWireless">무선전화</label>
+                                            </div>
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="callbackWired"
+                                                       name="callbackType" value="WIRED" required>
+                                                <label class="form-check-label" for="callbackWired">유선전화</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="callbackNumber">회신</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <input type="tel" class="form-control" id="callbackNumber" name="callbackNumber"
+                                               maxlength="13" placeholder="승인된 회신번호를 입력하세요"
+                                               data-mask="phone" data-validate="required|phone" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="targetGroupId">발송대상</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <select class="form-select" id="targetGroupId" name="targetGroupId"
+                                                data-validate="required" required>
+                                            <option value="">발송 대상을 선택하세요</option>
+                                            <option value="TG-01">VIP 고객 (1,200명)</option>
+                                            <option value="TG-02">신규 발급 고객 (3,500명)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="businessType">업무분류</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <select class="form-select" id="businessType" name="businessType"
+                                                data-validate="required" required>
+                                            <option value="">업무 분류를 선택하세요</option>
+                                            <option value="CARD">카드</option>
+                                            <option value="LOAN">대출</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="messageTemplateId">메시지 템플릿</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <select class="form-select" id="messageTemplateId" name="messageTemplateId"
+                                                data-validate="required" required>
+                                            <option value="">메시지 템플릿을 선택하세요</option>
+                                            <option value="TPL-01"
+                                                    data-content="[SC은행] #{고객명}님, 카드 발급이 완료되었습니다."
+                                                    data-send-type="SMS">카드 발급 완료</option>
+                                            <option value="TPL-02"
+                                                    data-content="[SC은행] #{고객명}님, 이번 달 청구금액은 #{청구금액}원입니다."
+                                                    data-send-type="LMS">청구 안내</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label align-items-start">
+                                        <label class="form-detail-required" for="messageContent">메시지 내용</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control align-items-start">
+                                        <div class="w-100">
+                                            <textarea class="form-control" id="messageContent" name="messageContent"
+                                                      rows="8" maxlength="1000"
+                                                      placeholder="메시지 내용을 입력하세요"
+                                                      data-validate="required|maxlength:1000" required></textarea>
+                                            <div class="d-flex justify-content-between mt-2 text-caption">
+                                                <span>치환 변수는 템플릿 정책에 맞게 입력하세요.</span>
+                                                <span class="form-detail-counter" id="message-counter">
+                                                    <strong id="message-char-count">0</strong> / 1,000자 ·
+                                                    <span id="message-byte-count">0</span>byte
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <aside class="col-12 col-xl-4" aria-labelledby="preview-title">
+                        <div class="card shadow-sm border-0 mb-0">
+                            <div class="card-header bg-white py-3">
+                                <h3 class="fs-6 fw-semibold mb-0" id="preview-title">미리보기</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="campaign-preview">
+                                    <div class="campaign-preview-screen" role="group" aria-label="SMS 메시지 미리보기">
+                                        <div class="campaign-preview-statusbar" aria-hidden="true">
+                                            <span>메시지</span>
+                                            <span class="campaign-preview-status-icons">
+                                                <span></span><span></span><span></span>
+                                            </span>
+                                        </div>
+                                        <div class="campaign-preview-sensor" aria-hidden="true"></div>
+                                        <div class="campaign-preview-header">
+                                            <div class="campaign-preview-title">SCBK 메시지</div>
+                                            <div class="campaign-preview-callback" id="preview-callback">회신번호 미입력</div>
+                                        </div>
+                                        <div class="campaign-preview-body">
+                                            <div class="text-center text-caption mb-3">오늘</div>
+                                            <div class="campaign-preview-message is-empty" id="preview-message">
+                                                템플릿을 선택하거나 메시지 내용을 입력하세요.
+                                            </div>
+                                            <div class="text-caption text-end mt-2" id="preview-send-time">발송 예정</div>
+                                        </div>
+                                        <div class="campaign-preview-device-bottom" aria-hidden="true">
+                                            <div class="campaign-preview-home-indicator"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3">
+                        <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+                        <span>초기화</span>
+                    </button>
+                    <button type="submit" id="btn-register" class="btn btn-primary px-4">
+                        <i data-lucide="send" aria-hidden="true"></i>
+                        <span>등록</span>
+                    </button>
+                </div>
+            </form>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/sms/campaign-register.js"></script>
+</body>
+</html>

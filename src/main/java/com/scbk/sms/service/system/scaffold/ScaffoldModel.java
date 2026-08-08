@@ -15,7 +15,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
 
-/** 템플릿 생성에 필요한 입력 + 분석 결과 묶음. */
+/**
+ * 템플릿이 사용하는 요청값과 SQL/DB 분석 결과를 정규화한 읽기 전용 생성 모델.
+ *
+ * <p>템플릿은 원본 DTO를 직접 해석하지 않고 이 모델의 accessor만 사용한다. 여기서 화면 모드, PK, 컬럼 표시/수정 화이트리스트, 검색 입력,
+ * 마스킹, 날짜 형식, 메뉴 기본값을 한 번 계산함으로써 Java·XML·HTML·JavaScript 산출물이 같은 계약을 공유한다.
+ */
 public class ScaffoldModel {
 
   private static final Pattern BETWEEN_SEARCH_RANGE_PATTERN =
@@ -29,6 +34,7 @@ public class ScaffoldModel {
   private final Map<String, String> typeMap;
   private final ScaffoldDialect dialect;
 
+  // 생성 입력과 분석 결과는 방어적 복사해 렌더링 도중 변경되지 않게 한다.
   public ScaffoldModel(
       ScaffoldRequestDTO request,
       List<String> columns,
@@ -78,6 +84,8 @@ public class ScaffoldModel {
   public ScaffoldDialect dialect() {
     return dialect;
   }
+
+  // ---- 화면 식별자와 생성 모드 -------------------------------------------------------------
 
   public String moduleName() {
     return request.getModuleName();
@@ -150,6 +158,8 @@ public class ScaffoldModel {
     }
     return "LIST";
   }
+
+  // ---- CRUD 대상, PK와 낙관적 잠금 ---------------------------------------------------------
 
   public String pkColumn() {
     return pkColumns().stream().findFirst().orElse("");
@@ -239,6 +249,8 @@ public class ScaffoldModel {
     return "/" + moduleName() + "/" + domainId();
   }
 
+  // ---- 검색조건과 그리드/모달 컬럼 ---------------------------------------------------------
+
   public List<SearchParam> searchParams() {
     List<String> vars = getSearchVars().isEmpty() ? List.of("searchKeyword") : getSearchVars();
     Set<String> betweenRangeEndVars = betweenRangeEndVars();
@@ -252,6 +264,8 @@ public class ScaffoldModel {
     List<SearchParam> result = new ArrayList<>();
     for (String var : vars) {
       ScaffoldSearchParamOptionDTO option = optionMap.get(var);
+      String label =
+          option != null && StringUtils.hasText(option.getLabel()) ? option.getLabel() : var;
       String inputType =
           option != null && StringUtils.hasText(option.getInputType())
               ? option.getInputType().trim().toUpperCase()
@@ -263,7 +277,7 @@ public class ScaffoldModel {
       String optionsText = option != null ? option.getOptionsText() : null;
       result.add(
           new SearchParam(
-              var, inputType, defaultValue, optionsText, betweenRangeEndVars.contains(var)));
+              var, label, inputType, defaultValue, optionsText, betweenRangeEndVars.contains(var)));
     }
     return result;
   }
@@ -345,6 +359,21 @@ public class ScaffoldModel {
     return result;
   }
 
+  /** 그리드의 남는 너비를 채울 마지막 표시 컬럼인지 판별한다. */
+  public boolean isLastVisibleColumn(ColumnConfig candidate) {
+    if (candidate == null || !candidate.visible()) {
+      return false;
+    }
+    List<ColumnConfig> configs = columnConfigs();
+    for (int index = configs.size() - 1; index >= 0; index--) {
+      ColumnConfig config = configs.get(index);
+      if (config.visible()) {
+        return config.fieldName().equals(candidate.fieldName());
+      }
+    }
+    return false;
+  }
+
   public List<VoField> voFields() {
     List<VoField> result = new ArrayList<>();
     for (String column : columns) {
@@ -371,6 +400,19 @@ public class ScaffoldModel {
   /** editable 컬럼만 필터링한다. 템플릿 반복문에서 사용한다. */
   public List<ColumnConfig> editableColumns() {
     return columnConfigs().stream().filter(ColumnConfig::editable).toList();
+  }
+
+  public List<ColumnConfig> modalColumns() {
+    return columnConfigs().stream().filter(ColumnConfig::modalVisible).toList();
+  }
+
+  public List<List<ColumnConfig>> modalRows() {
+    List<ColumnConfig> columns = modalColumns();
+    List<List<ColumnConfig>> rows = new ArrayList<>();
+    for (int index = 0; index < columns.size(); index += 2) {
+      rows.add(columns.subList(index, Math.min(index + 2, columns.size())));
+    }
+    return rows;
   }
 
   /** 마스킹이 필요한 컬럼만 필터링한다. Service/Excel 템플릿에서 사용한다. */
@@ -418,6 +460,8 @@ public class ScaffoldModel {
     }
     return fields;
   }
+
+  // ---- 생성 코드에서 사용하는 표시·escape·테스트 샘플 유틸리티 -----------------------------
 
   public String maskingMethodName(String maskType) {
     if (maskType == null) {
@@ -478,6 +522,8 @@ public class ScaffoldModel {
       default -> "1";
     };
   }
+
+  // ---- 메뉴 seed 기본값 -------------------------------------------------------------------
 
   public String menuId() {
     ScaffoldMenuOptionDTO menuOption = request.getMenuOption();
@@ -582,8 +628,10 @@ public class ScaffoldModel {
         : new SelectOption(token, token);
   }
 
+  // 템플릿 반복문이 문자열 규칙을 다시 해석하지 않도록 필요한 파생값과 판별 메서드를 함께 제공한다.
   public record SearchParam(
       String name,
+      String label,
       String inputType,
       String defaultValue,
       String optionsText,
@@ -646,18 +694,18 @@ public class ScaffoldModel {
       return validate != null && !validate.isEmpty();
     }
 
+    public boolean isRequired() {
+      return hasValidate() && validate.toLowerCase().contains("required");
+    }
+
     /** required 검증 + String → @NotBlank 어노테이션 대상 (UpdateRequestDTO 필드용). */
     public boolean requiresNotBlank() {
-      return hasValidate()
-          && validate.toLowerCase().contains("required")
-          && "String".equals(javaType);
+      return isRequired() && "String".equals(javaType);
     }
 
     /** required 검증 + 비-String → @NotNull 어노테이션 대상 (UpdateRequestDTO 필드용). */
     public boolean requiresNotNull() {
-      return hasValidate()
-          && validate.toLowerCase().contains("required")
-          && !"String".equals(javaType);
+      return isRequired() && !"String".equals(javaType);
     }
 
     public boolean hasOptions() {

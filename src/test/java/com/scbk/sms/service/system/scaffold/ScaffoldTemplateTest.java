@@ -313,7 +313,9 @@ class ScaffoldTemplateTest {
     assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
     assertThat(html).contains("id=\"btn-search\"");
     assertThat(html).contains("data-lucide=\"search\"");
-    assertThat(html).contains("th:replace=\"~{fragments/toast-grid :: gridCard}\"");
+    assertThat(html)
+        .contains(
+            "th:replace=\"~{fragments/toast-grid :: gridCard(null, null, null, null)}\"");
     assertThat(html).contains("id=\"btn-excel\"");
     assertThat(html).contains("th:if=\"${pageAuth.download}\"");
     assertThat(html).contains("data-lucide=\"download\"");
@@ -328,13 +330,14 @@ class ScaffoldTemplateTest {
     String fragment =
         Files.readString(Path.of("src/main/resources/templates/fragments/toast-grid.html"));
 
-    // then
-    assertThat(fragment).contains("th:fragment=\"gridCard\"");
-    assertThat(fragment).contains("id=\"total-count\"");
-    assertThat(fragment).contains("id=\"pageSizeSelect\"");
+    // then — 파라미터화된 시그니처와 elvis 기본값(단일 그리드 기존 ID) 계약을 검증한다.
+    assertThat(fragment)
+        .contains("th:fragment=\"gridCard(gridId, paginationId, totalCountId, pageSizeSelectId)\"");
+    assertThat(fragment).contains("th:id=\"${totalCountId ?: 'total-count'}\"");
+    assertThat(fragment).contains("th:id=\"${pageSizeSelectId ?: 'pageSizeSelect'}\"");
     assertThat(fragment).contains("class=\"form-select form-select-sm toast-grid-page-size\"");
-    assertThat(fragment).contains("id=\"grid\" class=\"toast-grid\"");
-    assertThat(fragment).contains("id=\"pagination\"");
+    assertThat(fragment).contains("th:id=\"${gridId ?: 'grid'}\" class=\"toast-grid\"");
+    assertThat(fragment).contains("th:id=\"${paginationId ?: 'pagination'}\"");
   }
 
   @Test
@@ -477,7 +480,25 @@ class ScaffoldTemplateTest {
     // then
     assertThat(js)
         .contains("name: 'sendDt', align: 'center', width: 150, formatter: TuiCommon.fmt.date");
-    assertThat(js).contains("name: 'receiverNo', align: 'center', width: 150 }");
+    assertThat(js).contains("name: 'receiverNo', align: 'center', minWidth: 150 }");
+  }
+
+  @Test
+  void JS는_마지막_표시_컬럼을_유연_너비로_생성한다() {
+    // given : 실제 마지막 컬럼은 숨김이므로 바로 앞 컬럼이 마지막 표시 컬럼이다.
+    ScaffoldRequestDTO request = requestWithOptions();
+    request.setColumnOptions(
+        List.of(
+            columnOption("RECEIVER_NO", true, "수신번호", 180, "left", "NONE", "NONE"),
+            columnOption("UPD_DTTM", false, "수정일시", 150, "center", "AUTO", "NONE")));
+
+    // when
+    String js = render(PAGE_JS, optionModel(request));
+
+    // then
+    assertThat(js)
+        .contains("name: 'receiverNo', align: 'left', minWidth: 180 }")
+        .contains("name: 'updDttm', align: 'center', width: 150, hidden: true");
   }
 
   @Test
@@ -556,10 +577,10 @@ class ScaffoldTemplateTest {
     ScaffoldRequestDTO request = requestWithOptions();
     request.setSearchParamOptions(
         List.of(
-            searchOption("sendDtFrom", "DATE", "CURRENT_MONTH_TO_TODAY", null),
-            searchOption("sendDtTo", "DATE", "CURRENT_MONTH_TO_TODAY", null),
-            searchOption("sendType", "SELECT", "NONE", "SMS:SMS,LMS:LMS"),
-            searchOption("sendStatus", "RADIO", "NONE", "S:성공,F:실패")));
+            searchOption("sendDtFrom", "시작일자", "DATE", "CURRENT_MONTH_TO_TODAY", null),
+            searchOption("sendDtTo", "종료일자", "DATE", "CURRENT_MONTH_TO_TODAY", null),
+            searchOption("sendType", "발송유형", "SELECT", "NONE", "SMS:SMS,LMS:LMS"),
+            searchOption("sendStatus", "발송상태", "RADIO", "NONE", "S:성공,F:실패")));
     ScaffoldModel optionModel = optionModel(request);
 
     // when
@@ -570,6 +591,12 @@ class ScaffoldTemplateTest {
     // then
     assertThat(html).contains("scaffold-search-card");
     assertThat(html).contains("scaffold-date-field scaffold-date-field-md");
+    assertThat(html)
+        .contains("<label for=\"sendDtFrom\" class=\"col-form-label fw-bold\">시작일자</label>")
+        .contains("aria-label=\"시작일자\"")
+        .contains("<label for=\"sendDtTo\" class=\"col-form-label fw-bold\">종료일자</label>")
+        .contains("aria-label=\"종료일자\"")
+        .contains("<label for=\"sendType\" class=\"col-form-label fw-bold\">발송유형</label>");
     assertThat(html).contains("<input type=\"text\" id=\"sendDtFrom\" data-search-type=\"date\"");
     assertThat(html).contains("id=\"sendDtFromPickerLayer\" class=\"scaffold-date-picker-layer\"");
     assertThat(html).contains("<input type=\"text\" id=\"sendDtTo\" data-search-type=\"date\"");
@@ -598,7 +625,7 @@ class ScaffoldTemplateTest {
   }
 
   @Test
-  void MapperXml은_baseQuery와_searchConditions를_분리한다() {
+  void MapperXml은_안전한_단순쿼리의_searchConditions를_baseQuery_내부에_배치한다() {
     // given : WHERE 1=1과 검색 조건이 있는 rawQuery. baseQuery는 SELECT/FROM, searchConditions는 WHERE 이하.
     ScaffoldRequestDTO request = new ScaffoldRequestDTO();
     request.setModuleName("basic");
@@ -607,12 +634,12 @@ class ScaffoldTemplateTest {
     request.setDomainName("공지사항");
     request.setRawQuery(
         """
-            SELECT A.NOTICE_ID, A.TITLE
-            FROM SMS.NOTICE A
+            SELECT T.NOTICE_ID, T.TITLE
+            FROM SMS.NOTICE T
             WHERE 1=1
-              AND A.TITLE LIKE '%' || $search_keyword || '%'
+              AND T.TITLE LIKE '%' || $search_keyword || '%'
             """);
-    request.setOrderBy("A.NOTICE_ID DESC");
+    request.setOrderBy("T.NOTICE_ID DESC");
     ScaffoldModel model =
         new ScaffoldModel(
             request,
@@ -637,11 +664,145 @@ class ScaffoldTemplateTest {
     String searchConditions = xml.substring(scStart, scEnd);
     assertThat(searchConditions).contains("<where>");
     assertThat(searchConditions).contains("<if test=\"searchKeyword != null");
-    assertThat(searchConditions).contains("AND A.TITLE LIKE '%' || #{searchKeyword} || '%'");
+    assertThat(searchConditions).contains("AND T.TITLE LIKE '%' || #{searchKeyword} || '%'");
 
-    // then 3 : count/selectList는 두 include를 모두 사용
-    assertThat(xml).contains("<include refid=\"baseQuery\"/>");
-    assertThat(xml).contains("<include refid=\"searchConditions\"/>");
+    // then 3 : 단일 테이블 count는 SELECT 컬럼/래퍼 없이 FROM+검색조건만 사용한다.
+    assertThat(selectBlock(xml, "count"))
+        .containsPattern(
+            "(?s)SELECT COUNT\\(1\\)\\s*FROM SMS.NOTICE T\\s*<include refid=\"searchConditions\"/>")
+        .doesNotContain("<include refid=\"baseQuery\"/>");
+    // then 4 : selectList는 닫는 ) A 전에 검색 조건을 적용한다.
+    assertThat(selectBlock(xml, "selectList"))
+        .containsPattern(
+            "(?s)<include refid=\"baseQuery\"/>\\s*<include refid=\"searchConditions\"/>\\s*\\) A");
+  }
+
+  @Test
+  void MapperXml은_WHERE가_없는_단순쿼리도_첫_직접컬럼으로_내부_검색조건을_생성한다() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("notice");
+    request.setDomainClass("Notice");
+    request.setDomainName("공지사항");
+    request.setRawQuery("SELECT T.NOTICE_ID, T.TITLE FROM SMS.NOTICE T");
+    request.setOrderBy("T.NOTICE_ID DESC");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("NOTICE_ID", "TITLE"),
+            List.of(),
+            Map.of("NOTICE_ID", "Long", "TITLE", "String"));
+
+    String xml = render(MAPPER_XML, model);
+
+    assertThat(xml).contains("AND T.NOTICE_ID LIKE '%' || #{searchKeyword} || '%'");
+    assertThat(selectBlock(xml, "count"))
+        .contains("FROM SMS.NOTICE T")
+        .contains("<include refid=\"searchConditions\"/>")
+        .doesNotContain("<include refid=\"baseQuery\"/>");
+    assertThat(selectBlock(xml, "selectList"))
+        .containsPattern(
+            "(?s)<include refid=\"baseQuery\"/>\\s*<include refid=\"searchConditions\"/>\\s*\\) A");
+  }
+
+  @Test
+  void MapperXml은_일반_JOIN의_원본별칭이_유효하면_검색조건을_내부에_배치한다() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("basic");
+    request.setDomainId("employee");
+    request.setDomainClass("Employee");
+    request.setDomainName("직원");
+    request.setRawQuery(
+        """
+            SELECT E.EMP_ID, D.DEP_NM
+            FROM SMS.EMPLOYEE E
+            JOIN SMS.DEPARTMENT D ON D.DEP_ID = E.DEP_ID
+            WHERE 1=1
+            AND D.DEP_NM = $dep_nm
+            """);
+    request.setOrderBy("E.EMP_ID");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("EMP_ID", "DEP_NM"),
+            List.of("depNm"),
+            Map.of("EMP_ID", "String", "DEP_NM", "String"));
+
+    String xml = render(MAPPER_XML, model);
+
+    assertThat(xml).contains("AND D.DEP_NM = #{depNm}");
+    assertThat(selectBlock(xml, "count"))
+        .containsPattern(
+            "(?s)<include refid=\"baseQuery\"/>\\s*<include refid=\"searchConditions\"/>\\s*\\) A");
+    assertThat(selectBlock(xml, "selectList"))
+        .containsPattern(
+            "(?s)<include refid=\"baseQuery\"/>\\s*<include refid=\"searchConditions\"/>\\s*\\) A");
+  }
+
+  @Test
+  void MapperXml은_집계쿼리의_검색조건을_기존_외부위치에_유지한다() {
+    ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+    request.setModuleName("sms");
+    request.setDomainId("status-summary");
+    request.setDomainClass("StatusSummary");
+    request.setDomainName("상태집계");
+    request.setRawQuery(
+        """
+            SELECT T.STATUS AS STATUS, COUNT(*) AS CNT
+            FROM SMS.HISTORY T
+            GROUP BY T.STATUS
+            """);
+    request.setOrderBy("A.STATUS");
+    ScaffoldModel model =
+        new ScaffoldModel(
+            request,
+            List.of("STATUS", "CNT"),
+            List.of(),
+            Map.of("STATUS", "String", "CNT", "Long"));
+
+    String xml = render(MAPPER_XML, model);
+
+    assertThat(xml).contains("AND A.STATUS LIKE '%' || #{searchKeyword} || '%'");
+    assertThat(selectBlock(xml, "count"))
+        .containsPattern(
+            "(?s)<include refid=\"baseQuery\"/>\\s*\\) A\\s*<include refid=\"searchConditions\"/>");
+    assertThat(selectBlock(xml, "selectList"))
+        .containsPattern(
+            "(?s)<include refid=\"baseQuery\"/>\\s*\\) A\\s*<include refid=\"searchConditions\"/>");
+  }
+
+  @Test
+  void MapperXml은_DISTINCT_UNION_윈도우_서브쿼리에_래퍼COUNT를_유지한다() {
+    List<String> complexQueries =
+        List.of(
+            "SELECT DISTINCT T.ID FROM SMS.TARGET T",
+            "SELECT T.ID FROM SMS.TARGET T UNION SELECT H.ID FROM SMS.HISTORY H",
+            "SELECT T.ID, ROW_NUMBER() OVER (ORDER BY T.ID) AS RN FROM SMS.TARGET T",
+            "SELECT T.ID, (SELECT COUNT(*) FROM SMS.HISTORY H WHERE H.ID=T.ID) AS CNT FROM SMS.TARGET T");
+
+    for (String rawQuery : complexQueries) {
+      ScaffoldRequestDTO request = new ScaffoldRequestDTO();
+      request.setModuleName("sms");
+      request.setDomainId("complex-query");
+      request.setDomainClass("ComplexQuery");
+      request.setDomainName("복합조회");
+      request.setRawQuery(rawQuery);
+      request.setOrderBy("A.ID");
+      ScaffoldModel model =
+          new ScaffoldModel(
+              request,
+              List.of("ID"),
+              List.of(),
+              Map.of("ID", "Long"));
+
+      String countSql = selectBlock(render(MAPPER_XML, model), "count");
+
+      assertThat(countSql)
+          .as(rawQuery)
+          .contains("<include refid=\"baseQuery\"/>")
+          .containsPattern(
+              "(?s)<include refid=\"baseQuery\"/>\\s*\\) A\\s*<include refid=\"searchConditions\"/>");
+    }
   }
 
   @Test
@@ -907,6 +1068,7 @@ class ScaffoldTemplateTest {
             "header: '발송일시', name: 'sendDt', align: 'center', width: 170, formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')");
     assertThat(js).contains("header: '수신번호', name: 'receiverNo', align: 'left', width: 180 }");
     assertThat(js).doesNotContain("TuiCommon.maskValue");
+    assertThat(service).contains("import com.scbk.sms.util.MaskingUtil;");
     assertThat(service).contains("vo.setReceiverNo(MaskingUtil.maskPhone(vo.getReceiverNo()));");
     assertThat(optionModel.maskingMethodName("EMAIL")).isEqualTo("maskEmail");
     assertThat(optionModel.maskingMethodName("BIRTH_DATE")).isEqualTo("maskBirthDate");
@@ -1054,9 +1216,12 @@ class ScaffoldTemplateTest {
     request.setScreenMode("CRUD");
     request.setPkColumn("SMS_HISTORY_ID");
     request.setLockColumn("UPD_DTTM");
+    ScaffoldColumnOptionDTO sendType =
+        columnOption("SEND_TYPE", true, true, true, "발송유형", 120, "center", "NONE", "NONE");
+    sendType.setValidate("required");
     request.setColumnOptions(
         List.of(
-            columnOption("SEND_TYPE", true, true, true, "발송유형", 120, "center", "NONE", "NONE"),
+            sendType,
             columnOption("SEND_STATUS", true, true, false, "발송상태", 120, "center", "NONE", "NONE"),
             columnOption("RECEIVER_NO", true, false, true, "수신번호", 160, "left", "NONE", "PHONE"),
             columnOption(
@@ -1066,6 +1231,8 @@ class ScaffoldTemplateTest {
     // when
     String updateDto = render(UPDATE_DTO, optionModel);
     String xml = render(MAPPER_XML, optionModel);
+    String html = render(PAGE_HTML, optionModel);
+    String js = render(PAGE_JS, optionModel);
 
     // then
     assertThat(updateDto).contains("private String sendType;");
@@ -1080,6 +1247,53 @@ class ScaffoldTemplateTest {
     assertThat(xml).contains("#{sendType,jdbcType=VARCHAR}");
     assertThat(xml).doesNotContain("               SEND_STATUS = #{sendStatus,jdbcType=VARCHAR}");
     assertThat(xml).doesNotContain("UPD_DTTM = #{updDttm}");
+
+    assertThat(html)
+        .contains(
+            "<form id=\"detail-form\" autocomplete=\"off\" novalidate>");
+    assertThat(
+            Pattern.compile("class=\"row g-0 form-detail-row\"").matcher(html).results().count())
+        .isEqualTo(2);
+    assertThat(html)
+        .contains(
+            "<label class=\"form-detail-required\" for=\"f-sendType\">발송유형</label>");
+    assertThat(html).contains("<span>발송상태</span>");
+    assertThat(html).contains("data-readonly-field=\"sendStatus\"");
+    assertThat(html).doesNotContain("name=\"receiverNo\"");
+    assertThat(html).doesNotContain("data-readonly-field=\"updDttm\"");
+    assertThat(html).doesNotContain("col-md-6");
+    // readonly modal field is plaintext with data-readonly-field and NO name attribute
+    assertThat(html)
+        .as("readonly modal value must carry data-readonly-field")
+        .matches(
+            h ->
+                Pattern.compile(
+                        "<div[^>]*class=\"form-control-plaintext\"[^>]*data-readonly-field=\"sendStatus\"")
+                    .matcher(h)
+                    .find());
+    assertThat(html)
+        .as("readonly modal value must NOT carry a name attribute")
+        .matches(
+            h -> {
+              var m =
+                  Pattern.compile("<div[^>]*data-readonly-field=\"sendStatus\"[^>]*>").matcher(h);
+              return m.find() && !m.group().contains("name=");
+            });
+
+    assertThat(js).contains("form.querySelectorAll('[data-readonly-field]')");
+    assertThat(js).contains("field.value = text;");
+    assertThat(js).contains("field.textContent = text;");
+    assertThat(js).contains("FormBinder.bind('#detail-form', row);\n        syncReadonlyFields(row);");
+    assertThat(js)
+        .contains("FormBinder.bind('#detail-form', DEFAULT_FORM);\n        syncReadonlyFields(DEFAULT_FORM);");
+    assertThat(js).contains("const MODAL_TITLE = '발송이력조회';");
+    assertThat(js)
+        .contains("document.querySelector('#' + MODAL_ID + ' .modal-body')")
+        .contains("modalBody.classList.add('p-0')");
+    assertThat(js).contains("syncModalTitle('수정');");
+    assertThat(js).contains("syncModalTitle('등록');");
+    assertThat(js).contains("saveBtn.classList.toggle('d-none'");
+    assertThat(js).contains("deleteBtn.classList.toggle('d-none'");
   }
 
   @Test
@@ -1258,8 +1472,14 @@ class ScaffoldTemplateTest {
 
   private ScaffoldSearchParamOptionDTO searchOption(
       String name, String inputType, String defaultValue, String optionsText) {
+    return searchOption(name, null, inputType, defaultValue, optionsText);
+  }
+
+  private ScaffoldSearchParamOptionDTO searchOption(
+      String name, String label, String inputType, String defaultValue, String optionsText) {
     ScaffoldSearchParamOptionDTO option = new ScaffoldSearchParamOptionDTO();
     option.setName(name);
+    option.setLabel(label);
     option.setInputType(inputType);
     option.setDefaultValue(defaultValue);
     option.setOptionsText(optionsText);
@@ -1393,7 +1613,9 @@ class ScaffoldTemplateTest {
 
     assertThat(model.screenMode()).isEqualTo("LIST");
     assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
-    assertThat(html).contains("th:replace=\"~{fragments/toast-grid :: gridCard}\"");
+    assertThat(html)
+        .contains(
+            "th:replace=\"~{fragments/toast-grid :: gridCard(null, null, null, null)}\"");
     assertThat(html).contains("id=\"btn-search\"");
     assertThat(html).contains("id=\"btn-reset\"");
     assertThat(html).doesNotContain("id=\"btn-create\"");
@@ -1423,7 +1645,9 @@ class ScaffoldTemplateTest {
 
     assertThat(model.screenMode()).isEqualTo("EXCEL");
     assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
-    assertThat(html).contains("th:replace=\"~{fragments/toast-grid :: gridCard}\"");
+    assertThat(html)
+        .contains(
+            "th:replace=\"~{fragments/toast-grid :: gridCard(null, null, null, null)}\"");
     assertThat(html).contains("id=\"btn-search\"");
     assertThat(html).contains("id=\"btn-excel\"");
     assertThat(html).contains("th:if=\"${pageAuth.download}\"");
@@ -1473,17 +1697,31 @@ class ScaffoldTemplateTest {
 
     assertThat(model.screenMode()).isEqualTo("CRUD");
     assertThat(html).contains("layout:decorate=\"~{defaultLayout}\"");
-    assertThat(html).contains("th:replace=\"~{fragments/toast-grid :: gridCard}\"");
+    assertThat(html)
+        .contains(
+            "th:replace=\"~{fragments/toast-grid :: gridCard(null, null, null, null)}\"");
     assertThat(html).contains("fragments/modal-base :: layout");
     assertThat(html).contains("modalId='history-modal'");
     assertThat(html).contains("bodyContent=~{::#modal-body}");
     assertThat(html).contains("id=\"modal-body\"");
     assertThat(html).contains("id=\"detail-form\"");
+    assertThat(html)
+        .contains("<form id=\"detail-form\" autocomplete=\"off\" novalidate>")
+        .doesNotContain("class=\"form-detail-modal-form\"");
+    assertThat(html).contains("class=\"row g-0 form-detail-row\"");
     assertThat(html).contains("name=\"smsHistoryId\"");
     assertThat(html).contains("name=\"beforeUpdDttm\"");
     assertThat(html).contains("id=\"btn-create\"");
     assertThat(html).contains("th:if=\"${pageAuth.create}\"");
-    assertThat(html).contains("id=\"f-sendType\"").doesNotContain("id=\"f-smsHistoryId\"");
+    // search text input carries id="sendType" (search inputs omit name per template)
+    assertThat(html)
+        .as("search control must have id=\"sendType\" on the same <input>")
+        .matches(h -> Pattern.compile("<input[^>]*id=\"sendType\"").matcher(h).find());
+    // modal control carries both id="f-sendType" and name="sendType" on the same <input>
+    assertThat(html)
+        .as("modal control must have id=\"f-sendType\" and name=\"sendType\" on the same <input>")
+        .matches(h -> Pattern.compile("<input[^>]*id=\"f-sendType\"[^>]*name=\"sendType\"").matcher(h).find());
+    assertThat(html).doesNotContain("id=\"f-smsHistoryId\"");
     assertThat(html).doesNotContain("id=\"detail-panel\"");
     assertThat(html).doesNotContain("tui-auto-modal");
 
@@ -1505,6 +1743,11 @@ class ScaffoldTemplateTest {
     assertThat(js).contains("DEFAULT_FORM =");
     assertThat(js).contains("PK_FIELDS =");
     assertThat(js).contains("LOCK =");
+    assertThat(js)
+        .contains("document.querySelector('#' + MODAL_ID + ' .modal-body')")
+        .contains("modalBody.classList.add('p-0')");
+    assertThat(js).contains("syncModalTitle('수정')");
+    assertThat(js).contains("classList.toggle('d-none'");
     assertThat(js).doesNotContain("autoModal");
     assertThat(js).doesNotContain("modalActions");
     assertThat(js).doesNotContain("JustValidate");
@@ -1637,6 +1880,96 @@ class ScaffoldTemplateTest {
 
     // then
     assertThat(js).contains("showRowNumber: document.querySelector('#showRowNumber').checked");
+  }
+
+  @Test
+  void scaffold_JS는_다른_도메인_분석에서_도메인_종속_상태를_초기화한다() throws Exception {
+    // given / when
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+
+    // then
+    assertThat(js)
+        .contains("previousContext.domainKey !== draftContext.domainKey")
+        .contains("resetDomainDependentState(previousContext)")
+        .contains("document.querySelector('#pkColumns').innerHTML = ''")
+        .contains("document.querySelector('#menuId').value = ''")
+        .contains("document.querySelector('#parentMenuId').value = ''")
+        .contains("document.querySelector('#roleCode').value = 'ROLE_ADMIN'")
+        .contains("document.querySelector('#sortOrd').value = '99'");
+  }
+
+  @Test
+  void scaffold_JS는_동일_도메인_재분석_옵션을_보존하고_변경된_분석은_자동_갱신한다() throws Exception {
+    // given / when
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+
+    // then
+    assertThat(js)
+        .contains("if (!hasOptions || !isCurrentAnalysisContext())")
+        .contains("const preserveFieldOptions = !domainChanged")
+        .contains("renderSearchParamOptions(searchVars, searchParamLabels, preserveFieldOptions)")
+        .contains(
+            "renderColumnOptions(columns, columnComments, analyzedPkColumns, preserveFieldOptions)");
+  }
+
+  @Test
+  void scaffold_JS는_DB_comment를_화면명_기본값으로_쓰고_실제_PK는_기본_숨김한다()
+      throws Exception {
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+    String html = Files.readString(Path.of("src/main/resources/templates/system/scaffold.html"));
+
+    assertThat(js)
+        .contains("const columnComments = analysis.columnComments || {}")
+        .contains("const pkSet = new Set((pkColumns || []).map(normalizeKey))")
+        .contains("const visible = prev.visible === undefined ? !isPk : prev.visible")
+        .contains("const modalVisible = prev.modalVisible === undefined ? !isPk : prev.modalVisible")
+        .contains("const defaultHeaderName = columnComments[normalizeKey(column)] || column")
+        .contains("data-protected=\"${isPk}\"")
+        .contains("input.disabled = !isCrud || input.dataset.protected === 'true'")
+        .contains("DB 컬럼 comment 기본값, 직접 수정 가능");
+    assertThat(html)
+        .contains("화면명은 DB 컬럼 comment 기본이며 직접 수정할 수 있습니다")
+        .contains("그리드 표시")
+        .contains("등록·수정 표시")
+        .contains("등록·수정 입력")
+        .contains("화면 한글명");
+  }
+
+  @Test
+  void scaffold_JS는_조회조건_DB_comment와_BETWEEN_화면명을_수정가능한_옵션으로_보낸다()
+      throws Exception {
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+    String html = Files.readString(Path.of("src/main/resources/templates/system/scaffold.html"));
+
+    assertThat(js)
+        .contains("const searchParamLabels = analysis.searchParamLabels || {}")
+        .contains("const defaultLabel = searchParamLabels[name] || name")
+        .contains("data-field=\"label\"")
+        .contains("data-default-label=\"${escapeAttr(defaultLabel)}\"")
+        .contains("if (input && !input.value.trim())")
+        .contains("input.value = input.dataset.defaultLabel")
+        .contains("label: value(row, 'label').trim()")
+        .contains("row.querySelector('[data-field=\"label\"]').dataset.defaultLabel");
+    assertThat(html)
+        .contains("BETWEEN은 시작일자/종료일자")
+        .contains("<th>파라미터</th>")
+        .contains("<th>화면 한글명</th>");
+  }
+
+  @Test
+  void scaffold_JS는_LIST_EXCEL_payload에서_CRUD_전용_옵션을_제외한다() throws Exception {
+    // given / when
+    String js = Files.readString(Path.of("src/main/resources/static/js/system/scaffold.js"));
+
+    // then
+    assertThat(js)
+        .contains("const isCrud = screenMode === 'CRUD'")
+        .contains("targetTable: isCrud ? targetTableEl.value.trim() : ''")
+        .contains("const pkColumns = isCrud ? readPkColumns() : []")
+        .contains("lockColumn: isCrud ? document.querySelector('#lockColumn').value : ''")
+        .contains("modalVisible: isCrud &&")
+        .contains("editable: isCrud &&")
+        .contains("input.disabled = !isCrud");
   }
 
   @Test
@@ -1810,5 +2143,11 @@ class ScaffoldTemplateTest {
 
     // then : 기본값 true
     assertThat(request.isShowRowNumber()).isTrue();
+  }
+
+  private String selectBlock(String xml, String id) {
+    int start = xml.indexOf("<select id=\"" + id + "\"");
+    int end = xml.indexOf("</select>", start);
+    return xml.substring(start, end);
   }
 }

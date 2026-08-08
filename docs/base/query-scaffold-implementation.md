@@ -1,6 +1,8 @@
 # Query Scaffold Implementation
 
-QuerySpec(조회 SQL + `$변수`)에서 화면 1세트의 복사용 코드와 적용 대상 파일 목록을 생성하는 local 전용 도구 구현 기록이다.
+QuerySpec(조회 SQL + `$변수`)에서 개발자가 이어서 완성할 화면 1세트의 기본 파일과 적용 대상 목록을 생성하는 local 전용 도구 구현 기록이다.
+
+이 문서는 구현 이력이다. 생성물 소유권과 재생성 기준은 `docs/base/scaffold-contract.md`를 단일 기준으로 따른다.
 
 설계 근거는 `docs/base/v2-scaffold-reference.md`(v2 생성기 분석)를 따른다.
 
@@ -24,8 +26,8 @@ QuerySpec(조회 SQL + `$변수`)에서 화면 1세트의 복사용 코드와 �
 | targetTable | CRUD 기준 수정 대상 테이블. 미입력 시 `FROM`의 첫 테이블을 서버에서 추론 |
 | includePrivacy | 개인정보 포함 시 `@PrivacyLog` 생성 |
 | showRowNumber | 그리드 행 번호(No) 표시 여부. 기본값 Y(true). false 시 생성 JS의 `rowHeaders: []` |
-| searchParamOptions | 검색 파라미터별 입력 타입/기본값/콤보·라디오 옵션 |
-| columnOptions | 컬럼별 그리드 표시여부/수정 화면 표시여부/수정 가능여부/헤더명/너비/정렬/날짜 포맷/마스킹 타입 |
+| searchParamOptions | 검색 파라미터별 화면명/입력 타입/기본값/콤보·라디오 옵션 |
+| columnOptions | 컬럼별 그리드 표시여부/등록·수정 화면 표시여부/입력 허용여부/화면명/너비/정렬/날짜 포맷/마스킹 타입 |
 | pkColumns / lockColumn | update/delete WHERE 기준 PK 목록, 낙관적 잠금 컬럼. `pkColumn` 단일 입력은 하위 호환용으로만 유지 |
 | menuOption | `menuId`, `parentMenuId`, `roleCode`, `sortOrd` |
 
@@ -39,7 +41,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 1. QueryColumnExtractor : JSQLParser로 SELECT 컬럼/alias, 검색변수, CRUD 기준 테이블 추출 (실패 시 fallback)
 2. ColumnTypeInferrer   : `sms.scaffold.db-platform` Dialect의 빈 결과 쿼리 실행 후 메타데이터로 타입 추론
                           실패 시 String 강행하지 않고 오류 보고 (v2와 다른 v3 확정 동작)
-3. ScaffoldService      : targetTable 메타데이터에서 PK/nullable 정보 조회, CRUD 검증 후 산출물 생성
+3. ScaffoldService      : targetTable 메타데이터에서 PK/nullable/comment 정보 조회, CRUD 검증 후 산출물 생성
 4. 미리보기             : `/system/scaffold/preview` 호출 -> 신규/변경없음/덮어쓰기 표시
 5. 적용 버튼            : local 전용 `/system/scaffold/apply` 호출 -> 생성물을 정해진 프로젝트 경로로 저장
 ```
@@ -48,7 +50,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 
 ## 적용 경로
 
-`미리보기`와 `적용`은 같은 요청을 서버에서 다시 생성한 뒤 아래 경로를 계산한다. UI에는 각 산출물별로 `신규 파일`, `기존 파일 덮어쓰기`, `변경 없음`을 표시한다. `적용` 실행 시 UTF-8로 저장하며, 같은 경로의 기존 파일은 산출물 내용으로 덮어쓴다.
+`미리보기`와 `적용`은 같은 요청을 서버에서 다시 생성한 뒤 아래 경로를 계산한다. UI에는 각 산출물별로 `신규 파일`, `기존 파일 덮어쓰기`, `변경 없음`을 표시한다. `적용` 실행 시 UTF-8로 저장하며, 같은 경로의 기존 파일은 병합 없이 산출물 전체로 덮어쓴다. 따라서 개발자 소유로 전환된 화면에는 갱신 목적으로 다시 적용하지 않는다.
 
 | 산출물 | 적용 경로 |
 |---|---|
@@ -78,11 +80,16 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 - 날짜 검색조건은 native `type="date"`가 아니라 Toast UI DatePicker (`data-search-type="date"` + `{field}PickerLayer`)로 생성한다.
 - 검색조건 `xxxFrom/xxxTo`, `startX/endX`, `fromX/toX` 날짜쌍은 HTML에서 `from ~ to` Toast UI DatePicker로 묶어 표시한다.
 - 검색조건 입력 타입은 텍스트/날짜/콤보/라디오 중 선택 가능하며, 기본값은 없음/오늘/어제/최근 7일/이번 달/현재월 1일~오늘 중 선택한다.
-- 컬럼 옵션은 그리드 표시여부, 수정 화면 표시여부, 수정 가능여부, 헤더명, 너비, 정렬, 날짜 포맷, 마스킹 타입을 반영한다.
-  - `gridVisible=false`: 그리드에서는 `hidden: true`로 유지한다. PK/삭제 기준으로 사용할 수 있다.
-  - `modalVisible=false`: 이름은 기존 요청 JSON 호환을 위해 유지하지만 CRUD 수정 화면에는 표시하지 않는다. PK와 낙관적 잠금 값은 hidden으로 보관할 수 있다.
-  - `editable=true`: CRUD 모드에서만 의미가 있다. 수정 화면 input, `*UpdateRequestDTO`, Mapper XML `UPDATE SET` 대상에 포함한다.
-  - `editable=false`: CRUD 수정 화면에 읽기전용으로 표시할 수 있지만 update payload와 `*UpdateRequestDTO`에는 포함하지 않는다.
+- `MapperXmlViewFactory`의 쿼리 구조 분석이 직접 컬럼 기반 단순 SELECT를 판정한다. 안전한 단순 SELECT와 일반 테이블 JOIN은 원본 별칭의 `searchConditions`를 `baseQuery` 내부에 배치한다.
+- 직접 COUNT 최적화는 단순 단일 테이블 SELECT에만 적용한다. JOIN, `DISTINCT`, 계산/집계 컬럼, `GROUP BY/HAVING`, 집합 연산, CTE, 서브쿼리, 윈도우 함수, raw SQL 정렬·페이징은 기존 `COUNT FROM (baseQuery)` 구조를 유지한다.
+- `/analyze`는 JDBC 컬럼 `REMARKS`를 `columnComments`로 반환한다. 직접 SELECT 컬럼은 alias를 사용해도 원본 컬럼 comment를 연결하며, 계산식처럼 원본을 확정할 수 없으면 alias/컬럼명을 기본 화면명으로 사용한다.
+- 조회조건도 직접 조건 컬럼의 DB comment를 `searchParamLabels` 기본 화면명으로 사용하고 수정할 수 있다. comment가 없으면 SELECT alias 또는 검색 변수명을 사용하며, `BETWEEN $a AND $b`는 각각 `시작일자`와 `종료일자`를 기본값으로 사용한다.
+- 컬럼 옵션은 그리드 표시여부, 등록·수정 화면 표시여부, 입력 허용여부, 화면명, 너비, 정렬, 날짜 포맷, 마스킹 타입을 반영한다.
+  - `visible=false`: 그리드에서는 `hidden: true`로 유지한다. 실제 PK는 기본값이 false지만 수정·삭제 식별값으로 계속 사용할 수 있다.
+  - `modalVisible=false`: CRUD 등록·수정 모달에 표시하지 않는다. 실제 PK는 기본값이 false이며 hidden 필드로 보관한다.
+  - `editable=true`: CRUD 모드에서 등록·수정 input, `*UpdateRequestDTO`, Mapper XML `INSERT/UPDATE` 대상에 포함한다.
+  - `editable=false`: 모달에 표시만 할 수 있지만 create/update payload와 `*UpdateRequestDTO`에는 포함하지 않는다.
+  - `headerName`: DB column comment가 있으면 기본값으로 채우며 사용자가 수정할 수 있다. 같은 값이 그리드 헤더와 등록·수정 모달 라벨에 적용된다.
 - `screenMode`는 `LIST`/`EXCEL`/`CRUD` 3종으로 화면 범위를 분리한다. 알 수 없는 screenMode는 `IllegalArgumentException`으로 거부된다.
 - `LIST`/`EXCEL` 생성물은 행 클릭·더블클릭 상세보기와 자동 모달을 만들지 않는다. 필요한 업무 화면은 생성 후 개발자가 명시적으로 추가한다.
 - `CRUD`는 `.tpl`에 정의된 수정 모달을 행 클릭으로 열고 `/update`, `/delete` endpoint를 호출한다. 실제 권한 판정은 기존 `MenuAuthInterceptor`의 URL suffix 권한 규칙을 따른다.
@@ -106,7 +113,7 @@ DB 문법은 자동 fallback하지 않고 `application.yml`의 `sms.scaffold.db-
 |---|---|
 | `controller/system/ScaffoldController.java` | 화면 + 생성/적용 API |
 | `service/system/ScaffoldService.java` | 생성/적용 오케스트레이션 |
-| `service/system/scaffold/ScaffoldFileApplier.java` | 생성물 경로 매핑 및 파일 저장 |
+| `service/system/scaffold/ScaffoldFileApplier.java` | 생성물 경로 매핑·파일 저장 및 기존 산출물과의 대소문자 전용 경로 충돌 차단 |
 | `service/system/scaffold/QueryColumnExtractor.java` | 컬럼/검색변수/CRUD 대상 테이블 추출 |
 | `service/system/scaffold/ColumnTypeInferrer.java` | 실제 DB 기준 타입 추론 |
 | `service/system/scaffold/ScaffoldDialect.java` | Oracle/Postgres/DB2/MSSQL별 페이징, 날짜 변환, 현재시각 SQL 분기 |
@@ -170,7 +177,7 @@ Mockito 테스트는 `src/test/resources/mockito-extensions/org.mockito.plugins.
 
 생성된 코드는 그대로 완료가 아니다. `screen-generation-guide.md`의 절차에 편입해서 사용한다.
 
-1. 절차서 0~1단계(대상 확정, 실제 테이블 확인)를 먼저 수행한다.
-2. scaffold로 2~7단계 산출물을 생성하고 검토 후 적용한다.
-3. CRUD 화면은 `targetTable`, PK, lock 컬럼, editable 컬럼을 확인한다. 개인정보 화면은 마스킹 TODO를 보정한다.
-4. 절차서 8~10단계(권한, mvn 검증, 문서 갱신)를 수행한다.
+1. 절차서 1~2단계에서 대상·도메인·실제 테이블과 조회 SQL을 확정한다.
+2. 절차서 3단계에서 Scaffold로 전체 기본 산출물을 한 번 생성하고 적용한다.
+3. 절차서 4~5단계에서 CRUD 기준과 개인정보 설정을 검토한 뒤 개발자 소유 업무 기능을 구현한다.
+4. 절차서 6~7단계에서 메뉴·권한 연결과 전체 검증을 수행한다.

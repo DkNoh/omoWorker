@@ -30,8 +30,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+/**
+ * SmsHistoryController의 HTTP 바인딩과 공통 ApiResponse 계약 테스트.
+ *
+ * <p>standalone MockMvc로 정상 요청뿐 아니라 잘못된 파라미터, JSON, Content-Type과 서비스 예외 변환을 함께 검증한다.
+ */
 @ExtendWith(MockitoExtension.class)
-/** Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. */
 class SmsHistoryControllerTest {
 
     @Mock

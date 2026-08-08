@@ -1,12 +1,17 @@
 package com.scbk.sms.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.scbk.sms.dto.common.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -136,6 +141,32 @@ class GlobalExceptionHandlerTest {
         .andExpect(jsonPath("$.code").value(405));
   }
 
+  // --- Bean Validation 필드 오류 계약 ---
+
+  @Test
+  void 빈_JSON_바디는_모든_필드_검증_오류를_400_응답에_포함한다() throws Exception {
+    // given : @NotBlank name + @NotNull @Email email — 둘 다 violations
+    String emptyJson = "{}";
+
+    // when / then
+    mockMvc
+        .perform(
+            post("/test/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(emptyJson))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(400))
+        .andExpect(jsonPath("$.data").doesNotExist())
+        .andExpect(jsonPath("$.errors").isArray())
+        .andExpect(jsonPath("$['errors'][*]['field']").value(containsInAnyOrder("name", "email")))
+        .andExpect(jsonPath("$['errors'][*]['message']").value(containsInAnyOrder(
+            "must not be blank", "must not be null")))
+        // --- pair-level association (swapped messages would fail these) ---
+        .andExpect(jsonPath("$['errors'][?(@.field=='name')].message").value("must not be blank"))
+        .andExpect(jsonPath("$['errors'][?(@.field=='email')].message").value("must not be null"));
+  }
+
   @RestController
   private static class InputController {
 
@@ -147,7 +178,15 @@ class GlobalExceptionHandlerTest {
 
     @GetMapping("/test/required")
     void required(@RequestParam String value) {}
+
+    @PostMapping(value = "/test/validate", consumes = MediaType.APPLICATION_JSON_VALUE)
+    void validate(@Valid @RequestBody ValidationPayload payload) {}
   }
 
   private record InputPayload(Integer value) {}
+
+  private record ValidationPayload(
+      @NotBlank String name,
+      @NotNull @Email String email
+  ) {}
 }

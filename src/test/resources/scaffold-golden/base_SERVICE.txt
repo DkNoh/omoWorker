@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다.
- * Scaffold 생성 코드. 업무 로직은 이 파일에 직접 추가한다.
+ * SmsHistory 업무 규칙과 트랜잭션 경계를 담당하는 Service.
+ *
+ * <p>Controller는 HTTP 변환만, Mapper는 SQL 실행만 담당한다. 중복 검사, 상태 전이, 외부 연계 같은 업무 규칙은 이 클래스에 추가한다.
+ * Scaffold 최초 생성 후에는 개발자가 직접 수정해 소유한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,7 @@ public class SmsHistoryService {
 
     private final SmsHistoryMapper mapper;
 
+    /** 검색조건 검증 후 건수와 현재 페이지 목록을 함께 조회한다. */
     @Transactional(readOnly = true)
     public PageResponseDTO<SmsHistoryVO> search(SmsHistorySearchRequestDTO request) {
         request.validate();

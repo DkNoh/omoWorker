@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scbk.sms.config.ScaffoldProperties;
@@ -44,8 +45,9 @@ class ScaffoldServiceTest {
             metadataReader,
             new ScaffoldProperties(),
             new ScaffoldCaseStore(new ObjectMapper()));
-    given(columnTypeInferrer.inferTypes(anyString(), anyList()))
-        .willReturn(
+    lenient()
+        .when(columnTypeInferrer.inferTypes(anyString(), anyList()))
+        .thenReturn(
             Map.of(
                 "SMS_HISTORY_ID", "Long",
                 "SEND_TYPE", "String",
@@ -86,6 +88,62 @@ class ScaffoldServiceTest {
     assertThatThrownBy(() -> service.generate(request))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("must not be a PK column");
+  }
+
+  @Test
+  void analyze는_DB_comment를_SELECT_alias_기준_한글명_기본값으로_연결한다() {
+    given(metadataReader.read("SMS.SMS_HISTORY"))
+        .willReturn(
+            new ScaffoldTableMetadata(
+                List.of("SMS_HISTORY_ID"),
+                nullableMap(false),
+                Map.of(
+                    "SMS_HISTORY_ID", "발송 이력 PK",
+                    "SEND_TYPE", "발송 유형")));
+
+    Map<String, Object> analyzed =
+        service.analyze(
+            "SELECT A.SMS_HISTORY_ID, A.SEND_TYPE AS TYPE_CD FROM SMS.SMS_HISTORY A", "");
+
+    assertThat(analyzed.get("columns")).isEqualTo(List.of("SMS_HISTORY_ID", "TYPE_CD"));
+    assertThat(analyzed.get("columnComments"))
+        .isEqualTo(
+            Map.of(
+                "SMS_HISTORY_ID", "발송 이력 PK",
+                "TYPE_CD", "발송 유형"));
+  }
+
+  @Test
+  void analyze는_조회조건에_DB_comment와_alias를_연결하고_BETWEEN은_시작종료일자로_표시한다() {
+    given(metadataReader.read("SMS.SMS_HISTORY"))
+        .willReturn(
+            new ScaffoldTableMetadata(
+                List.of("SMS_HISTORY_ID"),
+                nullableMap(false),
+                Map.of(
+                    "SEND_TYPE", "발송 유형",
+                    "SENT_AT", "발송 일시")));
+
+    Map<String, Object> analyzed =
+        service.analyze(
+            """
+                SELECT A.SEND_TYPE AS TYPE_CD,
+                       A.SENT_AT AS SEND_DATE,
+                       A.RESULT_CD AS RESULT_ALIAS
+                FROM SMS.SMS_HISTORY A
+                WHERE A.SEND_TYPE = $send_type
+                  AND A.SENT_AT BETWEEN $sent_at_from AND $sent_at_to
+                  AND A.RESULT_CD = $result_cd
+                """,
+            "");
+
+    assertThat(analyzed.get("searchParamLabels"))
+        .isEqualTo(
+            Map.of(
+                "sendType", "발송 유형",
+                "sentAtFrom", "시작일자",
+                "sentAtTo", "종료일자",
+                "resultCd", "RESULT_ALIAS"));
   }
 
   private ScaffoldRequestDTO request() {

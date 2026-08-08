@@ -2,7 +2,7 @@
 
 v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 문서는 v2의 화면 규약을 v3 기준으로 고정한 것이다.
 
-화면을 새로 만들 때 이 문서의 골격을 그대로 사용한다. 화면마다 새로운 레이아웃이나 그리드 방식을 임의로 만들지 않는다.
+화면은 이 문서에 문서화된 패턴(목록 화면, 상세폼 화면, 수동 모달)으로 구성한다. 패턴에 없는 화면 고유 정보 구조(미리보기 패널 등)는 허용한다. 단, 공통 자산(그리드·HTTP·모달·상세폼 행 레이아웃)을 화면마다 새로 발명하지 않는다.
 
 ## 기술 스택
 
@@ -18,7 +18,7 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 | 폼 검증 | JustValidate — `static/lib/just-validate.min.js` (`field-format.js`/`modal-manager.js`가 선택 사용) |
 | 위지윅 에디터 | Toast UI Editor — `static/lib/toastui-editor/3.2.2/` (defaultLayout이 아닌 `basic/notice-popup.html`에서 화면 단위로 로드) |
 | 아이콘 | lucide 로컬 번들 — `static/lib/lucide.js`, `data-lucide` 속성으로 렌더링 |
-| 공통 CSS | `static/css/admin-common.css`(디자인 토큰: `--sms-*` 정의·CoreUI `--cui-*` 별칭), `admin-layout.css`(쉘/레이아웃), `admin-ui-bridge.css`(CoreUI 브리지) — 토큰 계층은 `DESIGN.md` 참조 |
+| 공통 CSS | `static/css/admin-common.css`(디자인 토큰: `--sms-*` 정의·CoreUI `--cui-*` 별칭), `admin-layout.css`(쉘/레이아웃), `admin-ui-bridge.css`(CoreUI 브리지), `admin-form-detail.css`(상세폼 행 패턴) — 토큰 계층은 `DESIGN.md` 참조 |
 | 공통 JS | `static/js/common/notify.js`, `http-client.js`, `modal-manager.js`, `common-utils.js`, `form-binder.js`, `field-format.js`, `tui-common.js`, `tui-page-builder.js` (의존 순서대로 로드) |
 | 날짜 라이브러리 | day.js — `static/lib/dayjs.min.js` + `ko.js` (한국어 locale 전역 활성화: `dayjs.locale('ko')`) |
 
@@ -35,6 +35,7 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 
 ## 목록 화면 표준 골격
 
+목록 화면 패턴의 표준 골격이다. 화면 패턴 중 하나이며, 등록/수정 화면은 아래 "상세폼 화면 패턴"을 본다.
 목록 화면은 아래 3개 영역 순서를 고정한다.
 
 ```html
@@ -91,6 +92,37 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 </html>
 ```
 
+## 상세폼 화면 패턴 (등록/수정)
+
+등록·수정 화면의 행 레이아웃은 공통 CSS(`static/css/admin-form-detail.css`) 클래스로 구성한다. 행 레이아웃을 화면마다 인라인 스타일로 다시 만들지 않는다.
+
+| 클래스 | 용도 |
+|---|---|
+| `form-detail-row` | 폼 행 — 68px 최소 높이 + 하단 보더, 마지막 행은 보더 제거 |
+| `form-detail-label` | 라벨 셀 — 배경·패딩·굵기 |
+| `form-detail-control` | 입력 컨트롤 셀 |
+| `form-detail-required` | 필수 마커 — ` *` 자동 표시 |
+| `form-detail-counter` | 글자수/바이트 카운터 — 화면 JS가 `.is-over` 토글 |
+
+행 1개의 골격:
+
+```html
+<div class="row g-0 form-detail-row">
+    <div class="col-12 col-sm-3 form-detail-label">
+        <label class="form-detail-required" for="fieldId">항목명</label>
+    </div>
+    <div class="col-12 col-sm-9 form-detail-control">
+        <input type="text" class="form-control" id="fieldId" name="fieldId">
+    </div>
+</div>
+```
+
+- 라벨/컨트롤 컬럼 비율(`col-sm-3/9`, `col-sm-2/4/2/4` 등)은 화면 정보 구조에 맞게 고른다.
+- `modal-base` 안에서 상세행을 가장자리까지 표시할 때는 폼에 `form-detail-modal-form`을 추가한다.
+- 화면 고유 요소(미리보기 패널, 경고 문구, 개별 폭 지정 등)만 `layout:fragment="css"`에 인라인으로 둔다.
+- 폼 바인딩·낙관적 잠금·보안 규약은 아래 "수정폼 화면 규약"을 그대로 따른다.
+- 정적 샘플: `static/samples/message-edit.html`(단일 컬럼 행 배치), `static/samples/campaign-register.html`(분할 컬럼 + 미리보기 합성). 표준 업무 화면은 먼저 Scaffold로 생성하고, 생성기에 없는 UI 패턴만 샘플에서 선택적으로 참고한다. 샘플 전체를 실제 화면의 원본으로 사용하지 않으며 prod에서는 경로가 차단된다(404).
+
 ## ID / 파일 명명 규칙
 
 | 대상 | 규칙 |
@@ -145,9 +177,9 @@ const pageBuilder = new TuiPageBuilder({
 
 | 항목 | 계약 |
 |---|---|
-| 그리드 공통 옵션 | `TuiCommon.gridDefaults`가 단일 통제점 (rowHeight 42, bodyHeight 420, scrollY true, minBodyHeight 300). 화면별 예외는 `config.gridOptions`로 넘긴다 |
+| 그리드 공통 옵션 | `TuiCommon.gridDefaults`가 단일 통제점 (rowHeight 38, bodyHeight 380, scrollX true, scrollY false, minBodyHeight 200). 화면별 예외는 `config.gridOptions`로 넘긴다 |
 | 총 건수 표시 | `id="total-count"` 요소 기준. PageBuilder가 자동 갱신한다 |
-| 날짜 전송 형식 | Toast UI DatePicker 검색 input(`data-search-type="date"`) 값은 `-`가 제거된 `YYYYMMDD` 문자열로 전송된다 (datetime-local은 `YYYYMMDDHHMMSS`). DATE/TIMESTAMP 컬럼과 비교하는 SQL은 `TO_DATE(#{변수}, 'YYYYMMDD')`로 감싼다 |
+| 날짜 전송 형식 | Toast UI DatePicker 검색 input(`data-search-type="date"`) 값은 `-`가 제거된 `YYYYMMDD` 문자열로 전송된다 (datetime-local은 `YYYYMMDDHHmm`). DATE/TIMESTAMP 컬럼과 비교하는 SQL은 `TO_DATE(#{변수}, 'YYYYMMDD')`로 감싼다 |
 | 기간 검증 | input id가 정확히 `startDate`/`endDate`일 때만 시작일>종료일 검증이 동작한다 |
 | 날짜 컬럼 표시 | LocalDate/LocalDateTime 컬럼은 `formatter: TuiCommon.fmt.date`를 붙인다 (scaffold가 자동 부착) |
 | 상태/유형 badge | 컬럼 단위로 `formatter: TuiCommon.badgeByValue({ labels, tones })` 선언. `labels`=코드→표시라벨 매핑, `tones`=코드→고정 색(생략 시 라벨 해시 기반 자동 색). 도메인 코드값(SMS/LMS, SUCCESS/FAIL 등)은 공통 JS가 모르게 화면에서 선언한다 |
@@ -235,7 +267,7 @@ CommonUtils.toast('저장되었습니다.', 'success');
 ## 금지
 
 - CDN 참조 금지. 로컬 `static/lib`, `static/vendor`만 사용한다.
-- 화면별 자체 레이아웃, 자체 그리드 구현 금지.
+- 공통 자산 재발명 금지: 자체 그리드 구현, 자체 HTTP(fetch), 자체 모달(`new coreui.Modal`), 상세폼 행 레이아웃 인라인 재작성. 화면 고유 정보 구조는 문서화된 패턴 합성으로 구현한다.
 - `defaultLayout.html`을 거치지 않는 업무 화면 금지 (login.html은 예외).
 - 화면에서 권한을 임의 계산하지 않는다. 메뉴/버튼 권한은 서버가 내려준 값만 사용한다.
 - 개인정보는 마스킹된 값만 화면에 표시한다.
@@ -254,8 +286,15 @@ scaffold CRUD screenMode가 생성하는 수정 모달과 개발자가 수동으
     footerContent=null
 )}">
     <div id="modal-body">
-        <form id="detail-form" class="row g-3" autocomplete="off" novalidate>
-            <!-- 폼 필드 -->
+        <form id="detail-form" class="form-detail-modal-form" autocomplete="off" novalidate>
+            <div class="row g-0 form-detail-row">
+                <div class="col-12 col-sm-2 form-detail-label">
+                    <label for="fieldId">항목명</label>
+                </div>
+                <div class="col-12 col-sm-10 form-detail-control">
+                    <input type="text" class="form-control" id="fieldId" name="fieldId">
+                </div>
+            </div>
         </form>
     </div>
 </th:block>

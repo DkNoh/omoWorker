@@ -2,9 +2,35 @@ document.addEventListener('DOMContentLoaded', function () {
     let results = {};
     let currentKey = null;
     let lastRequest = null;
+    let lastAnalysisContext = null;
+    let targetTableTouched = false;
 
-    document.querySelector('#screenMode').addEventListener('change', syncModalOption);
-    syncModalOption();
+    const targetTableEl = document.querySelector('#targetTable');
+    targetTableEl.addEventListener('input', () => {
+        targetTableTouched = true;
+        invalidateGeneratedResult();
+    });
+    [
+        'moduleName', 'domainId', 'domainClass', 'domainName', 'rawQuery', 'orderBy',
+        'includePrivacy', 'showRowNumber', 'menuId', 'parentMenuId', 'roleCode', 'sortOrd'
+    ].forEach(id => {
+        document.querySelector(`#${id}`).addEventListener('input', invalidateGeneratedResult);
+    });
+    ['search-param-options', 'column-options'].forEach(id => {
+        document.querySelector(`#${id}`).addEventListener('input', invalidateGeneratedResult);
+        document.querySelector(`#${id}`).addEventListener('change', invalidateGeneratedResult);
+    });
+    document.querySelector('#search-param-options').addEventListener('focusout', event => {
+        const input = event.target.closest('[data-field="label"]');
+        if (input && !input.value.trim()) {
+            input.value = input.dataset.defaultLabel || input.closest('tr')?.dataset.name || '';
+        }
+    });
+    document.querySelector('#screenMode').addEventListener('change', () => {
+        syncScreenModeOptions();
+        invalidateGeneratedResult();
+    });
+    syncScreenModeOptions();
 
     document.querySelector('#btn-refresh-options').addEventListener('click', async () => {
         try {
@@ -93,6 +119,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function buildRequest() {
         const screenMode = document.querySelector('#screenMode').value;
+        const isCrud = screenMode === 'CRUD';
+        const pkColumns = isCrud ? readPkColumns() : [];
         return {
             moduleName: document.querySelector('#moduleName').value.trim(),
             domainId: document.querySelector('#domainId').value.trim(),
@@ -100,17 +128,17 @@ document.addEventListener('DOMContentLoaded', function () {
             domainName: document.querySelector('#domainName').value.trim(),
             rawQuery: document.querySelector('#rawQuery').value,
             orderBy: document.querySelector('#orderBy').value.trim(),
-            includeCreateUpdate: screenMode === 'CRUD',
+            includeCreateUpdate: isCrud,
             includeExcel: screenMode === 'EXCEL',
-            includeModal: document.querySelector('#includeModal').checked,
             includePrivacy: document.querySelector('#includePrivacy').checked,
+            showRowNumber: document.querySelector('#showRowNumber').checked,
             screenMode: screenMode,
-            targetTable: document.querySelector('#targetTable').value.trim(),
-            pkColumn: readPkColumns()[0] || '',
-            pkColumns: readPkColumns(),
-            lockColumn: document.querySelector('#lockColumn').value,
+            targetTable: isCrud ? targetTableEl.value.trim() : '',
+            pkColumn: pkColumns[0] || '',
+            pkColumns: pkColumns,
+            lockColumn: isCrud ? document.querySelector('#lockColumn').value : '',
             searchParamOptions: readSearchParamOptions(),
-            columnOptions: readColumnOptions(),
+            columnOptions: readColumnOptions(isCrud),
             menuOption: {
                 menuId: document.querySelector('#menuId').value.trim(),
                 parentMenuId: document.querySelector('#parentMenuId').value.trim(),
@@ -136,24 +164,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (firstKey) {
             selectTab(firstKey, tabContainer.querySelector('button'));
         }
-    }
-
-    function syncModalOption() {
-        const screenMode = document.querySelector('#screenMode').value;
-        const includeModal = document.querySelector('#includeModal');
-        const forced = screenMode === 'DETAIL' || screenMode === 'CRUD';
-        const wasForced = includeModal.dataset.forced === 'true';
-        if (forced) {
-            includeModal.checked = true;
-            includeModal.disabled = true;
-            includeModal.dataset.forced = 'true';
-            return;
-        }
-        includeModal.disabled = false;
-        if (wasForced) {
-            includeModal.checked = false;
-        }
-        includeModal.dataset.forced = 'false';
     }
 
     function confirmApply(message) {
@@ -211,21 +221,53 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function ensureOptionsRendered() {
-        if (document.querySelectorAll('#search-param-options tr[data-name]').length === 0
-            && document.querySelectorAll('#column-options tr[data-column]').length === 0) {
+        const hasOptions = document.querySelectorAll('#search-param-options tr[data-name]').length > 0
+            || document.querySelectorAll('#column-options tr[data-column]').length > 0;
+        if (!hasOptions || !isCurrentAnalysisContext()) {
             await renderOptionTables();
         }
     }
 
     async function renderOptionTables() {
+        const previousContext = lastAnalysisContext;
+        const draftContext = readAnalysisContext();
+        const domainChanged = previousContext !== null
+            && previousContext.domainKey !== draftContext.domainKey;
+        const rawQueryChanged = previousContext !== null
+            && previousContext.rawQuery !== draftContext.rawQuery;
+
+        if (domainChanged) {
+            resetDomainDependentState(previousContext);
+        } else if (rawQueryChanged
+            && previousContext !== null
+            && !previousContext.targetTableExplicit
+            && normalizeKey(targetTableEl.value) === normalizeKey(previousContext.targetTable)) {
+            targetTableEl.value = '';
+            targetTableTouched = false;
+        }
+
+        invalidateGeneratedResult();
         const analysis = await analyzeQuery();
         const searchVars = analysis.searchVars || [];
+        const searchParamLabels = analysis.searchParamLabels || {};
         const columns = analysis.columns || [];
-        renderSearchParamOptions(searchVars);
-        renderColumnOptions(columns);
-        renderColumnSelectOptions(columns, analysis.pkColumns || []);
-        renderTargetTableDefault(analysis.targetTable || '');
+        const columnComments = analysis.columnComments || {};
+        const analyzedPkColumns = analysis.pkColumns || [];
+        const analyzedTargetTable = analysis.targetTable || targetTableEl.value.trim();
+        const targetTableChanged = previousContext !== null
+            && !domainChanged
+            && normalizeKey(previousContext.targetTable) !== normalizeKey(analyzedTargetTable);
+        const preserveFieldOptions = !domainChanged;
+        const preserveCrudSelection = !domainChanged && !targetTableChanged;
+
+        renderSearchParamOptions(searchVars, searchParamLabels, preserveFieldOptions);
+        renderColumnOptions(columns, columnComments, analyzedPkColumns, preserveFieldOptions);
+        renderColumnSelectOptions(columns, analyzedPkColumns, preserveCrudSelection);
+        renderTargetTableDefault(analyzedTargetTable);
         renderMenuDefaults();
+        syncScreenModeOptions();
+        lastAnalysisContext = readAnalysisContext();
+        lastAnalysisContext.targetTableExplicit = targetTableTouched;
     }
 
     async function analyzeQuery() {
@@ -236,21 +278,24 @@ document.addEventListener('DOMContentLoaded', function () {
         return response.data || {};
     }
 
-    function renderSearchParamOptions(searchVars) {
+    function renderSearchParamOptions(searchVars, searchParamLabels, preservePrevious) {
         const tbody = document.querySelector('#search-param-options');
-        const previous = indexRows(tbody, 'name');
+        const previous = preservePrevious ? indexRows(tbody, 'name') : {};
         tbody.innerHTML = '';
         if (searchVars.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-secondary">검색 파라미터가 없으면 searchKeyword가 생성됩니다.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-secondary">검색 파라미터가 없으면 searchKeyword가 생성됩니다.</td></tr>';
             return;
         }
         searchVars.forEach(name => {
             const prev = previous[name] || {};
+            const defaultLabel = searchParamLabels[name] || name;
+            const label = prev.label || defaultLabel;
             const inputType = prev.inputType || (isDateVar(name) ? 'DATE' : 'TEXT');
             const tr = document.createElement('tr');
             tr.dataset.name = name;
             tr.innerHTML = `
                 <td><code>${name}</code></td>
+                <td><input class="form-control form-control-sm" data-field="label" data-default-label="${escapeAttr(defaultLabel)}" value="${escapeAttr(label)}" title="DB 컬럼 comment 기본값, 직접 수정 가능"></td>
                 <td>
                     <select class="form-select form-select-sm" data-field="inputType">
                         ${option('TEXT', '텍스트', inputType)}
@@ -275,9 +320,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function renderColumnOptions(columns) {
+    function renderColumnOptions(columns, columnComments, pkColumns, preservePrevious) {
         const tbody = document.querySelector('#column-options');
-        const previous = indexRows(tbody, 'column');
+        const previous = preservePrevious ? indexRows(tbody, 'column') : {};
+        const pkSet = new Set((pkColumns || []).map(normalizeKey));
         tbody.innerHTML = '';
         if (columns.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-secondary">SELECT alias를 추출하지 못했습니다.</td></tr>';
@@ -285,17 +331,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         columns.forEach(column => {
             const prev = previous[column] || {};
-            const visible = prev.visible === undefined ? true : prev.visible;
-            const modalVisible = prev.modalVisible === undefined ? true : prev.modalVisible;
-            const editable = prev.editable === undefined ? isEditableCandidate(column) : prev.editable;
+            const isPk = pkSet.has(normalizeKey(column));
+            const visible = prev.visible === undefined ? !isPk : prev.visible;
+            const modalVisible = prev.modalVisible === undefined ? !isPk : prev.modalVisible;
+            const editable = !isPk
+                && (prev.editable === undefined ? isEditableCandidate(column) : prev.editable);
+            const defaultHeaderName = columnComments[normalizeKey(column)] || column;
+            const headerName = prev.headerName || defaultHeaderName;
             const tr = document.createElement('tr');
             tr.dataset.column = column;
             tr.innerHTML = `
                 <td><input class="form-check-input" type="checkbox" data-field="visible" ${visible ? 'checked' : ''} title="그리드 표시"></td>
-                <td><input class="form-check-input" type="checkbox" data-field="modalVisible" ${modalVisible ? 'checked' : ''} title="상세 모달 표시"></td>
-                <td><input class="form-check-input" type="checkbox" data-field="editable" ${editable ? 'checked' : ''} title="수정 가능"></td>
+                <td><input class="form-check-input" type="checkbox" data-field="modalVisible" ${modalVisible ? 'checked' : ''} title="등록·수정 화면 표시"></td>
+                <td><input class="form-check-input" type="checkbox" data-field="editable" data-protected="${isPk}" ${editable ? 'checked' : ''} ${isPk ? 'disabled' : ''} title="등록·수정 입력 허용"></td>
                 <td><code>${column}</code></td>
-                <td><input class="form-control form-control-sm" data-field="headerName" value="${escapeAttr(prev.headerName || column)}"></td>
+                <td><input class="form-control form-control-sm" data-field="headerName" value="${escapeAttr(headerName)}" title="DB 컬럼 comment 기본값, 직접 수정 가능"></td>
                 <td><input class="form-control form-control-sm" type="number" data-field="width" value="${escapeAttr(prev.width || '150')}" min="60"></td>
                 <td>
                     <select class="form-select form-select-sm" data-field="align">
@@ -326,11 +376,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function renderColumnSelectOptions(columns, pkColumns) {
+    function renderColumnSelectOptions(columns, pkColumns, preservePrevious) {
         const pkSelect = document.querySelector('#pkColumns');
         const lockSelect = document.querySelector('#lockColumn');
-        const prevPk = selectedValues(pkSelect);
-        const prevLock = lockSelect.value;
+        const prevPk = preservePrevious ? selectedValues(pkSelect) : [];
+        const prevLock = preservePrevious ? lockSelect.value : '';
         const selectedPkColumns = prevPk.length > 0 ? prevPk : pkColumns;
         const pkSet = new Set((selectedPkColumns || []).map(col => String(col).toUpperCase()));
         const lockColumns = columns.filter(col => !pkSet.has(String(col).toUpperCase()));
@@ -341,9 +391,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderTargetTableDefault(targetTable) {
-        const targetTableEl = document.querySelector('#targetTable');
         if (!targetTableEl.value && targetTable) {
             targetTableEl.value = targetTable;
+            targetTableTouched = false;
         }
     }
 
@@ -363,21 +413,88 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function readAnalysisContext() {
+        return {
+            domainKey: [
+                document.querySelector('#moduleName').value.trim().toLowerCase(),
+                document.querySelector('#domainId').value.trim().toLowerCase()
+            ].join('/'),
+            rawQuery: document.querySelector('#rawQuery').value.trim(),
+            targetTable: targetTableEl.value.trim(),
+            targetTableExplicit: targetTableTouched
+        };
+    }
+
+    function isCurrentAnalysisContext() {
+        if (!lastAnalysisContext) {
+            return false;
+        }
+        const current = readAnalysisContext();
+        return current.domainKey === lastAnalysisContext.domainKey
+            && current.rawQuery === lastAnalysisContext.rawQuery
+            && normalizeKey(current.targetTable) === normalizeKey(lastAnalysisContext.targetTable);
+    }
+
+    function resetDomainDependentState(previousContext) {
+        document.querySelector('#search-param-options').innerHTML = '';
+        document.querySelector('#column-options').innerHTML = '';
+        document.querySelector('#pkColumns').innerHTML = '';
+        document.querySelector('#lockColumn').innerHTML = '<option value="">선택 안 함</option>';
+
+        if (normalizeKey(targetTableEl.value) === normalizeKey(previousContext.targetTable)) {
+            targetTableEl.value = '';
+            targetTableTouched = false;
+        }
+
+        document.querySelector('#menuId').value = '';
+        document.querySelector('#parentMenuId').value = '';
+        document.querySelector('#roleCode').value = 'ROLE_ADMIN';
+        document.querySelector('#sortOrd').value = '99';
+    }
+
+    function syncScreenModeOptions() {
+        const isCrud = document.querySelector('#screenMode').value === 'CRUD';
+        ['targetTable', 'pkColumns', 'lockColumn'].forEach(id => {
+            document.querySelector(`#${id}`).disabled = !isCrud;
+        });
+        document.querySelectorAll('#column-options [data-field="modalVisible"], #column-options [data-field="editable"]')
+            .forEach(input => {
+                input.disabled = !isCrud || input.dataset.protected === 'true';
+            });
+    }
+
+    function invalidateGeneratedResult() {
+        results = {};
+        currentKey = null;
+        lastRequest = null;
+        document.querySelector('#result-tabs').innerHTML = '';
+        document.querySelector('#result-content').textContent = '';
+        document.querySelector('#result-card').classList.add('d-none');
+        clearApplyResult();
+    }
+
+    function normalizeKey(value) {
+        return String(value || '').trim().toUpperCase();
+    }
+
     function readSearchParamOptions() {
         return Array.from(document.querySelectorAll('#search-param-options tr[data-name]')).map(row => ({
             name: row.dataset.name,
+            label: value(row, 'label').trim()
+                || row.querySelector('[data-field="label"]').dataset.defaultLabel
+                || row.dataset.name,
             inputType: value(row, 'inputType'),
             defaultValue: value(row, 'defaultValue'),
             optionsText: value(row, 'optionsText')
         }));
     }
 
-    function readColumnOptions() {
+    function readColumnOptions(isCrud) {
         return Array.from(document.querySelectorAll('#column-options tr[data-column]')).map(row => ({
             columnName: row.dataset.column,
             visible: row.querySelector('[data-field="visible"]').checked,
-            modalVisible: row.querySelector('[data-field="modalVisible"]').checked,
-            editable: row.querySelector('[data-field="editable"]').checked,
+            modalVisible: isCrud && row.querySelector('[data-field="modalVisible"]').checked,
+            editable: isCrud && row.querySelector('[data-field="editable"]').checked,
             headerName: value(row, 'headerName'),
             width: Number(value(row, 'width') || 150),
             align: value(row, 'align'),

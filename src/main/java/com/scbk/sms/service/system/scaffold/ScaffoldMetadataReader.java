@@ -15,6 +15,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * 대상 테이블의 PK 순서, nullable 여부와 column comment를 JDBC {@link DatabaseMetaData}에서 읽는다.
+ *
+ * <p>DB 제품과 드라이버의 대소문자 보고 차이를 흡수하기 위해 입력 표기, 대문자, 소문자 후보를 순서대로 조회한다. 메타데이터 실패를 빈 값으로
+ * 숨기면 잘못된 CRUD SQL이 생성될 수 있으므로 SQL 예외는 대상 테이블과 함께 즉시 보고한다.
+ */
 @Component
 @Profile("local")
 public class ScaffoldMetadataReader {
@@ -25,17 +31,21 @@ public class ScaffoldMetadataReader {
     this.dataSource = dataSource;
   }
 
+  /** 스키마가 포함될 수 있는 테이블명을 해석하고 실제 DB 메타데이터를 하나의 값 객체로 반환한다. */
   public ScaffoldTableMetadata read(String targetTable) {
     TableName tableName = TableName.parse(targetTable);
     if (!StringUtils.hasText(tableName.table())) {
-      return new ScaffoldTableMetadata(List.of(), Map.of());
+      return new ScaffoldTableMetadata(List.of(), Map.of(), Map.of());
     }
 
     try (Connection connection = dataSource.getConnection()) {
       DatabaseMetaData metaData = connection.getMetaData();
       TableName resolved = resolveTableName(metaData, tableName);
+      ColumnMetadata columns = readColumns(metaData, resolved);
       return new ScaffoldTableMetadata(
-          readPrimaryKeys(metaData, resolved), readNullability(metaData, resolved));
+          readPrimaryKeys(metaData, resolved),
+          columns.nullableByColumn(),
+          columns.commentsByColumn());
     } catch (SQLException e) {
       throw new IllegalStateException(
           "Failed to read table metadata for " + targetTable + ": " + e.getMessage(), e);
@@ -76,18 +86,23 @@ public class ScaffoldMetadataReader {
         .toList();
   }
 
-  private Map<String, Boolean> readNullability(DatabaseMetaData metaData, TableName tableName)
+  private ColumnMetadata readColumns(DatabaseMetaData metaData, TableName tableName)
       throws SQLException {
     Map<String, Boolean> nullableByColumn = new LinkedHashMap<>();
+    Map<String, String> commentsByColumn = new LinkedHashMap<>();
     try (ResultSet rs =
         metaData.getColumns(tableName.catalog(), tableName.schema(), tableName.table(), null)) {
       while (rs.next()) {
         String columnName = normalizeColumn(rs.getString("COLUMN_NAME"));
         boolean nullable = rs.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls;
         nullableByColumn.put(columnName, nullable);
+        String remarks = rs.getString("REMARKS");
+        if (StringUtils.hasText(remarks)) {
+          commentsByColumn.put(columnName, remarks.trim());
+        }
       }
     }
-    return nullableByColumn;
+    return new ColumnMetadata(nullableByColumn, commentsByColumn);
   }
 
   private static String normalizeColumn(String columnName) {
@@ -95,6 +110,9 @@ public class ScaffoldMetadataReader {
   }
 
   private record PkColumn(short seq, String columnName) {}
+
+  private record ColumnMetadata(
+      Map<String, Boolean> nullableByColumn, Map<String, String> commentsByColumn) {}
 
   private record TableName(String catalog, String schema, String table) {
     static TableName parse(String raw) {

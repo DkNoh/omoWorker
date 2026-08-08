@@ -55,7 +55,7 @@
 테이블 확정 전에는 "쓰기 주인" 기준을 쓸 수 없다. 이때는 **메뉴를 임시 프록시**로 쓴다.
 
 1. 소메뉴(화면)의 **업무 명사**로 임시 도메인을 잡는다. (만들 테이블은 보통 업무 명사를 따라간다)
-2. 임시임을 명시한다. 컬럼명/테이블명을 확정하지 않는다. (`CLAUDE.md`, `domain-rules.md` 미확정 방침)
+2. 임시임을 명시한다. 컬럼명/테이블명을 확정하지 않는다. (`AGENTS.md`, `domain-rules.md` 미확정 방침)
 3. 폐쇄망에서 테이블이 보이면 **절차 A로 재확정**한다.
 
 > 도메인 경계는 base 단계에서 완벽할 필요가 없다. 제네릭 base 구조에서는
@@ -94,6 +94,80 @@
 ```text
 파일 수 ≈ (도메인 수 × 약 4) + (화면 수 × 약 2) + base 공통
 ```
+
+## 트랜잭션과 다중 쓰기 경계
+
+도메인 경계와 트랜잭션 경계는 다음 순서로 정한다.
+
+1. 한 거래가 한 도메인의 메인/하위 테이블만 쓰면 해당 도메인 Service 메서드 하나를 `@Transactional` 경계로 둔다.
+2. 같은 생명주기의 메인·하위 테이블은 한 트랜잭션에서 저장한다. 하위 테이블별 Service를 새로 만들지 않는다.
+3. 생명주기가 다른 두 도메인을 한 화면에서 쓴다는 이유만으로 한 Service에 합치지 않는다.
+4. 두 독립 도메인의 변경이 정말 한 번에 성공하거나 실패해야 하면, 각 도메인의 쓰기 소유권은 유지하고 별도 유스케이스 조정 메서드가 트랜잭션을 묶는다. 이 경우 자동 Scaffold 대상이 아니다.
+5. 외부 API·메시지 전송은 DB 트랜잭션과 원자적으로 묶였다고 가정하지 않는다. 재시도, 보상, outbox 같은 실패 정책을 별도로 설계한다.
+
+여러 쓰기 테이블이 있다는 사실만으로 같은 도메인은 아니다. **같이 생성되고 같이 변경되며 같이 삭제되는지**와 **단일 트랜잭션 실패 시 함께 롤백해야 하는지**를 모두 확인한다.
+
+## 조회 모델과 변경 모델 분리
+
+조회 화면은 조인·계산 컬럼이 많아도 결과 모양의 VO로 받을 수 있다. 변경 요청은 실제 쓰기 소유 테이블의 허용 컬럼만 가진 요청 DTO로 분리한다.
+
+- 검색 조건은 `*SearchRequestDTO`, 등록·수정 입력은 `*UpdateRequestDTO`처럼 목적별로 나눈다.
+- 그리드 조회 VO 전체를 그대로 update 파라미터로 사용하지 않는다.
+- 부서명, 사용자명, 코드명, 집계값 같은 참조·계산 컬럼은 변경 DTO에 넣지 않는다.
+- PK, 낙관적 잠금 원본값과 editable allowlist를 명시한다.
+- 같은 도메인이라도 목록·상세 결과 모양이 크게 다르면 VO를 추가할 수 있다. VO 수가 도메인 수를 늘리지는 않는다.
+
+## 패키지와 클래스 네이밍 예시
+
+패키지는 메뉴명이 아니라 도메인 기준으로 맞춘다. 같은 도메인을 쓰는 여러 화면은 같은 Service/Mapper를 호출한다.
+
+```text
+controller/sms/SmsHistoryController.java
+service/sms/SmsHistoryService.java
+mapper/sms/SmsHistoryMapper.java
+dto/sms/SmsHistorySearchRequestDTO.java
+dto/sms/SmsHistoryUpdateRequestDTO.java
+vo/sms/SmsHistoryVO.java
+resources/mapper/sms/SmsHistoryMapper.xml
+
+templates/sms/history.html
+static/js/sms/history.js
+```
+
+- Java 도메인명은 PascalCase 단수형(`SmsHistory`), URL/domainId는 kebab-case 또는 프로젝트의 기존 소문자 규칙을 따른다.
+- Mapper XML namespace와 Mapper 인터페이스의 전체 이름을 일치시킨다.
+- 같은 화면의 조회·등록·수정·삭제는 메서드 이름(`search`, `getDetail`, `create`, `update`, `delete`)으로 표현하고 거래별 클래스를 만들지 않는다.
+
+## Scaffold 적용 판정과 생성 후 소유권
+
+Scaffold는 완성된 업무 시스템을 자동 작성하는 도구가 아니라 신규 화면의 기본 레이아웃과 공통 계약을 처음 한 번 생성하는 도구다.
+
+자동 생성에 적합한 범위:
+
+- 단일 조회 모델과 일반적인 검색/페이징
+- 단일 쓰기 소유 테이블의 기본 CRUD
+- PK, editable 컬럼, 필요 시 낙관적 잠금 컬럼을 명확히 판정할 수 있는 경우
+
+다음은 기본 레이아웃만 생성한 뒤 개발자가 직접 설계하거나, 처음부터 수동 구현한다.
+
+- `DISTINCT`, 복잡한 집계, `GROUP BY/HAVING`, `UNION`, CTE, 윈도우 함수 중심 조회
+- 외부 시스템 연계, 파일 처리, 비동기 메시지, 장시간 작업
+- 생명주기가 다른 여러 도메인의 쓰기와 보상 트랜잭션
+- 동적 테이블, vendor 전용 SQL, 업무 승인선과 상태 전이
+
+`scaffold-templates/**/*.tpl`은 최초 생성 원본이다. 생성 파일은 적용 순간부터 개발자가 소유하며 템플릿과 계속 동기화하지 않는다. 재생성은 개발자 수정본을 병합하는 작업이 아니라 기존 생성물을 버리고 새 결과로 덮어쓰는 선택이다.
+
+## 메뉴 등록과 기능 권한 연결
+
+도메인과 메뉴는 다른 축이지만, 새 화면을 노출하려면 다음 연결 작업이 필요하다.
+
+1. 화면 URL과 `TB_MENU.MENU_URL`을 일치시키고 `MENU_ID`, 상위 그룹, 정렬순서를 정한다.
+2. 화면을 사용할 역할마다 `TB_MENU_AUTH`의 `CAN_READ`와 필요한 기능 플래그를 부여한다.
+3. `CREATE/UPDATE/DELETE/APPROVE/CANCEL/DOWNLOAD/MASK_VIEW` 중 하나를 허용하면 `READ`도 함께 허용한다.
+4. 버튼 표시는 `pageAuth`, 실제 API 차단은 `MenuAuthInterceptor`로 검증한다.
+5. 승인 권한은 승인 API 접근 권한일 뿐이다. 현재 승인자·승인 순서·상태 전이는 도메인 Service에서 다시 검증한다.
+
+화면이 여러 개여도 같은 쓰기 소유 테이블이면 도메인 Service/Mapper를 공유할 수 있다. 반대로 메뉴 하나가 생명주기가 다른 여러 테이블을 쓴다면 메뉴 하나 아래 여러 도메인이 존재할 수 있다.
 
 ## 과오 경고 (양쪽 다 금지)
 

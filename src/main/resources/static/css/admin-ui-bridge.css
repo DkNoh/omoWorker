@@ -316,79 +316,20 @@
 }
 
 /* ---------------------------------------------------------------------
-   Auto detail modal refinement — token-driven grid rows
-   --------------------------------------------------------------------- */
-.tui-auto-modal-body {
-    max-height: 70vh;
-    overflow-y: auto;
-}
-
-#tui-auto-modal-form {
-    display: grid;
-    gap: 0;
-}
-
-#tui-auto-modal .detail-row {
-    display: grid;
-    grid-template-columns: minmax(148px, 190px) minmax(0, 1fr);
-    align-items: center;
-    gap: var(--sms-space-3);
-    min-height: 42px;
-    padding: var(--sms-space-2) 0;
-    border-bottom: 1px solid var(--sms-border-subtle);
-}
-
-#tui-auto-modal .detail-row:first-child {
-    border-top: 1px solid var(--sms-border-subtle);
-}
-
-#tui-auto-modal .detail-label {
-    width: auto;
-    min-width: 0;
-    color: var(--sms-text-muted);
-    font-size: var(--sms-fs-body-sm);
-    font-weight: var(--sms-fw-semibold);
-    letter-spacing: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-}
-
-#tui-auto-modal .detail-value {
-    min-width: 0;
-    color: var(--sms-text-body);
-    font-size: var(--sms-fs-body);
-    line-height: var(--sms-lh-body);
-    word-break: break-word;
-}
-
-#tui-auto-modal .detail-readonly {
-    display: inline-flex;
-    align-items: center;
-    max-width: 100%;
-    min-height: 28px;
-    padding: 3px 0;
-}
-
-#tui-auto-modal .detail-input {
-    height: 32px;
-    border-radius: var(--sms-radius);
-}
-
-@media (max-width: 576px) {
-    #tui-auto-modal .detail-row {
-        grid-template-columns: 1fr;
-        gap: var(--sms-space-1);
-        align-items: start;
-    }
-}
-
-/* ---------------------------------------------------------------------
    Scaffold / search control sizing — kept here because TUI date picker
    layering depends on the same widths.
    --------------------------------------------------------------------- */
 .scaffold-search-control,
 .scaffold-radio-group {
     width: var(--sms-search-control-width);
+}
+
+.scaffold-date-range-separator {
+    padding-inline: 0;
+    color: var(--sms-text-muted);
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .toast-grid-page-size {
@@ -841,4 +782,100 @@
 
 .menu-empty-card .card-body {
     padding: 0;
+}
+
+/* ---------------------------------------------------------------------
+   SweetAlert2 bridge — 차단형 alert/confirm 공통 팝업
+   notify.js의 Notify.alert / Notify.confirm이 SweetAlert2를 사용할 때
+   프로젝트 --sms-* 토큰으로 시각을 통일한다.
+   CoreUI 업무 모달(.modal) 위에 표시되므로 z-index는 --sms-z-overlay.
+   --------------------------------------------------------------------- */
+
+/* Container: CoreUI modal(--sms-z-modal:1070)과 toast(--sms-z-toast:1080)보다 위 */
+.sms-swal-container {
+    z-index: var(--sms-z-overlay) !important;
+}
+
+/* Popup: 업무 콘솔 카드/모달과 동일한 surface */
+.sms-swal-popup {
+    background-color: var(--sms-bg-surface) !important;
+    color: var(--sms-text-body) !important;
+    border: 1px solid var(--sms-border) !important;
+    border-radius: var(--sms-radius-lg) !important;
+    box-shadow: var(--sms-shadow-lg) !important;
+    font-family: var(--sms-font-sans) !important;
+    padding: var(--sms-space-6) var(--sms-space-6) var(--sms-space-4) !important;
+}
+
+/* Title: 페이지 섹션 제목과 동일한 weight/size */
+.sms-swal-title {
+    color: var(--sms-text-strong) !important;
+    font-size: var(--sms-fs-section) !important;
+    font-weight: var(--sms-fw-semibold) !important;
+    line-height: var(--sms-lh-heading) !important;
+    word-break: keep-all !important;
+}
+
+/* Message body: 본문 텍스트 */
+.sms-swal-message {
+    color: var(--sms-text-body) !important;
+    font-size: var(--sms-fs-body) !important;
+    line-height: var(--sms-lh-body) !important;
+    word-break: keep-all !important;
+}
+
+/* Actions: 버튼 그룹 간격 */
+.sms-swal-actions {
+    gap: var(--sms-space-2) !important;
+    padding: var(--sms-space-4) 0 0 !important;
+}
+
+/* Confirm button: primary CTA */
+.sms-swal-confirm {
+    background-color: var(--sms-primary) !important;
+    border: 1px solid var(--sms-primary) !important;
+    color: #fff !important;
+    border-radius: var(--sms-radius) !important;
+    font-size: var(--sms-fs-body) !important;
+    font-weight: var(--sms-fw-medium) !important;
+    padding: var(--sms-space-2) var(--sms-space-4) !important;
+    transition: background-color var(--sms-transition-fast), border-color var(--sms-transition-fast) !important;
+}
+.sms-swal-confirm:hover {
+    background-color: var(--sms-primary-hover) !important;
+    border-color: var(--sms-primary-hover) !important;
+}
+.sms-swal-confirm:active {
+    background-color: var(--sms-primary-active) !important;
+    border-color: var(--sms-primary-active) !important;
+    transform: translateY(1px);
+}
+.sms-swal-confirm:focus-visible {
+    outline: 2px solid var(--sms-primary) !important;
+    outline-offset: 2px !important;
+}
+
+/* Cancel button: secondary/outline */
+.sms-swal-cancel {
+    background-color: var(--sms-bg-surface) !important;
+    border: 1px solid var(--sms-border) !important;
+    color: var(--sms-text-body) !important;
+    border-radius: var(--sms-radius) !important;
+    font-size: var(--sms-fs-body) !important;
+    font-weight: var(--sms-fw-medium) !important;
+    padding: var(--sms-space-2) var(--sms-space-4) !important;
+    transition: background-color var(--sms-transition-fast), border-color var(--sms-transition-fast), color var(--sms-transition-fast) !important;
+}
+.sms-swal-cancel:hover {
+    background-color: var(--sms-bg-surface-alt) !important;
+    border-color: var(--sms-border-strong) !important;
+    color: var(--sms-primary) !important;
+}
+.sms-swal-cancel:active {
+    background-color: var(--sms-bg-muted) !important;
+    transform: translateY(1px);
+}
+.sms-swal-cancel:focus-visible {
+    outline: 2px solid var(--sms-primary) !important;
+    outline-offset: 2px !important;
 }

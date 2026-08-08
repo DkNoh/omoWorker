@@ -63,6 +63,7 @@
 
 .admin-shell .sidebar.collapsed .sidebar-brand-full,
 .admin-shell .sidebar.collapsed .nav-group-toggle span,
+.admin-shell .sidebar.collapsed .sidebar-parent-link span,
 .admin-shell .sidebar.collapsed .nav-item span {
     display: none !important;
 }
@@ -74,6 +75,10 @@
 }
 
 .admin-shell .sidebar.collapsed .nav-group-items {
+    display: none !important;
+}
+
+.admin-shell .sidebar.collapsed .sidebar-submenu-toggle {
     display: none !important;
 }
 
@@ -190,6 +195,31 @@
     --cui-sidebar-nav-link-active-icon-color: var(--sms-primary);
     --cui-sidebar-nav-link-hover-bg: var(--sms-primary-soft);
     --cui-sidebar-nav-link-active-bg: var(--sms-primary-soft);
+}
+
+/* URL이 있는 화면 메뉴도 자식을 가질 수 있으므로 이동 링크와 펼침 버튼을 분리한다. */
+.admin-shell .sidebar .nav-group {
+    position: relative;
+}
+
+.admin-shell .sidebar .sidebar-parent-link {
+    padding-right: 3rem;
+}
+
+.admin-shell .sidebar .sidebar-submenu-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 3rem;
+    min-height: 2.75rem;
+    justify-content: center;
+    padding-inline: 0;
+    border: 0;
+    background: transparent;
+}
+
+.admin-shell .sidebar .sidebar-submenu-toggle::after {
+    margin-left: 0;
 }
 
 /* Empty-permission notice (replaces inline `text-danger` style) */

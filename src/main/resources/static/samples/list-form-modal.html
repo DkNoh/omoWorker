@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  목록 화면 정적 샘플 — 메시지 발송 이력 (목록 + 폼 모달)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/list-form-modal.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  file:// 로 열면 서버 요청 없이 js/system/list-form-modal.js 의 모의 데이터로
+  목록 조회/검색/페이징과 등록/수정/삭제 폼 모달 전 흐름을 시연한다.
+  모달 본문은 공지사항 등록 폼(basic/notice.html)과 동일한
+  modal-lg + "row g-3" 라벨 상단 배치 폼 스타일이다.
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 검색 카드는 공통 검색 카드 패턴, 그리드 카드는 fragments/toast-grid.html,
+     모달은 fragments/modal-base.html fragment 로 교체한다.
+     (모달 DOM id 규약은 fragments/modal-base.html 주석 참고)
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md "목록 화면 패턴"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>메시지 발송 이력 — 목록 + 폼 모달 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>메시지 발송 이력 <small class="text-body-sm">(메시지 SMS &gt; 발송 이력 조회)</small></h2>
+            </div>
+
+            <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+                <div class="card-body">
+                    <div class="row align-items-center g-3 flex-wrap">
+                        <div class="col-auto"><label for="startDt" class="col-form-label fw-bold">발송기간</label></div>
+                        <div class="col-auto">
+                            <div class="scaffold-date-field scaffold-date-field-md">
+                                <div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input">
+                                    <input type="text" id="startDt" data-search-type="date" autocomplete="off" aria-label="발송 시작일">
+                                    <span class="tui-ico-date" aria-hidden="true"></span>
+                                </div>
+                                <div id="startDtPickerLayer" class="scaffold-date-picker-layer"></div>
+                            </div>
+                        </div>
+                        <div class="col-auto scaffold-date-range-separator" aria-hidden="true">~</div>
+                        <div class="col-auto">
+                            <div class="scaffold-date-field scaffold-date-field-md">
+                                <div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input">
+                                    <input type="text" id="endDt" data-search-type="date" autocomplete="off" aria-label="발송 종료일">
+                                    <span class="tui-ico-date" aria-hidden="true"></span>
+                                </div>
+                                <div id="endDtPickerLayer" class="scaffold-date-picker-layer"></div>
+                            </div>
+                        </div>
+                        <div class="col-auto"><label for="sendType" class="col-form-label fw-bold">메시지유형</label></div>
+                        <div class="col-auto">
+                            <select id="sendType" class="form-select scaffold-search-control" name="sendType" aria-label="메시지유형">
+                                <option value="">전체</option>
+                                <option value="SMS">SMS</option>
+                                <option value="LMS">LMS</option>
+                                <option value="MMS">MMS</option>
+                                <option value="ALIMTALK">알림톡</option>
+                            </select>
+                        </div>
+                        <div class="col-auto"><label for="receiverNo" class="col-form-label fw-bold">수신번호</label></div>
+                        <div class="col-auto">
+                            <input type="text" id="receiverNo" class="form-control scaffold-search-control"
+                                   name="receiverNo" aria-label="수신번호" placeholder="01012345678">
+                        </div>
+                        <div class="col-auto ms-auto d-flex gap-2">
+                            <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회">
+                                <i data-lucide="search" aria-hidden="true"></i><span>조회</span>
+                            </button>
+                            <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화">
+                                <i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- fragments/toast-grid.html 의 gridCard 뼈대 — #grid 는 빈 마운트 포인트로 유지 -->
+            <div class="card shadow-sm border-0 mb-4 toast-grid-card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <span class="fs-6 fw-medium">총 <strong class="text-primary" id="total-count">0</strong>건</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="btn-create" class="btn btn-outline-primary btn-sm px-3" aria-label="신규 등록">
+                            <i data-lucide="plus" aria-hidden="true"></i><span>등록</span>
+                        </button>
+                        <select id="pageSizeSelect" class="form-select form-select-sm toast-grid-page-size">
+                            <option value="10">10건</option>
+                            <option value="20">20건</option>
+                            <option value="50">50건</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="toast-grid-shell">
+                        <div id="grid" class="toast-grid"></div>
+                        <div class="toast-grid-empty" role="status" aria-live="polite" data-empty-state>
+                            <i data-lucide="inbox" class="toast-grid-empty-icon" aria-hidden="true"></i>
+                            <p class="toast-grid-empty-title">조회된 데이터가 없습니다</p>
+                            <p class="toast-grid-empty-hint">검색 조건을 입력한 뒤 조회 버튼을 눌러 주세요.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 py-3">
+                    <div id="pagination" class="d-flex justify-content-center"></div>
+                </div>
+            </div>
+
+            <!-- fragments/modal-base.html 의 정적 사본 — modalId: sms-history-form-modal
+                 본문 폼은 basic/notice.html 의 공지사항 등록 폼 스타일(modal-lg + row g-3)을 따른다. -->
+            <div class="modal fade" id="sms-history-form-modal" tabindex="-1" aria-hidden="true" data-coreui-backdrop="static">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="sms-history-form-modal-title">발송 이력 등록</h5>
+                            <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <form id="sms-history-form-modal-form" class="row g-3" autocomplete="off" novalidate>
+                                <input type="hidden" name="smsHistoryId" id="sms-history-form-modal-smsHistoryId">
+                                <div class="col-md-6">
+                                    <label for="sms-history-form-modal-receiverNo" class="form-label">수신번호</label>
+                                    <input type="text" class="form-control" name="receiverNo" id="sms-history-form-modal-receiverNo"
+                                           maxlength="20" placeholder="01012345678" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="sms-history-form-modal-sendType" class="form-label">메시지유형</label>
+                                    <select class="form-select" name="sendType" id="sms-history-form-modal-sendType">
+                                        <option value="SMS">SMS</option>
+                                        <option value="LMS">LMS</option>
+                                        <option value="MMS">MMS</option>
+                                        <option value="ALIMTALK">알림톡</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="sms-history-form-modal-sendStatus" class="form-label">발송상태</label>
+                                    <select class="form-select" name="sendStatus" id="sms-history-form-modal-sendStatus">
+                                        <option value="READY">발송대기</option>
+                                        <option value="SENT">발송중</option>
+                                        <option value="SUCCESS">성공</option>
+                                        <option value="FAIL">실패</option>
+                                        <option value="CANCEL">취소</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="sms-history-form-modal-sendDttm" class="form-label">발송일시</label>
+                                    <input type="datetime-local" class="form-control" name="sendDttm" id="sms-history-form-modal-sendDttm">
+                                </div>
+                                <div class="col-12">
+                                    <label for="sms-history-form-modal-msgCont" class="form-label">메시지내용</label>
+                                    <textarea class="form-control" name="msgCont" id="sms-history-form-modal-msgCont" rows="4"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="sms-history-form-modal-regNm" class="form-label">등록자</label>
+                                    <input type="text" class="form-control" name="regNm" id="sms-history-form-modal-regNm" readonly>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger me-auto d-none" id="sms-history-form-modal-btn-delete">
+                                <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">
+                                <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" id="sms-history-form-modal-btn-save">
+                                <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/list-form-modal.js"></script>
+</body>
+</html>

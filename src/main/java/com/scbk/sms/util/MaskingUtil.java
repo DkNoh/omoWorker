@@ -70,6 +70,34 @@ public final class MaskingUtil {
     return cleanPhone;
   }
 
+  /** 이메일 마스킹. 도메인은 유지하고 로컬 파트는 첫 글자를 제외해 마스킹한다. */
+  public static String maskEmail(String email) {
+    if (email == null || email.trim().isEmpty()) {
+      return email;
+    }
+    String target = email.trim();
+    int at = target.indexOf('@');
+    if (at <= 0) {
+      return maskName(target);
+    }
+    String local = target.substring(0, at);
+    String maskedLocal =
+        local.length() == 1 ? "*" : local.charAt(0) + "*".repeat(local.length() - 1);
+    return maskedLocal + target.substring(at);
+  }
+
+  /** 생년월일 마스킹. 숫자만 정규화한 뒤 연도 네 자리를 제외한 값을 마스킹한다. */
+  public static String maskBirthDate(String birthDate) {
+    if (birthDate == null || birthDate.trim().isEmpty()) {
+      return birthDate;
+    }
+    String digits = birthDate.replaceAll("[^0-9]", "");
+    if (digits.length() <= 4) {
+      return "*".repeat(digits.length());
+    }
+    return digits.substring(0, 4) + "*".repeat(digits.length() - 4);
+  }
+
   /** 주민등록번호 마스킹. 뒤 7자리 중 성별 자리만 남긴다. 9001011234567 -> 900101-1****** */
   public static String maskRrn(String rrn) {
     if (rrn == null || rrn.trim().isEmpty()) {

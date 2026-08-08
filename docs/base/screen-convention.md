@@ -2,7 +2,7 @@
 
 v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 문서는 v2의 화면 규약을 v3 기준으로 고정한 것이다.
 
-화면을 새로 만들 때 이 문서의 골격을 그대로 사용한다. 화면마다 새로운 레이아웃이나 그리드 방식을 임의로 만들지 않는다.
+화면은 이 문서에 문서화된 패턴(목록 화면, 상세폼 화면, 수동 모달)으로 구성한다. 패턴에 없는 화면 고유 정보 구조(미리보기 패널 등)는 허용한다. 단, 공통 자산(그리드·HTTP·모달·상세폼 행 레이아웃)을 화면마다 새로 발명하지 않는다.
 
 ## 기술 스택
 
@@ -14,9 +14,12 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 | 날짜 입력 | Toast UI DatePicker — `static/lib/tui-date-picker.min.js`, `static/lib/tui-date-picker.css` |
 | HTTP 클라이언트 | axios — `static/lib/axios.min.js` |
 | 엑셀 | xlsx — `static/lib/xlsx.full.min.js` |
+| 입력 마스킹 | IMask — `static/lib/imask.min.js` (`field-format.js`가 `data-mask` 요소에 부착, 전화번호/금액 포맷) |
+| 폼 검증 | JustValidate — `static/lib/just-validate.min.js` (`field-format.js`/`modal-manager.js`가 선택 사용) |
+| 위지윅 에디터 | Toast UI Editor — `static/lib/toastui-editor/3.2.2/` (defaultLayout이 아닌 `basic/notice-popup.html`에서 화면 단위로 로드) |
 | 아이콘 | lucide 로컬 번들 — `static/lib/lucide.js`, `data-lucide` 속성으로 렌더링 |
-| 공통 CSS | `static/css/admin-common.css` |
-| 공통 JS | `static/js/common/common-utils.js`, `tui-common.js`, `tui-page-builder.js` |
+| 공통 CSS | `static/css/admin-common.css`(디자인 토큰: `--sms-*` 정의·CoreUI `--cui-*` 별칭), `admin-layout.css`(쉘/레이아웃), `admin-ui-bridge.css`(CoreUI 브리지), `admin-form-detail.css`(상세폼 행 패턴) — 토큰 계층은 `DESIGN.md` 참조 |
+| 공통 JS | `static/js/common/notify.js`, `http-client.js`, `modal-manager.js`, `common-utils.js`, `form-binder.js`, `field-format.js`, `tui-common.js`, `tui-page-builder.js` (의존 순서대로 로드) |
 | 날짜 라이브러리 | day.js — `static/lib/dayjs.min.js` + `ko.js` (한국어 locale 전역 활성화: `dayjs.locale('ko')`) |
 
 폐쇄망 기준이므로 CDN 참조를 금지한다. 모든 라이브러리는 `static/lib`, `static/vendor` 로컬 파일만 사용한다.
@@ -32,6 +35,7 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 
 ## 목록 화면 표준 골격
 
+목록 화면 패턴의 표준 골격이다. 화면 패턴 중 하나이며, 등록/수정 화면은 아래 "상세폼 화면 패턴"을 본다.
 목록 화면은 아래 3개 영역 순서를 고정한다.
 
 ```html
@@ -88,6 +92,37 @@ v3 업무 화면은 v2 운영 화면과 동일한 구조로 생성한다. 이 �
 </html>
 ```
 
+## 상세폼 화면 패턴 (등록/수정)
+
+등록·수정 화면의 행 레이아웃은 공통 CSS(`static/css/admin-form-detail.css`) 클래스로 구성한다. 행 레이아웃을 화면마다 인라인 스타일로 다시 만들지 않는다.
+
+| 클래스 | 용도 |
+|---|---|
+| `form-detail-row` | 폼 행 — 68px 최소 높이 + 하단 보더, 마지막 행은 보더 제거 |
+| `form-detail-label` | 라벨 셀 — 배경·패딩·굵기 |
+| `form-detail-control` | 입력 컨트롤 셀 |
+| `form-detail-required` | 필수 마커 — ` *` 자동 표시 |
+| `form-detail-counter` | 글자수/바이트 카운터 — 화면 JS가 `.is-over` 토글 |
+
+행 1개의 골격:
+
+```html
+<div class="row g-0 form-detail-row">
+    <div class="col-12 col-sm-3 form-detail-label">
+        <label class="form-detail-required" for="fieldId">항목명</label>
+    </div>
+    <div class="col-12 col-sm-9 form-detail-control">
+        <input type="text" class="form-control" id="fieldId" name="fieldId">
+    </div>
+</div>
+```
+
+- 라벨/컨트롤 컬럼 비율(`col-sm-3/9`, `col-sm-2/4/2/4` 등)은 화면 정보 구조에 맞게 고른다.
+- `modal-base` 안에서 상세행을 가장자리까지 표시할 때는 폼에 `form-detail-modal-form`을 추가한다.
+- 화면 고유 요소(미리보기 패널, 경고 문구, 개별 폭 지정 등)만 `layout:fragment="css"`에 인라인으로 둔다.
+- 폼 바인딩·낙관적 잠금·보안 규약은 아래 "수정폼 화면 규약"을 그대로 따른다.
+- 정적 샘플: `static/samples/message-edit.html`(단일 컬럼 행 배치), `static/samples/campaign-register.html`(분할 컬럼 + 미리보기 합성). 표준 업무 화면은 먼저 Scaffold로 생성하고, 생성기에 없는 UI 패턴만 샘플에서 선택적으로 참고한다. 샘플 전체를 실제 화면의 원본으로 사용하지 않으며 prod에서는 경로가 차단된다(404).
+
 ## ID / 파일 명명 규칙
 
 | 대상 | 규칙 |
@@ -142,22 +177,22 @@ const pageBuilder = new TuiPageBuilder({
 
 | 항목 | 계약 |
 |---|---|
-| 그리드 공통 옵션 | `TuiCommon.gridDefaults`가 단일 통제점 (rowHeight 42, bodyHeight 420, scrollY true, minBodyHeight 300). 화면별 예외는 `config.gridOptions`로 넘긴다 |
+| 그리드 공통 옵션 | `TuiCommon.gridDefaults`가 단일 통제점 (rowHeight 38, bodyHeight 380, scrollX true, scrollY false, minBodyHeight 200). 화면별 예외는 `config.gridOptions`로 넘긴다 |
 | 총 건수 표시 | `id="total-count"` 요소 기준. PageBuilder가 자동 갱신한다 |
-| 날짜 전송 형식 | Toast UI DatePicker 검색 input(`data-search-type="date"`) 값은 `-`가 제거된 `YYYYMMDD` 문자열로 전송된다 (datetime-local은 `YYYYMMDDHHMMSS`). DATE/TIMESTAMP 컬럼과 비교하는 SQL은 `TO_DATE(#{변수}, 'YYYYMMDD')`로 감싼다 |
+| 날짜 전송 형식 | Toast UI DatePicker 검색 input(`data-search-type="date"`) 값은 `-`가 제거된 `YYYYMMDD` 문자열로 전송된다 (datetime-local은 `YYYYMMDDHHmm`). DATE/TIMESTAMP 컬럼과 비교하는 SQL은 `TO_DATE(#{변수}, 'YYYYMMDD')`로 감싼다 |
 | 기간 검증 | input id가 정확히 `startDate`/`endDate`일 때만 시작일>종료일 검증이 동작한다 |
 | 날짜 컬럼 표시 | LocalDate/LocalDateTime 컬럼은 `formatter: TuiCommon.fmt.date`를 붙인다 (scaffold가 자동 부착) |
 | 상태/유형 badge | 컬럼 단위로 `formatter: TuiCommon.badgeByValue({ labels, tones })` 선언. `labels`=코드→표시라벨 매핑, `tones`=코드→고정 색(생략 시 라벨 해시 기반 자동 색). 도메인 코드값(SMS/LMS, SUCCESS/FAIL 등)은 공통 JS가 모르게 화면에서 선언한다 |
 | 데이터 통신 | **모든 HTTP 호출은 axios로 통일한다** (2026-06-12, fetch 사용처 제거). 전역 인터셉터가 스피너/언래핑/오류 모달을 일괄 담당하므로 화면 JS에서 fetch를 쓰지 않는다 |
 
-## 상세폼 화면 규약 (조회 -> 수정 -> 저장)
+## 수정폼 화면 규약 (목록 선택 -> 수정 -> 저장)
 
 목록형(그리드)과 함께 BASE의 두 번째 표준 화면 유형이다.
 
 ```text
-화면 진입 -> 검색조건 입력 -> 조회
- -> GET /domain/detail (단건 조회, ApiResponse<VO 또는 DetailDTO>)
- -> FormBinder.bind('#detailForm', res.data)   // name 기준 자동 바인딩
+화면 진입 -> 검색조건 입력 -> 목록 조회
+ -> 수정할 행 선택
+ -> FormBinder.bind('#editForm', row)   // name 기준 자동 바인딩
  -> 사용자 수정 -> 저장
  -> POST /domain/update (FormBinder.toObject 결과를 UpdateRequestDTO로 수신)
  -> Service 검증/트랜잭션 -> MyBatis update -> 성공/실패
@@ -166,10 +201,10 @@ const pageBuilder = new TuiPageBuilder({
 ### name 일치 계약
 
 수정 가능한 form 필드의 `name` = 응답 JSON 필드명 = `UpdateRequestDTO` 프로퍼티명을 일치시킨다.
-상세 모달에 표시만 하는 읽기전용 필드는 `name`을 두지 않거나 `disabled` 처리해 update payload에 들어가지 않게 한다.
+수정 화면에 표시만 하는 읽기전용 필드는 `name`을 두지 않거나 `disabled` 처리해 update payload에 들어가지 않게 한다.
 
 ```html
-<form id="detailForm">
+<form id="editForm">
     <input type="hidden" name="msgId">
     <input type="hidden" name="beforeUpdateDttm">  <!-- 낙관적 잠금용 -->
     <input type="text" name="msgNm">
@@ -187,12 +222,11 @@ const pageBuilder = new TuiPageBuilder({
 | `FormBinder.toObject(selector)` | name 필드를 객체로 수집. disabled 제외, checkbox -> 'Y'/'N', **빈 문자열 -> null 전송 (확정 정책)** |
 
 ```javascript
-// 조회
-const res = await axios.get('/system/message/detail', { params: { msgId } });
-FormBinder.bind('#detailForm', res.data);
+// 목록에서 수정 행 선택
+FormBinder.bind('#editForm', grid.getRow(rowKey));
 
 // 저장
-await axios.post('/system/message/update', FormBinder.toObject('#detailForm'));
+await axios.post('/system/message/update', FormBinder.toObject('#editForm'));
 CommonUtils.toast('저장되었습니다.', 'success');
 ```
 
@@ -200,7 +234,7 @@ CommonUtils.toast('저장되었습니다.', 'success');
 
 - 조회 응답은 VO(전체 컬럼) 가능. 그러나 **수정 요청은 반드시 `*UpdateRequestDTO`(화이트리스트)로만 받는다.**
 - `UpdateRequestDTO`에는 수정 가능한 필드만 선언한다. `REG_ID`/`REG_DTTM`, 시스템 필드, 권한 필드는 선언하지 않는다 — 선언하지 않으면 Jackson이 버리므로 DTO 자체가 화이트리스트다.
-- 상세 모달은 표시 필드와 수정 필드를 분리한다. 사용자는 여러 값을 볼 수 있지만, `editable=true` 필드만 input `name`을 갖고 update payload에 포함된다.
+- 수정 화면은 표시 필드와 수정 필드를 분리한다. 사용자는 여러 값을 볼 수 있지만, `editable=true` 필드만 input `name`을 갖고 update payload에 포함된다.
 - 프론트는 편의 장치일 뿐이다. 화면에서 실수로 많은 값을 보내더라도 서버는 `*UpdateRequestDTO`에 선언된 필드만 수신하고, Mapper XML도 DTO의 수정 허용 필드만 `UPDATE SET`에 사용한다.
 - VO를 `@RequestBody`로 받지 않는다 (`ConventionTest`가 자동 검출).
 - 소유자 키(EMP_ID/DEP_ID)를 hidden으로 받더라도 서버에서 principal과 재검증한다.
@@ -233,10 +267,60 @@ CommonUtils.toast('저장되었습니다.', 'success');
 ## 금지
 
 - CDN 참조 금지. 로컬 `static/lib`, `static/vendor`만 사용한다.
-- 화면별 자체 레이아웃, 자체 그리드 구현 금지.
+- 공통 자산 재발명 금지: 자체 그리드 구현, 자체 HTTP(fetch), 자체 모달(`new coreui.Modal`), 상세폼 행 레이아웃 인라인 재작성. 화면 고유 정보 구조는 문서화된 패턴 합성으로 구현한다.
 - `defaultLayout.html`을 거치지 않는 업무 화면 금지 (login.html은 예외).
 - 화면에서 권한을 임의 계산하지 않는다. 메뉴/버튼 권한은 서버가 내려준 값만 사용한다.
 - 개인정보는 마스킹된 값만 화면에 표시한다.
+
+## 수동 모달 표준 (ModalManager + modal-base.html)
+
+scaffold CRUD screenMode가 생성하는 수정 모달과 개발자가 수동으로 추가하는 비즈니스 모달은 공통 표준을 따른다. LIST/EXCEL에는 자동 상세 모달이나 더블클릭 동작을 추가하지 않는다.
+
+**Fragment** (`fragments/modal-base.html`):
+```html
+<th:block th:replace="~{fragments/modal-base :: layout(
+    modalId=' biz-modal',
+    title='제목',
+    size='modal-lg',
+    bodyContent=~{::#modal-body},
+    footerContent=null
+)}">
+    <div id="modal-body">
+        <form id="detail-form" class="form-detail-modal-form" autocomplete="off" novalidate>
+            <div class="row g-0 form-detail-row">
+                <div class="col-12 col-sm-2 form-detail-label">
+                    <label for="fieldId">항목명</label>
+                </div>
+                <div class="col-12 col-sm-10 form-detail-control">
+                    <input type="text" class="form-control" id="fieldId" name="fieldId">
+                </div>
+            </div>
+        </form>
+    </div>
+</th:block>
+```
+
+**DOM id 규약** (modal-manager.js와 계약):
+- 모달 컨테이너: `id="${modalId}"`
+- 저장 버튼: `id="${modalId}-btn-save"`
+- 삭제 버튼: `id="${modalId}-btn-delete"`
+- 제목: `id="${modalId}-title"`
+
+**JS 초기화** (`static/js/common/modal-manager.js`):
+```javascript
+ModalManager.init('biz-modal', {
+    onMount:    () => {},
+    beforeOpen: () => true,
+    onOpen:     () => {},
+    onSubmit:   () => { /* 저장 로직 */ },
+    onDelete:   () => { /* 삭제 로직 */ },
+    onClose:    () => {}
+});
+ModalManager.open('biz-modal');
+ModalManager.close('biz-modal');
+```
+
+CoreUI Modal 인스턴스는 `getOrCreateInstance`로 중앙 관리된다. `new coreui.Modal(...)` 직접 생성을 금지한다. `JustValidate`는 선택적으로 `validateRules` 옵션으로 사용할 수 있으며, 기본 검증은 `FieldFormat.validateForm`을 따른다.
 
 ## 공통 자산 이식 상태
 

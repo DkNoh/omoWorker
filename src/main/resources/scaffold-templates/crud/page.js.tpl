@@ -1,0 +1,166 @@
+/**
+ * @fileoverview [( ${model.domainClass()} )] CRUD 화면 초기화.
+ * Grid 행과 공통 모달을 연결하고 등록/수정/삭제 권한, PK, 낙관적 잠금 스냅샷을 일관되게 관리한다.
+ * 최초 생성 후에는 개발자가 직접 수정해 소유한다.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    /* DOM id와 API 경로는 화면별 상수로 모아 모달 훅과 이벤트가 같은 값을 사용하게 한다. */
+    const MODAL_ID = '[( ${model.domainId()} )]-modal';
+    const MODAL_TITLE = '[( ${model.jsEscape(model.domainName())} )]';
+    const API = {
+        create: '[( ${model.screenUrl()} )]/create',
+        update: '[( ${model.screenUrl()} )]/update',
+        delete: '[( ${model.screenUrl()} )]/delete'
+    };
+
+    const DEFAULT_FORM = { [# th:each="field, iter : ${model.defaultFormFieldNames()}"][( ${field} )]: ''[# th:if="${!iter.last}"], [/][/] };
+    const PK_FIELDS = [[# th:each="field, iter : ${model.pkFieldNames()}"]'[( ${field} )]'[# th:if="${!iter.last}"], [/][/]];
+    const LOCK = [# th:if="${model.hasLockColumn()}"]{ field: '[( ${model.lockFieldName()} )]', beforeField: '[( ${model.beforeLockFieldName()} )]' }[/][# th:unless="${model.hasLockColumn()}"]null[/];
+
+    /* create/update 모드와 선택 행은 이 화면 인스턴스 안에서만 유지한다. */
+    const state = {
+        mode: 'create',
+        selectedRow: null
+    };
+
+    /* 상세행이 list-crud 기준 모달 본문 가장자리까지 이어지도록 한다. */
+    const modalBody = document.querySelector('#' + MODAL_ID + ' .modal-body');
+    if (modalBody) modalBody.classList.add('p-0');
+
+    /* 목록 조회, 검색, Grid와 서버 페이징은 공통 Builder에 위임한다. */
+    const pageBuilder = new TuiPageBuilder({
+        el: 'grid',
+        apiUrl: '[( ${model.screenUrl()} )]/data',
+        searchInputs: [[# th:each="searchParam, iter : ${model.searchParams()}"]'[( ${model.jsEscape(searchParam.name())} )]'[# th:if="${!iter.last}"], [/][/]],
+        searchDefaults: {[# th:each="searchParam, iter : ${model.searchParamsWithDefaults()}"][( ${searchParam.name()} )]: '[( ${model.jsEscape(searchParam.defaultValue())} )]'[# th:if="${!iter.last}"], [/][/]},
+        btnCreate: 'crud-modal-auto-create-disabled',
+        rowHeaders: [( ${rowHeaders} )],
+        columns: [
+[# th:each="column, iter : ${model.columnConfigs()}"]            { header: '[( ${model.jsEscape(column.headerName())} )]', name: '[( ${column.fieldName()} )]', align: '[( ${column.align()} )]', [# th:if="${model.isLastVisibleColumn(column)}"]minWidth[/][# th:unless="${model.isLastVisibleColumn(column)}"]width[/]: [( ${column.width()} )][# th:if="${!column.visible()}"], hidden: true[/][# th:if="${!column.hasMask() and column.hasOptions()}"], formatter: TuiCommon.badgeByValue({ labels: { [# th:each="option, optionIter : ${column.options()}"][( ${option.value()} )]: '[( ${model.jsEscape(option.label())} )]'[# th:if="${!optionIter.last}"], [/][/] } })[/][# th:if="${!column.hasMask() and !column.hasOptions() and column.dateFormat() == 'DATE'}"], formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD')[/][# th:if="${!column.hasMask() and !column.hasOptions() and column.dateFormat() == 'DATETIME'}"], formatter: ({ value }) => TuiCommon.formatDate(value, 'YYYY-MM-DD HH:mm')[/][# th:if="${!column.hasMask() and !column.hasOptions() and column.dateFormat() == 'AUTO' and column.isDateColumn()}"], formatter: TuiCommon.fmt.date[/] }[# th:if="${!iter.last}"],[/]
+[/]
+        ]
+    });
+
+    const grid = pageBuilder.getGrid();
+    grid.on('click', (ev) => {
+        if (ev.rowKey === null || ev.rowKey === undefined) return;
+        openEdit(grid.getRow(ev.rowKey));
+    });
+
+    /** 현재 모드에 필요한 CREATE 또는 UPDATE 권한이 있는지 확인한다. */
+    const canSave = () => {
+        const auth = window.PAGE_AUTH || {};
+        return (state.mode === 'create' && auth.create === true)
+            || (state.mode === 'update' && auth.update === true);
+    };
+
+    /** 모드와 pageAuth를 기준으로 공통 모달의 저장·삭제 버튼을 동기화한다. */
+    const syncActionButtons = () => {
+        const modal = document.querySelector('#' + MODAL_ID);
+        const saveBtn = modal.querySelector('#' + MODAL_ID + '-btn-save');
+        const deleteBtn = modal.querySelector('#' + MODAL_ID + '-btn-delete');
+        if (saveBtn) saveBtn.classList.toggle('d-none', !canSave());
+        if (deleteBtn) deleteBtn.classList.toggle('d-none', state.mode !== 'update' || !(window.PAGE_AUTH || {}).delete);
+    };
+
+    const syncModalTitle = (suffix) => {
+        const title = document.querySelector('#' + MODAL_ID + '-title');
+        if (title) title.textContent = MODAL_TITLE + ' ' + suffix;
+    };
+
+    /** 조회 시점 잠금값을 hidden 필드에 보관해 UPDATE WHERE 절에서 충돌을 감지한다. */
+    const applyLockSnapshot = (row) => {
+        if (!LOCK) return;
+        const beforeLock = document.querySelector('#detail-form [name="' + LOCK.beforeField + '"]');
+        if (beforeLock) beforeLock.value = row[LOCK.field] || '';
+    };
+
+    const syncReadonlyFields = (data) => {
+        const form = document.querySelector('#detail-form');
+        form.querySelectorAll('[data-readonly-field]').forEach(field => {
+            const value = data[field.dataset.readonlyField];
+            const text = value === null || value === undefined ? '' : String(value);
+            const tag = field.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+                field.value = text;
+            } else {
+                field.textContent = text;
+            }
+        });
+    };
+
+    /** 선택 행을 폼에 바인딩하고 수정 모드로 모달을 연다. */
+    const openEdit = (row) => {
+        state.mode = 'update';
+        state.selectedRow = row;
+        syncModalTitle('수정');
+        FormBinder.bind('#detail-form', row);
+        syncReadonlyFields(row);
+        applyLockSnapshot(row);
+        syncActionButtons();
+        ModalManager.open(MODAL_ID);
+    };
+
+    /** 이전 선택값을 제거하고 생성 기본값으로 등록 모달을 연다. */
+    const openCreate = () => {
+        state.mode = 'create';
+        state.selectedRow = null;
+        syncModalTitle('등록');
+        const form = document.querySelector('#detail-form');
+        form.reset();
+        FormBinder.bind('#detail-form', DEFAULT_FORM);
+        syncReadonlyFields(DEFAULT_FORM);
+        syncActionButtons();
+        ModalManager.open(MODAL_ID);
+        const firstInput = form.querySelector('input:not([type="hidden"]):not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])');
+        if (firstInput) firstInput.focus();
+    };
+
+    /** 공통 필드 검증 후 모드에 맞는 API를 호출하고 현재 페이지를 다시 조회한다. */
+    const save = async () => {
+        if (!canSave()) return;
+        const form = document.querySelector('#detail-form');
+        if (typeof FieldFormat !== 'undefined' && !await FieldFormat.validateForm(form)) return;
+        const payload = FormBinder.toObject('#detail-form');
+        if (state.mode === 'create') {
+            await ApiClient.post(API.create, payload);
+            CommonUtils.toast('등록되었습니다.', 'success');
+        } else {
+            await ApiClient.post(API.update, payload);
+            CommonUtils.toast('수정되었습니다.', 'success');
+        }
+        ModalManager.close(MODAL_ID);
+        await pageBuilder.searchData(pageBuilder.currentPage || 1);
+    };
+
+    /** 복합키를 포함한 PK 필드만 삭제 요청 파라미터로 구성한다. */
+    const pkParams = () => {
+        const params = {};
+        PK_FIELDS.forEach(field => {
+            const input = document.querySelector('#detail-form [name="' + field + '"]');
+            params[field] = input ? input.value : null;
+        });
+        return params;
+    };
+
+    /** 사용자 확인 후 PK 기준 삭제를 수행하고 목록 상태를 갱신한다. */
+    const remove = () => {
+        if (state.mode !== 'update') return;
+        CommonUtils.confirm('선택한 데이터를 삭제하시겠습니까?', async () => {
+            await ApiClient.remove(API.delete, pkParams());
+            CommonUtils.toast('삭제되었습니다.', 'success');
+            state.selectedRow = null;
+            ModalManager.close(MODAL_ID);
+            await pageBuilder.searchData(pageBuilder.currentPage || 1);
+        });
+    };
+
+    ModalManager.init(MODAL_ID, {
+        onSubmit: save,
+        onDelete: remove
+    });
+
+    const btnCreate = document.querySelector('#btn-create');
+    if (btnCreate) btnCreate.addEventListener('click', openCreate);
+    if (typeof FieldFormat !== 'undefined') FieldFormat.applyFieldFormats(document.querySelector('#detail-form'));
+});

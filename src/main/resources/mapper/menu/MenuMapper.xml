@@ -33,4 +33,12 @@
         ORDER BY M.MENU_LEVEL, M.PARENT_MENU_ID NULLS FIRST, M.SORT_ORD, M.MENU_ID
     </select>
 
+    <select id="countActiveMenuByUrl" resultType="int">
+        /* MenuMapper.countActiveMenuByUrl - 활성 메뉴 존재 여부(역할 무관, pageAuth 기준 경로 판별용) */
+        SELECT COUNT(*)
+        FROM SMS.TB_MENU M
+        WHERE M.USE_YN = 'Y'
+          AND M.MENU_URL = #{menuUrl}
+    </select>
+
 </mapper>

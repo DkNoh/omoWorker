@@ -1,0 +1,188 @@
+{
+  "request" : {
+    "moduleName" : "sms",
+    "domainId" : "history",
+    "domainClass" : "SmsHistory",
+    "domainName" : "발송이력조회",
+    "rawQuery" : "SELECT\n    A.SMS_HISTORY_ID AS SMS_HISTORY_ID,\n    A.REQUEST_ID AS REQUEST_ID,\n    A.SENT_AT AS SENT_AT,\n    A.RECEIVER_NO AS RECEIVER_NO,\n    A.SENDER_NO AS SENDER_NO,\n    A.SEND_TYPE AS SEND_TYPE,\n    A.SEND_STATUS AS SEND_STATUS,\n    A.RESULT_CD AS RESULT_CD,\n    A.RESULT_MSG AS RESULT_MSG\nFROM SMS.SMS_HISTORY A\nWHERE 1=1\nAND A.SEND_TYPE = $send_type\nAND A.SEND_STATUS = $send_status\nAND a.sent_at between $startDt and $endDt\nAND A.RECEIVER_NO LIKE '%' || $receiver_no || '%'",
+    "orderBy" : "A.SMS_HISTORY_ID",
+    "includeCreateUpdate" : true,
+    "includeExcel" : false,
+    "includePrivacy" : false,
+    "showRowNumber" : false,
+    "screenMode" : "CRUD",
+    "targetTable" : "SMS.SMS_HISTORY",
+    "pkColumn" : "SMS_HISTORY_ID",
+    "pkColumns" : [ "SMS_HISTORY_ID" ],
+    "lockColumn" : "",
+    "searchParamOptions" : [ {
+      "name" : "sendType",
+      "label" : "발송 유형",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "sendStatus",
+      "label" : "발송 상태:",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "startdt",
+      "label" : "시작일자",
+      "inputType" : "DATE",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "enddt",
+      "label" : "종료일자",
+      "inputType" : "DATE",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    }, {
+      "name" : "receiverNo",
+      "label" : "수신자 전화번호. 개인정보",
+      "inputType" : "TEXT",
+      "defaultValue" : "NONE",
+      "optionsText" : ""
+    } ],
+    "columnOptions" : [ {
+      "columnName" : "SMS_HISTORY_ID",
+      "visible" : false,
+      "modalVisible" : false,
+      "editable" : false,
+      "headerName" : "발송 이력 PK",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "REQUEST_ID",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : false,
+      "headerName" : "발송 요청",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SENT_AT",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "발송 일시",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "RECEIVER_NO",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "수신자 전화번호. 개인정보",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SENDER_NO",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "발신 번호",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SEND_TYPE",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "발송 유형",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "SEND_STATUS",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "발송 상태",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "RESULT_CD",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "발송 결과 코드",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    }, {
+      "columnName" : "RESULT_MSG",
+      "visible" : true,
+      "modalVisible" : true,
+      "editable" : true,
+      "headerName" : "발송 결과 메시지",
+      "width" : 150,
+      "align" : "center",
+      "dateFormat" : "AUTO",
+      "maskType" : "NONE",
+      "inputMask" : null,
+      "validate" : null,
+      "optionsText" : null
+    } ],
+    "menuOption" : {
+      "menuId" : "SMS_HISTORY",
+      "parentMenuId" : "",
+      "roleCode" : "ROLE_ADMIN",
+      "sortOrd" : 99
+    }
+  },
+  "columns" : [ "SMS_HISTORY_ID", "REQUEST_ID", "SENT_AT", "RECEIVER_NO", "SENDER_NO", "SEND_TYPE", "SEND_STATUS", "RESULT_CD", "RESULT_MSG" ],
+  "searchVars" : [ "sendType", "sendStatus", "startdt", "enddt", "receiverNo" ],
+  "typeMap" : {
+    "SMS_HISTORY_ID" : "Integer",
+    "REQUEST_ID" : "String",
+    "SENT_AT" : "LocalDateTime",
+    "RECEIVER_NO" : "String",
+    "SENDER_NO" : "String",
+    "SEND_TYPE" : "String",
+    "SEND_STATUS" : "String",
+    "RESULT_CD" : "String",
+    "RESULT_MSG" : "String"
+  },
+  "dialect" : "ORACLE"
+}

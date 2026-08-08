@@ -1,0 +1,44 @@
+package com.scbk.sms.service.sms;
+
+import com.scbk.sms.dto.common.PageResponseDTO;
+import com.scbk.sms.dto.sms.SmsHistorySearchRequestDTO;
+import com.scbk.sms.mapper.sms.SmsHistoryMapper;
+import com.scbk.sms.vo.sms.SmsHistoryVO;
+import com.scbk.sms.util.ExcelUtil;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * SmsHistory 업무 규칙과 트랜잭션 경계를 담당하는 Service.
+ *
+ * <p>Controller는 HTTP 변환만, Mapper는 SQL 실행만 담당한다. 중복 검사, 상태 전이, 외부 연계 같은 업무 규칙은 이 클래스에 추가한다.
+ * Scaffold 최초 생성 후에는 개발자가 직접 수정해 소유한다.
+ */
+@Service
+@RequiredArgsConstructor
+public class SmsHistoryService {
+
+    private final SmsHistoryMapper mapper;
+
+    /** 검색조건 검증 후 건수와 현재 페이지 목록을 함께 조회한다. */
+    @Transactional(readOnly = true)
+    public PageResponseDTO<SmsHistoryVO> search(SmsHistorySearchRequestDTO request) {
+        request.validate();
+        int totalCount = mapper.count(request);
+        List<SmsHistoryVO> list = mapper.selectList(request);
+        return PageResponseDTO.of(list, request, totalCount);
+    }
+
+    /** 현재 검색조건의 전체 결과에 목록과 동일한 마스킹 규칙을 적용해 엑셀로 응답한다. */
+    @Transactional(readOnly = true)
+    public void downloadExcel(SmsHistorySearchRequestDTO request, HttpServletResponse response) {
+        String[] headers = {"SEND_DT", "RECEIVER_NO"};
+        String[] keys = {"SEND_DT", "RECEIVER_NO"};
+        List<Map<String, Object>> list = mapper.selectListForExcel(request);
+        ExcelUtil.downloadExcel(response, "SmsHistory_export", headers, list, keys);
+    }
+}

@@ -35,12 +35,21 @@ public class StaticMenuSource implements MenuSource {
 
   @Override
   public Set<MenuPermission> getPermissions(String menuUrl, List<String> roleCodes) {
-    Set<String> menuUrls = new HashSet<>();
-    collectUrls(getMenuTree(roleCodes), menuUrls);
-    if (menuUrls.contains(menuUrl)) {
+    if (collectBaselineUrls().contains(menuUrl)) {
       return EnumSet.allOf(MenuPermission.class);
     }
     return EnumSet.noneOf(MenuPermission.class);
+  }
+
+  @Override
+  public boolean hasMenu(String menuUrl) {
+    return collectBaselineUrls().contains(menuUrl);
+  }
+
+  private Set<String> collectBaselineUrls() {
+    Set<String> menuUrls = new HashSet<>();
+    collectUrls(getMenuTree(List.of()), menuUrls);
+    return menuUrls;
   }
 
   private void collectUrls(List<MenuItemVO> menus, Set<String> menuUrls) {
@@ -56,7 +65,16 @@ public class StaticMenuSource implements MenuSource {
     List<MenuItemVO> menus = new ArrayList<>();
     menus.add(menu("G_BASIC", null, "기본메뉴", null, 1, 10, MENU_TYPE_GROUP));
     menus.add(menu("BASIC_INTRO", "G_BASIC", "SMS관리시스템 안내", "/basic/intro", 2, 10, MENU_TYPE_MENU));
-    menus.add(menu("BASIC_NOTICE", "G_BASIC", "공지사항", "/basic/notice", 2, 20, MENU_TYPE_MENU));
+    menus.add(menu("BASIC_NOTICE", "G_BASIC", "공지사항", null, 2, 20, MENU_TYPE_GROUP));
+    menus.add(
+        menu(
+            "BASIC_NOTICE_LIST",
+            "BASIC_NOTICE",
+            "공지사항 목록",
+            "/basic/notice",
+            3,
+            10,
+            MENU_TYPE_MENU));
     menus.add(menu("BASIC_MESSAGE", "G_BASIC", "메시지조회", "/basic/message", 2, 30, MENU_TYPE_MENU));
     menus.add(
         menu("BASIC_USER_SEARCH", "G_BASIC", "사용자조회", "/basic/user-search", 2, 40, MENU_TYPE_MENU));

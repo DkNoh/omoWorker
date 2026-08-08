@@ -1,0 +1,326 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json",
+
+  "model_fallback": true,
+  "runtime_fallback": {
+    "enabled": true,
+    "retry_on_errors": [408, 409, 429, 500, 502, 503, 504],
+    "max_fallback_attempts": 1,
+    "cooldown_seconds": 60,
+    "timeout_seconds": 120,
+    "notify_on_fallback": true,
+    "restore_primary_after_cooldown": true
+  },
+
+  "agent_order": ["sisyphus", "hephaestus", "prometheus", "atlas"],
+
+  "sisyphus_agent": {
+    "disabled": false,
+    "planner_enabled": true,
+    "replace_plan": true
+  },
+
+  "background_task": {
+    "defaultConcurrency": 2,
+    "staleTimeoutMs": 120000,
+    "providerConcurrency": {
+      "openai": 1,
+      "dashscope": 1,
+      "lmstudio": 1
+    },
+    "modelConcurrency": {
+      "openai/gpt-5.6-sol": 1,
+      "dashscope/qwen3.8-max-preview": 1,
+      "lmstudio/qwen/qwen3.6-27b": 1
+    }
+  },
+
+  "agents": {
+    "sisyphus": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "maxTokens": 8000,
+      "textVerbosity": "low",
+      "prompt_append": "Follow the repository AGENTS.md. Act as a local-first Java/Spring coordinator. Establish facts from repository files and executed commands; never invent Java types, Oracle columns, endpoints, configuration keys, runtime state, or test results. Handle ordinary questions, narrow fixes, searches, summaries, DTO/VO, CRUD, tests, and mechanical edits locally. Delegate bounded searches and routine work to local agents first. Escalate difficult cross-file implementation or unresolved debugging to Qwen Max, and architecture, security, database design, or high-risk review to GPT. Make the smallest correct change. Do not repeat identical searches, commands, delegations, or tests. Run only the narrow verification required by AGENTS.md and stop after the requested behavior is verified. If evidence remains insufficient after bounded inspection, report uncertainty instead of guessing or looping.",
+      "permission": {
+        "doom_loop": "deny"
+      },
+      "fallback_models": [
+        {
+          "model": "dashscope/qwen3.8-max-preview",
+          "maxTokens": 10000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ],
+      "ultrawork": {
+        "model": "dashscope/qwen3.8-max-preview"
+      }
+    },
+
+    "hephaestus": {
+      "model": "openai/gpt-5.6-sol",
+      "reasoningEffort": "high",
+      "maxTokens": 12000,
+      "textVerbosity": "medium",
+      "prompt_append": "Follow AGENTS.md and solve only the stated Java/Spring problem. Establish a reproducible cause before editing. Do not broaden the refactor, repeatedly run tests, or continue after the requested behavior has been verified. Never claim success without a current command result with exit code 0.",
+      "permission": {
+        "doom_loop": "deny"
+      },
+      "fallback_models": [
+        {
+          "model": "dashscope/qwen3.8-max-preview",
+          "maxTokens": 12000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "prometheus": {
+      "model": "openai/gpt-5.6-sol",
+      "reasoningEffort": "high",
+      "maxTokens": 8000,
+      "textVerbosity": "low",
+      "prompt_append": "Produce a bounded Java/Spring plan with exact files, acceptance criteria, and verification commands. Preserve the existing architecture. Do not add speculative cleanup, dependencies, abstractions, or tests outside the requested behavior.",
+      "fallback_models": [
+        {
+          "model": "dashscope/qwen3.8-max-preview",
+          "maxTokens": 10000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "atlas": {
+      "model": "dashscope/qwen3.8-max-preview",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 12000,
+      "textVerbosity": "medium",
+      "prompt_append": "Execute only the written plan and AGENTS.md. Do not rediscover completed findings or expand scope. Run only the verification required by the plan and AGENTS.md, once at the appropriate final point.",
+      "permission": {
+        "doom_loop": "deny"
+      },
+      "fallback_models": [
+        {
+          "model": "lmstudio/qwen/qwen3.6-27b",
+          "maxTokens": 8000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "oracle": {
+      "model": "openai/gpt-5.6-sol",
+      "reasoningEffort": "high",
+      "maxTokens": 8000,
+      "textVerbosity": "medium",
+      "prompt_append": "Act as a read-only architecture and debugging consultant. Separate verified facts from hypotheses, cite repository evidence, and recommend the smallest safe Java/Spring/MyBatis/Oracle change. Do not implement or run repetitive tests.",
+      "permission": {
+        "edit": "deny",
+        "doom_loop": "deny"
+      },
+      "fallback_models": [
+        {
+          "model": "dashscope/qwen3.8-max-preview",
+          "maxTokens": 10000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "metis": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "maxTokens": 5000,
+      "textVerbosity": "low",
+      "prompt_append": "Review plans for concrete gaps, unsupported assumptions, excess scope, and missing verification. Do not rewrite a sound plan or invent requirements.",
+      "permission": {
+        "edit": "deny",
+        "doom_loop": "deny"
+      },
+      "fallback_models": ["dashscope/qwen3.8-max-preview"]
+    },
+
+    "momus": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "maxTokens": 5000,
+      "textVerbosity": "low",
+      "prompt_append": "Critique only material correctness, scope, safety, and verification issues. Avoid stylistic objections, duplicate findings, and speculative edge cases.",
+      "permission": {
+        "edit": "deny",
+        "doom_loop": "deny"
+      },
+      "fallback_models": ["dashscope/qwen3.8-max-preview"]
+    },
+
+    "sisyphus-junior": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 8000,
+      "textVerbosity": "low",
+      "prompt_append": "Perform only the delegated bounded task. Follow AGENTS.md, report exact changed files and one relevant verification result, and stop. Do not expand scope or rerun unchanged commands.",
+      "permission": {
+        "doom_loop": "deny"
+      },
+      "fallback_models": [
+        {
+          "model": "dashscope/qwen3.8-max-preview",
+          "maxTokens": 8000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "explore": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "maxTokens": 3000,
+      "textVerbosity": "low",
+      "prompt_append": "Search narrowly and return file paths, symbols, and evidence only. Do not modify files, run builds, run tests, or repeat searches already answered.",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "external_directory": "deny",
+        "doom_loop": "deny"
+      },
+      "fallback_models": ["dashscope/qwen3.8-max-preview"]
+    },
+
+    "librarian": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "maxTokens": 3500,
+      "textVerbosity": "low",
+      "prompt_append": "Return concise documentation evidence relevant to the exact question. Prefer primary sources. Do not edit code, run builds or tests, or duplicate repository exploration.",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "external_directory": "deny",
+        "webfetch": "allow",
+        "doom_loop": "deny"
+      },
+      "fallback_models": ["dashscope/qwen3.8-max-preview"]
+    },
+
+    "multimodal-looker": {
+      "model": "dashscope/qwen3.8-max-preview",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 8000,
+      "textVerbosity": "low",
+      "prompt_append": "Report only visible evidence and clearly label uncertain interpretation. Do not infer hidden UI state or implementation details from an image.",
+      "fallback_models": ["lmstudio/qwen/qwen3.6-27b"]
+    }
+  },
+
+  "categories": {
+    "quick": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "maxTokens": 2500,
+      "max_prompt_tokens": 12000,
+      "textVerbosity": "low",
+      "prompt_append": "Handle one small local change. No broad exploration, refactoring, dependency changes, or repeated verification."
+    },
+
+    "writing": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.3,
+      "top_p": 0.9,
+      "maxTokens": 5000,
+      "max_prompt_tokens": 20000,
+      "textVerbosity": "medium",
+      "prompt_append": "Match existing project terminology and documentation structure. Do not invent behavior or duplicate existing documentation.",
+      "fallback_models": ["dashscope/qwen3.8-max-preview"]
+    },
+
+    "unspecified-low": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 5000,
+      "max_prompt_tokens": 24000,
+      "textVerbosity": "low"
+    },
+
+    "unspecified-high": {
+      "model": "dashscope/qwen3.8-max-preview",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 10000,
+      "max_prompt_tokens": 48000,
+      "textVerbosity": "medium",
+      "fallback_models": ["lmstudio/qwen/qwen3.6-27b"]
+    },
+
+    "deep": {
+      "model": "dashscope/qwen3.8-max-preview",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 12000,
+      "max_prompt_tokens": 64000,
+      "textVerbosity": "medium",
+      "prompt_append": "Investigate one difficult problem to a verified conclusion. Stop after the cause and requested fix are validated; do not expand test coverage or refactor unrelated code.",
+      "fallback_models": [
+        {
+          "model": "lmstudio/qwen/qwen3.6-27b",
+          "maxTokens": 8000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "ultrabrain": {
+      "model": "openai/gpt-5.6-sol",
+      "reasoningEffort": "high",
+      "maxTokens": 12000,
+      "max_prompt_tokens": 80000,
+      "textVerbosity": "medium",
+      "prompt_append": "Use deep reasoning only for the stated architectural or debugging decision. Separate evidence from inference and finish with a bounded recommendation and verification plan.",
+      "fallback_models": [
+        {
+          "model": "dashscope/qwen3.8-max-preview",
+          "maxTokens": 12000,
+          "temperature": 0.2,
+          "top_p": 0.9
+        }
+      ]
+    },
+
+    "visual-engineering": {
+      "model": "dashscope/qwen3.8-max-preview",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "maxTokens": 12000,
+      "max_prompt_tokens": 48000,
+      "textVerbosity": "medium",
+      "prompt_append": "Preserve the existing Thymeleaf, JavaScript, CSS, and accessibility conventions. Change only the requested UI and verify only the relevant rendered behavior.",
+      "fallback_models": ["lmstudio/qwen/qwen3.6-27b"]
+    },
+
+    "artistry": {
+      "model": "lmstudio/qwen/qwen3.6-27b",
+      "temperature": 0.3,
+      "top_p": 0.9,
+      "maxTokens": 10000,
+      "max_prompt_tokens": 40000,
+      "textVerbosity": "medium",
+      "fallback_models": ["dashscope/qwen3.8-max-preview"]
+    }
+  }
+}

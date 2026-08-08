@@ -27,6 +27,16 @@ public class ColumnTypeInferrer {
     this.scaffoldProperties = scaffoldProperties;
   }
 
+  /**
+   * SELECT를 빈 결과 쿼리로 실행해 결과 컬럼의 Java 타입을 확정한다.
+   *
+   * <p>초기 {@code String} 값은 쿼리가 비어 있을 때만 사용하는 방어값이다. 실제 쿼리가 주어졌는데 DB 메타데이터 조회가 실패하면 잘못된
+   * DTO/VO를 생성하지 않도록 예외로 중단한다.
+   *
+   * @param rawQuery 사용자가 입력한 QuerySpec SELECT
+   * @param columns SELECT에서 추출한 출력 컬럼명
+   * @return 출력 컬럼명을 키로 하는 Java 타입 맵
+   */
   public Map<String, String> inferTypes(String rawQuery, List<String> columns) {
     Map<String, String> typeMap = new LinkedHashMap<>();
     columns.forEach(column -> typeMap.put(column, "String"));
@@ -35,6 +45,7 @@ public class ColumnTypeInferrer {
       return typeMap;
     }
 
+    // MyBatis/Scaffold 전용 표식을 NULL로 바꿔 JDBC가 실행 가능한 메타데이터 조회용 SQL로 만든다.
     String safeQuery =
         rawQuery
             .replaceAll("(?i)<[^>]+>", " ")

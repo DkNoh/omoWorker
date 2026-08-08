@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "instructions": [
+    "docs/base/rules-index.md"
+  ],
+
+  "model": "dashscope/qwen3.8-max-preview",
+  "small_model": "lmstudio/qwen/qwen3.6-27b"
+}

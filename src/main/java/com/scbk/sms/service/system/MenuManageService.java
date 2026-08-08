@@ -8,13 +8,16 @@ import com.scbk.sms.dto.system.MenuUpdateRequestDTO;
 import com.scbk.sms.exception.CustomException;
 import com.scbk.sms.exception.ErrorCode;
 import com.scbk.sms.mapper.system.MenuManageMapper;
+import com.scbk.sms.service.menu.MenuCacheRevision;
 import com.scbk.sms.vo.system.MenuAuthDetailVO;
 import com.scbk.sms.vo.system.MenuManageVO;
 import com.scbk.sms.vo.system.MenuRoleVO;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,8 +44,11 @@ public class MenuManageService {
   private static final String MENU_TYPE_GROUP = "G";
   private static final String YES = "Y";
   private static final String NO = "N";
+  private static final int ROOT_MENU_LEVEL = 1;
+  private static final int SORT_STEP = 10;
 
   private final MenuManageMapper mapper;
+  private final MenuCacheRevision menuCacheRevision;
 
   @Transactional(readOnly = true)
   public PageResponseDTO<MenuManageVO> search(MenuSearchRequestDTO request) {
@@ -89,7 +95,9 @@ public class MenuManageService {
         && mapper.countByUrlExceptMenuId(request.getMenuUrl(), request.getMenuId()) > 0) {
       throw new CustomException(ErrorCode.DUPLICATE_MENU_URL);
     }
+    applyCreateHierarchy(request);
     mapper.insert(request);
+    menuCacheRevision.invalidateAfterCommit();
   }
 
   /**
@@ -111,11 +119,16 @@ public class MenuManageService {
         && mapper.countByUrlExceptMenuId(request.getMenuUrl(), request.getMenuId()) > 0) {
       throw new CustomException(ErrorCode.DUPLICATE_MENU_URL);
     }
+    int levelDelta = applyUpdateHierarchy(request, existing);
     int updated = mapper.update(request);
     if (updated == 0) {
       throw new CustomException(ErrorCode.UPDATE_CONFLICT);
     }
+    if (levelDelta != 0) {
+      mapper.shiftDescendantMenuLevels(request.getMenuId(), levelDelta);
+    }
     replaceAuthRowsIfPresent(request);
+    menuCacheRevision.invalidateAfterCommit();
   }
 
   /**
@@ -139,6 +152,7 @@ public class MenuManageService {
     if (deleted == 0) {
       throw new CustomException(ErrorCode.DELETE_CONFLICT);
     }
+    menuCacheRevision.invalidateAfterCommit();
   }
 
   /** G는 URL 없음, M은 URL 필수. DB CHECK 제약과 동일한 규칙을 기록 전에 사전 검증한다. */
@@ -154,6 +168,77 @@ public class MenuManageService {
 
   private boolean hasUrl(MenuUpdateRequestDTO request) {
     return request.getMenuUrl() != null && !request.getMenuUrl().isBlank();
+  }
+
+  /** 신규 메뉴의 부모·레벨·정렬순서를 서버에서 확정한다. */
+  private void applyCreateHierarchy(MenuUpdateRequestDTO request) {
+    String parentMenuId = normalizeParentMenuId(request.getParentMenuId());
+    request.setParentMenuId(parentMenuId);
+
+    mapper.lockForSortAllocation();
+    MenuManageVO parent = resolveParent(parentMenuId);
+    request.setMenuLevel(parent == null ? ROOT_MENU_LEVEL : parent.getMenuLevel() + 1);
+    request.setSortOrd(nextSortOrd(parentMenuId));
+  }
+
+  /** 수정 시에도 화면에서 받은 레벨·정렬값을 신뢰하지 않고 기존 트리와 부모를 기준으로 보정한다. */
+  private int applyUpdateHierarchy(MenuUpdateRequestDTO request, MenuManageVO existing) {
+    String parentMenuId = normalizeParentMenuId(request.getParentMenuId());
+    request.setParentMenuId(parentMenuId);
+
+    MenuManageVO parent = resolveParent(parentMenuId);
+    assertNoHierarchyCycle(request.getMenuId(), parent);
+
+    int menuLevel = parent == null ? ROOT_MENU_LEVEL : parent.getMenuLevel() + 1;
+    int levelDelta = menuLevel - existing.getMenuLevel();
+    request.setMenuLevel(menuLevel);
+
+    String existingParentMenuId = normalizeParentMenuId(existing.getParentMenuId());
+    if (Objects.equals(existingParentMenuId, parentMenuId)) {
+      request.setSortOrd(existing.getSortOrd());
+    } else {
+      mapper.lockForSortAllocation();
+      request.setSortOrd(nextSortOrd(parentMenuId));
+    }
+    return levelDelta;
+  }
+
+  private MenuManageVO resolveParent(String parentMenuId) {
+    if (parentMenuId == null) {
+      return null;
+    }
+    MenuManageVO parent = mapper.selectByMenuId(parentMenuId);
+    if (parent == null) {
+      throw new CustomException(ErrorCode.MENU_PARENT_INVALID);
+    }
+    return parent;
+  }
+
+  private void assertNoHierarchyCycle(String menuId, MenuManageVO parent) {
+    Set<String> visited = new HashSet<>();
+    MenuManageVO cursor = parent;
+    while (cursor != null) {
+      if (Objects.equals(menuId, cursor.getMenuId()) || !visited.add(cursor.getMenuId())) {
+        throw new CustomException(ErrorCode.MENU_HIERARCHY_INVALID);
+      }
+      String nextParentMenuId = normalizeParentMenuId(cursor.getParentMenuId());
+      if (nextParentMenuId == null) {
+        return;
+      }
+      cursor = mapper.selectByMenuId(nextParentMenuId);
+      if (cursor == null) {
+        throw new CustomException(ErrorCode.MENU_PARENT_INVALID);
+      }
+    }
+  }
+
+  private int nextSortOrd(String parentMenuId) {
+    int next = mapper.selectNextSortOrd(parentMenuId);
+    return next > 0 ? next : SORT_STEP;
+  }
+
+  private String normalizeParentMenuId(String parentMenuId) {
+    return parentMenuId == null || parentMenuId.isBlank() ? null : parentMenuId.trim();
   }
 
   /**

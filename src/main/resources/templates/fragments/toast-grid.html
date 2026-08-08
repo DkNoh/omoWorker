@@ -1,11 +1,39 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="gridCard" class="card shadow-sm border-0 mb-4 toast-grid-card">
+<!--
+  fragments/toast-grid.html
+  목록 화면의 그리드 카드 공통 뼈대 — 총 건수 + 페이지 크기 + 그리드 + 빈 데이터 안내 + 페이징
+
+  Fragment API:
+    th:replace="~{fragments/toast-grid :: gridCard(gridId, paginationId, totalCountId, pageSizeSelectId)}"
+
+  매개변수 (기본 ID 사용 시 각 자리에 null을 전달):
+    - gridId            그리드 마운트 DOM id          (기본: grid)
+    - paginationId      페이징 컨테이너 DOM id        (기본: pagination)
+    - totalCountId      총 건수 strong DOM id         (기본: total-count)
+    - pageSizeSelectId  페이지 크기 select DOM id     (기본: pageSizeSelect)
+
+  한 화면에 그리드를 여러 개 두려면 이 프래그먼트를 인자만 다르게 해 반복 배치하고,
+  화면 JS에서 TuiPageBuilder 인스턴스별로 el / paginationId / totalCountSelector / pageSizeEl 을
+  아래 id와 동일하게 지정한다. (TuiPageBuilder·TuiCommon 은 커스텀 ID 를 이미 지원한다.)
+
+  사용 예 (2 그리드):
+    <div th:replace="~{fragments/toast-grid :: gridCard('deptGrid', 'deptPagination', 'deptTotalCount', 'deptPageSize')}"></div>
+    <div th:replace="~{fragments/toast-grid :: gridCard('empGrid',  'empPagination',  'empTotalCount',  'empPageSize')}"></div>
+
+  DOM 계약 (TuiPageBuilder 와 일치):
+    - 그리드:      id="${gridId}"       (반드시 빈 마운트 포인트로 유지)
+    - 빈 데이터:   [data-empty-state]   (그리드 부모 기준 형제 오버레이, 토글은 빌더 담당)
+    - 페이징:      id="${paginationId}"
+    - 총 건수:     id="${totalCountId}"
+    - 페이지 크기: id="${pageSizeSelectId}"
+-->
+<div th:fragment="gridCard(gridId, paginationId, totalCountId, pageSizeSelectId)" class="card shadow-sm border-0 mb-4 toast-grid-card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-        <span class="fs-6 fw-medium">총 <strong class="text-primary" id="total-count">0</strong>건</span>
+        <span class="fs-6 fw-medium">총 <strong class="text-primary" th:id="${totalCountId ?: 'total-count'}">0</strong>건</span>
         <div class="d-flex align-items-center gap-2">
-            <select id="pageSizeSelect" class="form-select form-select-sm toast-grid-page-size">
+            <select th:id="${pageSizeSelectId ?: 'pageSizeSelect'}" class="form-select form-select-sm toast-grid-page-size">
                 <option value="10">10건</option>
                 <option value="20">20건</option>
                 <option value="50">50건</option>
@@ -13,12 +41,12 @@
         </div>
     </div>
     <div class="card-body p-0">
-        <!-- IMPORTANT: #grid must stay an EMPTY mount point.
-             TuiPageBuilder passes this element directly to new tui.Grid({ el }).
-             Any children here break TUI's internal DOM construction.
-             The no-data hint is a SIBLING overlay toggled from JS. -->
+        <!-- IMPORTANT: 그리드 마운트 포인트는 반드시 빈 요소로 유지한다.
+             TuiPageBuilder가 이 요소를 그대로 new tui.Grid({ el }) 에 전달하므로
+             자식이 있으면 TUI 내부 DOM 구성이 깨진다.
+             빈 데이터 안내는 JS가 토글하는 형제 오버레이다. -->
         <div class="toast-grid-shell">
-            <div id="grid" class="toast-grid"></div>
+            <div th:id="${gridId ?: 'grid'}" class="toast-grid"></div>
             <div class="toast-grid-empty" role="status" aria-live="polite" data-empty-state>
                 <i data-lucide="inbox" class="toast-grid-empty-icon" aria-hidden="true"></i>
                 <p class="toast-grid-empty-title">조회된 데이터가 없습니다</p>
@@ -27,7 +55,7 @@
         </div>
     </div>
     <div class="card-footer bg-white border-0 py-3">
-        <div id="pagination" class="d-flex justify-content-center"></div>
+        <div th:id="${paginationId ?: 'pagination'}" class="d-flex justify-content-center"></div>
     </div>
 </div>
 </body>

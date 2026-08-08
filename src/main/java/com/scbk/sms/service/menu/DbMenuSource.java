@@ -61,6 +61,12 @@ public class DbMenuSource implements MenuSource {
     return permissions;
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public boolean hasMenu(String menuUrl) {
+    return menuMapper.countActiveMenuByUrl(menuUrl) > 0;
+  }
+
   private void addIfGranted(
       Set<MenuPermission> permissions, MenuPermission permission, String flag) {
     if (YES.equals(flag)) {

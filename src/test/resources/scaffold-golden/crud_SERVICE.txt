@@ -1,0 +1,63 @@
+package com.scbk.sms.service.sms;
+
+import com.scbk.sms.dto.common.PageResponseDTO;
+import com.scbk.sms.dto.sms.SmsHistorySearchRequestDTO;
+import com.scbk.sms.dto.sms.SmsHistoryUpdateRequestDTO;
+import com.scbk.sms.exception.CustomException;
+import com.scbk.sms.exception.ErrorCode;
+import com.scbk.sms.mapper.sms.SmsHistoryMapper;
+import com.scbk.sms.vo.sms.SmsHistoryVO;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * SmsHistory 업무 규칙과 트랜잭션 경계를 담당하는 Service.
+ *
+ * <p>Controller는 HTTP 변환만, Mapper는 SQL 실행만 담당한다. 중복 검사, 상태 전이, 외부 연계 같은 업무 규칙은 이 클래스에 추가한다.
+ * Scaffold 최초 생성 후에는 개발자가 직접 수정해 소유한다.
+ */
+@Service
+@RequiredArgsConstructor
+public class SmsHistoryService {
+
+    private final SmsHistoryMapper mapper;
+
+    /** 검색조건 검증 후 건수와 현재 페이지 목록을 함께 조회한다. */
+    @Transactional(readOnly = true)
+    public PageResponseDTO<SmsHistoryVO> search(SmsHistorySearchRequestDTO request) {
+        request.validate();
+        int totalCount = mapper.count(request);
+        List<SmsHistoryVO> list = mapper.selectList(request);
+        return PageResponseDTO.of(list, request, totalCount);
+    }
+
+    /** 등록 전 업무 규칙을 검증하고 허용된 필드만 저장한다. */
+    @Transactional
+    public void create(SmsHistoryUpdateRequestDTO request) {
+        // TODO: 등록 전 업무 규칙 검증(중복 체크, 필수값 보정 등)을 여기에 추가한다.
+        mapper.insert(request);
+    }
+
+    /** 수정 충돌을 0건 결과로 감지해 성공으로 오인하지 않도록 처리한다. */
+    @Transactional
+    public void update(SmsHistoryUpdateRequestDTO request) {
+        // TODO: 수정 전 업무 규칙 검증(상태 전이, 권한 확인 등)을 여기에 추가한다.
+        int updated = mapper.update(request);
+        if (updated == 0) {
+            // 다른 사용자가 먼저 수정했거나(낙관적 잠금) 대상이 없다
+            throw new CustomException(ErrorCode.UPDATE_CONFLICT);
+        }
+    }
+
+    /** 실제 PK로 삭제하고 대상 부재 또는 선행 삭제를 충돌로 보고한다. */
+    @Transactional
+    public void delete(String receiverNo) {
+        int deleted = mapper.delete(receiverNo);
+        if (deleted == 0) {
+            // 다른 사용자가 먼저 삭제했거나 대상이 없다
+            throw new CustomException(ErrorCode.DELETE_CONFLICT);
+        }
+    }
+}

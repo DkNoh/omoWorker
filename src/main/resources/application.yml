@@ -19,6 +19,13 @@ mybatis:
 sms:
   scaffold:
     db-platform: ${SMS_SCAFFOLD_DB_PLATFORM:oracle}
+  external-api:
+    authentication:
+      # 외부 API 호출 시스템 식별자. 비밀값이 아니며 요청의 X-API-Client-Id와 비교한다.
+      client-id: ${SMS_EXTERNAL_API_CLIENT_ID:}
+      # API Key 원문을 저장하지 않고 SHA-256 해시(64자리 16진수)만 환경변수로 주입한다.
+      # 두 값이 비어 있거나 해시 형식이 잘못되면 /api/v1/** 요청은 모두 401로 안전하게 차단된다.
+      key-sha256: ${SMS_EXTERNAL_API_KEY_SHA256:}
 
 server:
   port: ${SERVER_PORT:8081}

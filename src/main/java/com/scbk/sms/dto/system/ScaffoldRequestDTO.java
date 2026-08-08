@@ -5,7 +5,13 @@ import jakarta.validation.constraints.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Query Scaffold 생성 요청 (QuerySpec). rawQuery 안의 $변수는 검색조건 규약이다. 예: AND A.SEND_DT >= $start_dt */
+/**
+ * Query Scaffold 한 화면의 생성 계약(QuerySpec).
+ *
+ * <p>{@code rawQuery}의 {@code $변수}는 검색조건을 뜻한다. 예를 들어 {@code AND A.SEND_DT >= $start_dt}는
+ * {@code startDt} 요청 필드와 MyBatis 조건으로 변환된다. 화면에서 전달하는 레벨·타입·컬럼 옵션은 생성 모델에서 정규화되며, CRUD의 PK와
+ * nullable 정보는 실제 DB 메타데이터로 다시 검증한다.
+ */
 public class ScaffoldRequestDTO {
 
   @NotBlank(message = "moduleName은 필수입니다.")
@@ -34,8 +40,8 @@ public class ScaffoldRequestDTO {
 
   private boolean includeCreateUpdate;
   private boolean includeExcel;
-  private boolean includeModal;
   private boolean includePrivacy;
+  private boolean showRowNumber = true;
   private String screenMode;
   private String targetTable;
   private String pkColumn;
@@ -109,20 +115,20 @@ public class ScaffoldRequestDTO {
     this.includeExcel = includeExcel;
   }
 
-  public boolean isIncludeModal() {
-    return includeModal;
-  }
-
-  public void setIncludeModal(boolean includeModal) {
-    this.includeModal = includeModal;
-  }
-
   public boolean isIncludePrivacy() {
     return includePrivacy;
   }
 
   public void setIncludePrivacy(boolean includePrivacy) {
     this.includePrivacy = includePrivacy;
+  }
+
+  public boolean isShowRowNumber() {
+    return showRowNumber;
+  }
+
+  public void setShowRowNumber(boolean showRowNumber) {
+    this.showRowNumber = showRowNumber;
   }
 
   public String getScreenMode() {

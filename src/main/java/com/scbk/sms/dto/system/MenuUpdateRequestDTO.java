@@ -29,7 +29,10 @@ public class MenuUpdateRequestDTO {
 
   private String menuUrl;
 
+  /** 부모 메뉴를 기준으로 Service가 계산한다. 화면 입력값은 신뢰하지 않는다. */
   private int menuLevel;
+
+  /** 같은 부모의 형제 메뉴 중 마지막 순서 + 10으로 Service가 계산한다. */
   private int sortOrd;
 
   @NotBlank(message = "menuType은 필수입니다.")

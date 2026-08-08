@@ -1,6 +1,6 @@
 # 미수정 / 미비 사항 정리
 
-기준일: 2026-06-19
+기준일: 2026-08-01
 
 이 문서는 현재 레퍼런스 프로젝트에서 의도적으로 미룬 일, 아직 미완성인 일, 폐쇄망 반입 전 확인해야 할 일을 남긴다.
 
@@ -12,7 +12,7 @@ MenuSqlTemplate가 screenMode 기준으로 CAN_* 기본값을 최소 권한으�
 
 - ✅ `LIST`: `CAN_READ=Y`, 나머지 `N`
 - ✅ `EXCEL`: `CAN_READ=Y`, `CAN_DOWNLOAD=Y`
-- ✅ `DETAIL`: `CAN_READ=Y`
+- 과거 기록: 제거된 `DETAIL` screenMode는 `CAN_READ=Y`를 생성했다. 현재 지원 대상은 `LIST`/`EXCEL`/`CRUD` 3종이다.
 - ✅ `CRUD`: `CAN_READ/CREATE/UPDATE/DELETE=Y`
 - ✅ 개인정보 화면(`includePrivacy`): `CAN_MASK_VIEW=Y`
 - 스캐폴드 화면에서 권한 체크박스를 직접 수정할 수 있게 할지 결정한다. (미해결)
@@ -31,31 +31,21 @@ MenuSqlTemplate가 screenMode 기준으로 CAN_* 기본값을 최소 권한으�
 
 ## 아직 미비한 부분
 
-### 3. 기존 `SmsHistory` 생성물 재생성 필요
+### 3. 기존 `SmsHistory` 생성물 재생성 — 운영 대상 제외
 
-이번 수정은 스캐폴드 템플릿과 공통 기능을 고친 것이다. 이미 생성되어 있는 `SmsHistory` 화면 파일을 다시 덮어쓰지는 않았다.
+현재 메뉴에 배치된 `SmsHistory` 등 업무 화면은 Scaffold와 공통 자산을 검증하기 위한 테스트·참고 화면이다. 운영 화면 마이그레이션이나 하위 호환 대상이 아니다.
 
-남은 작업:
+- 템플릿 변경은 `ScaffoldTemplateTest`의 의미 기반 assertion과 대표 Golden 결과로 검증한다. Golden은 LIST·EXCEL·CRUD·전체 옵션의 전체 산출물과 DB별 Mapper XML만 유지한다.
+- 테스트 화면에 새 템플릿을 반영해야 하면 기존 수정본을 보존·병합하지 않고 폐기 후 다시 생성한다.
+- 실제 업무 화면은 최초 생성 후 개발자 소유로 전환하며 템플릿 변경 때문에 재생성하지 않는다.
 
-- `/system/scaffold`에서 발송이력조회를 다시 생성한다.
-- `targetTable=SMS.SMS_HISTORY`, `pkColumn=SMS_HISTORY_ID`, 적절한 `lockColumn`을 확인한다.
-- 생성 결과 미리보기 후 적용한다.
-- 적용 후 `SmsHistoryMapper.xml`의 기존 CRUD TODO/bad SQL이 사라졌는지 확인한다.
+### 4. 메뉴 관리 화면 — 해결 (2026-07-27)
 
-주의:
-
-- 현재 기존 `src/main/resources/mapper/sms/SmsHistoryMapper.xml`의 CRUD SQL은 이전 생성물 기준일 수 있다.
-- local에서 등록/수정/삭제 버튼을 보이게 하면 기존 파일의 SQL 오류가 바로 드러날 수 있다.
-
-### 4. 메뉴 트리 관리 화면은 아직 없음
-
-현재 local에는 `/system/menu-tree` 확인 화면만 있다. 이는 `MenuSource`가 반환하는 메뉴 구조를 보여주는 확인용 화면이다.
+메뉴 관리 CRUD 화면이 구현되어 있다: `MenuManageController`(`/system/menu-manage`, tree/detail/data/create/update/delete) + Service/Mapper + 화면 + 테스트. `/system/menu-tree`는 `MenuSource` 구조 확인용 화면으로 유지한다.
 
 남은 작업:
 
-- `TB_MENU`, `TB_MENU_AUTH`를 관리하는 실제 메뉴/권한 CRUD 화면을 만든다.
-- 역할별 권한 편집 UI를 만든다.
-- 메뉴 정렬, 사용 여부, 표시 여부, 시스템 메뉴 여부를 수정할 수 있게 한다.
+- 역할별 권한 편집 UI를 별도 화면으로 만들지 결정한다.
 - local static 메뉴와 DB 메뉴를 비교할 수 있는 검증 기능을 둘지 결정한다.
 
 ### 5. `GlobalModelAdvice`의 API 요청 비용
@@ -66,12 +56,16 @@ MenuSqlTemplate가 screenMode 기준으로 CAN_* 기본값을 최소 권한으�
 
 - `sms.auth.mode=local`만으로 화면 권한 전체 허용이 되지 않도록 수정했다.
 - local profile에서만 `PageAuth.all()`을 내려준다.
+- `menuTree`와 요청 URL별 `pageAuth`를 세션에서 재사용한다.
+- 메뉴 관리 변경이 커밋되면 메뉴 revision을 증가시키고, 다음 화면 요청에서 기존 세션의 두 캐시를 함께 갱신한다.
+- 실패·롤백된 변경은 revision을 증가시키지 않는다.
 
 남은 작업:
 
 - JSON/API 요청에서는 layout용 `menus` 생성을 생략할지 검토한다.
 - `HandlerMethod` 또는 `Accept` 헤더 기준으로 화면 요청과 API 요청을 나눌지 결정한다.
-- ~~메뉴 트리는 세션/캐시로 줄일 수 있는지 확인한다.~~ ✅ (GlobalModelAdvice가 세션에 menuTree 캐싱 — menu-source-policy.md 권장안 #1 구현)
+- 다중 서버 운영 시 애플리케이션 로컬 메뉴 revision을 DB/Redis/이벤트 기반 공유 revision으로 바꿀지 결정한다.
+- `TB_EMP_ROLE` 변경은 현재 principal 역할 목록을 바꾸지 않으므로 재로그인 정책을 운영 절차에 반영한다.
 - DB 메뉴 테이블 장애가 API 조회 실패로 번지는지 운영 기준으로 점검한다.
 
 ### 6. CRUD 즉시 실행 가능 범위의 한계
@@ -105,6 +99,16 @@ MenuSqlTemplate가 screenMode 기준으로 CAN_* 기본값을 최소 권한으�
 - 최신 수정 파일 목록 기준으로 폐쇄망 반입 zip을 다시 만든다.
 - 첨부 규약 제한이 있으면 zip을 base64로 다시 변환한다.
 - 반입 목록에서 삭제 파일 `db/oracle/sms_hitory_menu_seed.sql`도 삭제 대상으로 명시한다.
+
+### 9. 승인 시스템 구현 미착수
+
+설계는 `docs/승인.md`에 있다 (메뉴 권한과 분리된 승인 요청/단계/이력/규칙 테이블과 Oracle DDL 초안). Service/화면 구현은 미착수다.
+
+### 10. 스캐폴드 컬럼 헤더 설정 — 해결
+
+옵션 갱신 시 대상 테이블의 JDBC 컬럼 comment를 `headerName` 기본값으로 채운다. 직접 컬럼에 alias가 있어도 원본 컬럼 comment를 연결하며 계산 컬럼은 alias/컬럼명으로 fallback한다. 사용자는 생성 전에 화면명을 수정할 수 있고, 같은 값이 그리드와 CRUD 등록·수정 모달에 반영된다.
+
+실제 PK는 그리드와 등록·수정 모달에서 기본 숨김이지만 hidden 식별값으로 유지된다. 다른 컬럼도 `visible`, `modalVisible`, `editable`을 선택해 표시와 등록·수정 입력 허용 범위를 줄일 수 있다.
 
 ## 이번에 정리된 것
 

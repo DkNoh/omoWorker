@@ -10,6 +10,7 @@ import com.scbk.sms.annotation.PrivacyLog;
 import com.scbk.sms.auth.SmsUserPrincipal;
 import com.scbk.sms.service.system.AuditLogService;
 import com.scbk.sms.vo.system.PrivacyAuditLogVO;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.junit.jupiter.api.AfterEach;
@@ -97,7 +98,43 @@ class PrivacyLogAspectTest {
     then(joinPoint).should(Mockito.never()).proceed();
   }
 
+  @Test
+  void 파라미터_기록을_끄면_개인정보_검색어를_감사로그에_남기지_않는다() throws Throwable {
+    // given
+    given(joinPoint.proceed()).willReturn("result");
+
+    // when
+    aspect.doAuditLog(joinPoint, privacyLogOf("고객별조회 목록 조회", false));
+
+    // then
+    ArgumentCaptor<PrivacyAuditLogVO> captor = ArgumentCaptor.forClass(PrivacyAuditLogVO.class);
+    then(auditLogService).should().saveLog(captor.capture());
+    assertThat(captor.getValue().getTargetData()).isEmpty();
+    then(joinPoint).should(Mockito.never()).getArgs();
+  }
+
+  @Test
+  void servlet_response는_감사로그_직렬화에서_제외한다() throws Throwable {
+    // given
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    given(joinPoint.getArgs()).willReturn(new Object[] {Map.of("sendType", "SMS"), response});
+    given(joinPoint.proceed()).willReturn("result");
+
+    // when
+    aspect.doAuditLog(joinPoint, privacyLogOf("엑셀 다운로드"));
+
+    // then
+    ArgumentCaptor<PrivacyAuditLogVO> captor = ArgumentCaptor.forClass(PrivacyAuditLogVO.class);
+    then(auditLogService).should().saveLog(captor.capture());
+    assertThat(captor.getValue().getTargetData()).contains("SMS");
+    then(response).shouldHaveNoInteractions();
+  }
+
   private PrivacyLog privacyLogOf(String action) {
+    return privacyLogOf(action, true);
+  }
+
+  private PrivacyLog privacyLogOf(String action, boolean recordParameters) {
     return new PrivacyLog() {
       @Override
       public Class<? extends java.lang.annotation.Annotation> annotationType() {
@@ -107,6 +144,11 @@ class PrivacyLogAspectTest {
       @Override
       public String action() {
         return action;
+      }
+
+      @Override
+      public boolean recordParameters() {
+        return recordParameters;
       }
     };
   }

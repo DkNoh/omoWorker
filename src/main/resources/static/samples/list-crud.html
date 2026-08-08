@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  목록 화면 정적 샘플 — 부서 관리 (목록 + CRUD 모달)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/list-crud.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  file:// 로 열면 서버 요청 없이 js/system/list-crud.js 의 모의 데이터로
+  목록 조회/검색/페이징/등록/수정/삭제 전 흐름을 시연한다.
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 검색 카드는 공통 검색 카드 패턴, 그리드 카드는 fragments/toast-grid.html,
+     모달은 fragments/modal-base.html fragment 로 교체한다.
+     (모달 DOM id 규약은 fragments/modal-base.html 주석 참고)
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md "목록 화면 패턴"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>부서 관리 — 목록 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .dept-modal-order-control {
+            width: min(100%, 140px);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>부서 관리 <small class="text-body-sm">(시스템관리 &gt; 부서관리)</small></h2>
+            </div>
+
+            <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+                <div class="card-body">
+                    <div class="row align-items-center g-3 flex-wrap">
+                        <div class="col-auto"><label for="searchDepNm" class="col-form-label fw-bold">부서명</label></div>
+                        <div class="col-auto"><input type="text" id="searchDepNm" class="form-control scaffold-search-control" aria-label="부서명" placeholder="부서명 입력"></div>
+                        <div class="col-auto"><label for="searchUseYn" class="col-form-label fw-bold">사용여부</label></div>
+                        <div class="col-auto">
+                            <select id="searchUseYn" class="form-select scaffold-search-control" aria-label="사용여부">
+                                <option value="">전체</option>
+                                <option value="Y">사용</option>
+                                <option value="N">미사용</option>
+                            </select>
+                        </div>
+                        <div class="col-auto ms-auto d-flex gap-2">
+                            <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
+                            <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- fragments/toast-grid.html 의 gridCard 뼈대 — #grid 는 빈 마운트 포인트로 유지 -->
+            <div class="card shadow-sm border-0 mb-4 toast-grid-card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <span class="fs-6 fw-medium">총 <strong class="text-primary" id="total-count">0</strong>건</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="btn-create" class="btn btn-outline-primary btn-sm px-3" aria-label="신규 등록">
+                            <i data-lucide="plus" aria-hidden="true"></i><span>등록</span>
+                        </button>
+                        <select id="pageSizeSelect" class="form-select form-select-sm toast-grid-page-size">
+                            <option value="10">10건</option>
+                            <option value="20">20건</option>
+                            <option value="50">50건</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="toast-grid-shell">
+                        <div id="grid" class="toast-grid"></div>
+                        <div class="toast-grid-empty" role="status" aria-live="polite" data-empty-state>
+                            <i data-lucide="inbox" class="toast-grid-empty-icon" aria-hidden="true"></i>
+                            <p class="toast-grid-empty-title">조회된 데이터가 없습니다</p>
+                            <p class="toast-grid-empty-hint">검색 조건을 입력한 뒤 조회 버튼을 눌러 주세요.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 py-3">
+                    <div id="pagination" class="d-flex justify-content-center"></div>
+                </div>
+            </div>
+
+            <!-- fragments/modal-base.html 의 정적 사본 — modalId: dept-modal -->
+            <div class="modal fade" id="dept-modal" tabindex="-1" aria-hidden="true" data-coreui-backdrop="static">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dept-modal-title">부서 등록</h5>
+                            <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body p-0">
+                            <form id="dept-form" autocomplete="off" novalidate>
+                                <input type="hidden" name="depId">
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label class="form-detail-required" for="depCode">부서코드</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="text" class="form-control" id="depCode" name="depCode"
+                                               maxlength="20" placeholder="예: DEPT-1007"
+                                               data-validate="required|maxlength:20" required>
+                                    </div>
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label class="form-detail-required" for="depNm">부서명</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="text" class="form-control" id="depNm" name="depNm"
+                                               maxlength="50" placeholder="부서명을 입력하세요"
+                                               data-validate="required|maxlength:50" required>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <span class="form-detail-required" id="dept-use-yn-label">사용여부</span>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <div class="d-flex gap-4" role="radiogroup" aria-labelledby="dept-use-yn-label">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="deptUseYes"
+                                                       name="useYn" value="Y" checked required>
+                                                <label class="form-check-label" for="deptUseYes">사용</label>
+                                            </div>
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="deptUseNo"
+                                                       name="useYn" value="N" required>
+                                                <label class="form-check-label" for="deptUseNo">미사용</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-2 form-detail-label">
+                                        <label for="sortOrd">정렬순서</label>
+                                    </div>
+                                    <div class="col-12 col-sm-4 form-detail-control">
+                                        <input type="number" class="form-control dept-modal-order-control"
+                                               id="sortOrd" name="sortOrd" min="0" max="9999"
+                                               inputmode="numeric" placeholder="0" data-validate="number">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger me-auto d-none" id="dept-modal-btn-delete">
+                                <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">
+                                <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" id="dept-modal-btn-save">
+                                <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/list-crud.js"></script>
+</body>
+</html>

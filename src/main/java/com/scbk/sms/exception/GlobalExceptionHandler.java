@@ -7,10 +7,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -55,6 +60,33 @@ public class GlobalExceptionHandler {
         firstMessage,
         errors,
         request);
+  }
+
+  @ExceptionHandler({
+    HttpMessageNotReadableException.class,
+    MethodArgumentTypeMismatchException.class,
+    MissingServletRequestParameterException.class
+  })
+  protected Object handleInvalidRequest(Exception e, HttpServletRequest request) {
+    log.warn("요청값 변환 실패: {}", e.getClass().getSimpleName());
+    return respond(
+        ErrorCode.INVALID_INPUT_VALUE.getStatus(),
+        ErrorCode.INVALID_INPUT_VALUE.getMessage(),
+        request);
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  protected Object handleMethodNotAllowed(
+      HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+    log.warn("지원하지 않는 HTTP 메서드: {}", e.getMethod());
+    return respond(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다.", request);
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  protected Object handleUnsupportedMediaType(
+      HttpMediaTypeNotSupportedException e, HttpServletRequest request) {
+    log.warn("지원하지 않는 Content-Type: {}", e.getContentType());
+    return respond(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 Content-Type입니다.", request);
   }
 
   /** [3] URL 매핑 없음 (404) — 컨트롤러가 없거나 메뉴 URL이 잘못된 경우 */

@@ -79,6 +79,22 @@
         WHERE A.MENU_ID = #{menuId,jdbcType=VARCHAR}
     </select>
 
+    <!-- 메뉴 등록/부모 이동은 드문 관리 작업이다. 테이블 잠금으로 MAX(SORT_ORD)+10 배정을
+         애플리케이션 인스턴스 간에도 직렬화하여 같은 형제 순서가 중복되지 않게 한다. -->
+    <update id="lockForSortAllocation">
+        LOCK TABLE SMS.TB_MENU IN SHARE ROW EXCLUSIVE MODE
+    </update>
+
+    <select id="selectNextSortOrd" resultType="int">
+        /* MenuManageMapper.selectNextSortOrd */
+        SELECT NVL(MAX(A.SORT_ORD), 0) + 10
+        FROM SMS.TB_MENU A
+        WHERE (
+            (#{parentMenuId,jdbcType=VARCHAR} IS NULL AND A.PARENT_MENU_ID IS NULL)
+            OR A.PARENT_MENU_ID = #{parentMenuId,jdbcType=VARCHAR}
+        )
+    </select>
+
     <select id="countByUrlExceptMenuId" resultType="int">
         /* MenuManageMapper.countByUrlExceptMenuId */
         SELECT COUNT(1)
@@ -156,6 +172,20 @@
                UPD_ID = 'SYSTEM',
                UPD_DTTM = SYSTIMESTAMP
          WHERE MENU_ID = #{menuId,jdbcType=VARCHAR}
+    </update>
+
+    <update id="shiftDescendantMenuLevels">
+        /* MenuManageMapper.shiftDescendantMenuLevels */
+        UPDATE SMS.TB_MENU
+           SET MENU_LEVEL = MENU_LEVEL + #{levelDelta,jdbcType=NUMERIC},
+               UPD_ID = 'SYSTEM',
+               UPD_DTTM = SYSTIMESTAMP
+         WHERE MENU_ID IN (
+            SELECT MENU_ID
+            FROM SMS.TB_MENU
+            START WITH PARENT_MENU_ID = #{menuId,jdbcType=VARCHAR}
+            CONNECT BY NOCYCLE PRIOR MENU_ID = PARENT_MENU_ID
+         )
     </update>
 
     <delete id="deleteMenuAuthByMenuId">

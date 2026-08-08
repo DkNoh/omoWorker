@@ -3,6 +3,7 @@ package com.scbk.sms.service.system.scaffold;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class QueryColumnExtractorTest {
@@ -24,6 +25,19 @@ class QueryColumnExtractorTest {
 
     // then
     assertThat(columns).containsExactly("SEND_DT", "RECEIVER_NO", "SEND_CNT");
+  }
+
+  @Test
+  void 직접_컬럼은_SELECT_alias에서_원본_컬럼으로_연결한다() {
+    String query =
+        "SELECT A.SEND_TYPE AS TYPE_CD, A.RECEIVER_NO, COUNT(1) AS SEND_CNT FROM SMS_HISTORY A";
+
+    Map<String, String> sources = QueryColumnExtractor.extractDirectColumnSources(query);
+
+    assertThat(sources)
+        .containsEntry("TYPE_CD", "SEND_TYPE")
+        .containsEntry("RECEIVER_NO", "RECEIVER_NO")
+        .doesNotContainKey("SEND_CNT");
   }
 
   @Test
@@ -63,23 +77,29 @@ class QueryColumnExtractorTest {
   }
 
   @Test
-  void 변수_라인은_동적_if_조건으로_변환한다() {
-    // when
-    String sql = QueryColumnExtractor.convertToDynamicSql("AND A.SEND_DT >= $start_dt", "");
+  void 검색변수는_원본컬럼과_BETWEEN_시작종료_역할로_연결한다() {
+    String query =
+        """
+            SELECT A.SENT_AT, A.SEND_TYPE, A.RECEIVER_NO
+            FROM SMS.SMS_HISTORY A
+            WHERE A.SEND_TYPE = $send_type
+              AND A.SENT_AT BETWEEN $sent_at_from AND $sent_at_to
+              AND A.RECEIVER_NO LIKE '%' || $receiver_no || '%'
+            """;
 
-    // then
-    assertThat(sql).contains("<if test=\"startDt != null and startDt != ''\">");
-    assertThat(sql).contains("AND A.SEND_DT >= #{startDt}");
-    assertThat(sql).contains("</if>");
-  }
+    Map<String, QueryColumnExtractor.SearchParameterSource> sources =
+        QueryColumnExtractor.extractSearchParameterSources(query);
 
-  @Test
-  void 변수가_없는_라인은_그대로_둔다() {
-    // when
-    String sql = QueryColumnExtractor.convertToDynamicSql("FROM SMS_HISTORY A", "");
-
-    // then
-    assertThat(sql.trim()).isEqualTo("FROM SMS_HISTORY A");
+    assertThat(sources.get("sendType").columnName()).isEqualTo("SEND_TYPE");
+    assertThat(sources.get("sendType").rangePosition())
+        .isEqualTo(QueryColumnExtractor.SearchRangePosition.NONE);
+    assertThat(sources.get("sentAtFrom").columnName()).isEqualTo("SENT_AT");
+    assertThat(sources.get("sentAtFrom").rangePosition())
+        .isEqualTo(QueryColumnExtractor.SearchRangePosition.START);
+    assertThat(sources.get("sentAtTo").columnName()).isEqualTo("SENT_AT");
+    assertThat(sources.get("sentAtTo").rangePosition())
+        .isEqualTo(QueryColumnExtractor.SearchRangePosition.END);
+    assertThat(sources.get("receiverNo").columnName()).isEqualTo("RECEIVER_NO");
   }
 
   @Test

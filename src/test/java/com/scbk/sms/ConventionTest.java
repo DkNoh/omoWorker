@@ -161,7 +161,7 @@ class ConventionTest {
   // 같이 재생성 + apply해야 게이트를 통과한다. 마커가 없는 mapper xml(scaffold 이전 파일)은 제외.
 
   @Test
-  void Scaffold_산출물_MapperXML은_baseQuery에_WHERE와_if가_없다() throws IOException {
+  void Scaffold_산출물_MapperXML은_baseQuery_최상위_depth0에_WHERE나_if가_없다() throws IOException {
     List<String> violations = new ArrayList<>();
     try (Stream<Path> files = Files.walk(MAPPER_DIR)) {
       files
@@ -179,17 +179,65 @@ class ConventionTest {
                   return;
                 }
                 String baseQuery = content.substring(start, end);
-                if (baseQuery.contains("WHERE") || baseQuery.contains("<if")) {
+                if (hasTopLevelWhereOrIf(baseQuery)) {
                   violations.add(
-                      p + " (baseQuery에 WHERE 또는 <if>가 있음. 검색조건은 searchConditions로 이동해야 함)");
+                      p
+                          + " (baseQuery 최상위(depth 0)에 WHERE/<if>/raw $variable가 있음. "
+                          + "depth>=1 서브쿼리 내부는 허용)");
                 }
               });
     }
     assertThat(violations)
         .as(
-            "Scaffold 산출물 baseQuery는 SELECT/FROM만 포함해야 한다. WHERE/검색조건은 searchConditions로. "
-                + "(scaffold-contract.md §3)")
+            "Scaffold 산출물 baseQuery의 최상위(depth 0)에는 WHERE/<if>/raw $variable이 없어야 한다. "
+                + "LEFT JOIN 서브쿼리 내부(depth>=1)의 WHERE/<if>/$variable은 파라미터화 + <if> 가드로 "
+                + "제자리 감싸기를 허용한다. (scaffold-contract.md §3)")
         .isEmpty();
+  }
+
+  // baseQuery에서 depth 0(서브쿼리 바깥)에만 WHERE/<if>/raw $variable이 있는지 검사한다.
+  // splitRawQuery와 동일한 depth/문자열 리터럴 규칙을 사용한다.
+  private static boolean hasTopLevelWhereOrIf(String baseQuery) {
+    String lower = baseQuery.toLowerCase();
+    int depth = 0;
+    boolean inSingle = false;
+    for (int i = 0; i < lower.length(); i++) {
+      char c = lower.charAt(i);
+      if (inSingle) {
+        if (c == '\'') {
+          inSingle = false;
+        }
+        continue;
+      }
+      if (c == '\'') {
+        inSingle = true;
+        continue;
+      }
+      if (c == '(') {
+        depth++;
+        continue;
+      }
+      if (c == ')') {
+        depth--;
+        continue;
+      }
+      if (depth != 0) {
+        continue;
+      }
+      if (c == '<' && i + 3 <= lower.length() && lower.substring(i, i + 3).equals("<if")) {
+        return true;
+      }
+      if (c == '$' && i + 1 < lower.length() && Character.isLetterOrDigit(lower.charAt(i + 1))) {
+        return true;
+      }
+      if (i + 5 <= lower.length()
+          && lower.substring(i, i + 5).equals("where")
+          && (i == 0 || !Character.isLetterOrDigit(lower.charAt(i - 1)))
+          && (i + 5 == lower.length() || !Character.isLetterOrDigit(lower.charAt(i + 5)))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test

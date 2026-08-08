@@ -1,0 +1,5 @@
+# golden 테스트 리소스는 OS 무관 LF 고정 (byte-identical 검증 필수)
+src/test/resources/scaffold-golden/*.txt text eol=lf
+
+# 중첩 디렉토리를 포함한 scaffold 템플릿 리소스도 LF 고정 (byte-identical 생성 보장)
+src/main/resources/scaffold-templates/**/*.tpl text eol=lf

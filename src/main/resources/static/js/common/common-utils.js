@@ -1,365 +1,48 @@
 /**
- * common-utils.js
- * 시스템 전역 공통 유틸리티 모듈 (그리드 외 UI 렌더링, 공통 코드, 모달 등)
+ * @fileoverview common-utils.js — 화면 공통 유틸리티와 기존 CommonUtils 호환 API.
+ *
+ * Phase 1 축소본.
+ * axios 인터셉터 / spinner / toast / alert / confirm / 세션만료 처리는 분리됨:
+ *   - http-client.js   : axios interceptor + spinner + 세션만료 + get/post/put/delete/remove
+ *   - notify.js        : toast / alert / confirm / frameworkModal helpers
+ *   - modal-manager.js : 수동 비즈니스 모달 lifecycle
+ *
+ * 이 모듈에는 화면 상태를 직접 소유하지 않는 공통 유틸
+ * (공통 코드 콤보, 날짜 기본값, 검색조건 초기화, 표시 포맷, autocomplete)만 남는다.
+ *
+ * 로드/의존 계약:
+ *   - axios: 공통 코드 및 autocomplete API 호출
+ *   - dayjs: 날짜/시간 기본값 계산
+ *   - notify.js: toast/alert/confirm/refreshIcons 하위 호환 getter의 실제 구현
+ *   - defaultLayout.html에서 notify.js 다음, 화면별 JS보다 먼저 로드한다.
+ *
+ * 공개 API: window.CommonUtils
+ *   - initCombos(), initAutocomplete(), setDefaultDateTime(), resetFields(), fmt
+ *   - toast/alert/confirm/refreshIcons는 Notify로 연결되어 기존 호출부가 그대로 동작한다.
+ *
+ * 실패 정책:
+ *   - 화면에 대상 DOM이 없으면 조용히 종료한다.
+ *   - 공통 코드 한 종류의 조회가 실패해도 다른 콤보 초기화는 계속한다.
  */
+(function () {
+    'use strict';
 
-// ════════════════════════════════════════════════════
-// 글로벌 로딩 스피너 및 커스텀 모달 DOM 초기화
-// ════════════════════════════════════════════════════
-let ajaxCount = 0;
-const refreshLucideIcons = () => {
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-    }
-};
-
-const getFrameworkModal = (el) => {
-    if (!el) return null;
-    if (window.coreui && window.coreui.Modal) {
-        return window.coreui.Modal.getOrCreateInstance(el);
-    }
-    if (window.bootstrap && window.bootstrap.Modal) {
-        return window.bootstrap.Modal.getOrCreateInstance(el);
-    }
-    return null;
-};
-
-const showModalElement = (el) => {
-    const instance = getFrameworkModal(el);
-    if (instance) {
-        instance.show();
-        return;
-    }
-    el.style.display = 'block';
-    el.removeAttribute('aria-hidden');
-    el.setAttribute('aria-modal', 'true');
-    el.classList.add('show');
-    document.body.classList.add('modal-open');
-};
-
-const hideModalElement = (el) => {
-    const instance = getFrameworkModal(el);
-    if (instance) {
-        instance.hide();
-        return;
-    }
-    el.classList.remove('show');
-    el.setAttribute('aria-hidden', 'true');
-    el.removeAttribute('aria-modal');
-    el.style.display = 'none';
-    document.body.classList.remove('modal-open');
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-    // 스피너 초기화
-    if (!document.getElementById('global-spinner-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'global-spinner-overlay';
-        overlay.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
-        document.body.appendChild(overlay);
-    }
-
-    // 커스텀 모달 초기화
-    if (!document.getElementById('custom-modal-overlay')) {
-        const modalOverlay = document.createElement('div');
-        modalOverlay.id = 'custom-modal-overlay';
-        modalOverlay.className = 'modal fade';
-        modalOverlay.tabIndex = -1;
-        modalOverlay.setAttribute('aria-hidden', 'true');
-        modalOverlay.setAttribute('aria-labelledby', 'custom-modal-title');
-        modalOverlay.innerHTML = `
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="custom-modal-title">알림</h5>
-                    </div>
-                    <div class="modal-body text-center" id="custom-modal-msg" style="white-space: pre-line;"></div>
-                    <div class="modal-footer justify-content-center">
-                        <button type="button" class="btn btn-outline-secondary d-none" id="custom-modal-btn-cancel">
-                            <i data-lucide="x"></i><span>취소</span>
-                        </button>
-                        <button type="button" class="btn btn-primary" id="custom-modal-btn-confirm">
-                            <i data-lucide="check"></i><span>확인</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalOverlay);
-    }
-    refreshLucideIcons();
-});
-
-// ════════════════════════════════════════════════════
-// 커스텀 알림/확인 모달 제어 로직 (큐 기반: 동시 다중 호출 시 순차 표시)
-// ════════════════════════════════════════════════════
-const _modalQueue = [];
-let _isModalShowing = false;
-
-const _processModalQueue = () => {
-    if (_isModalShowing || _modalQueue.length === 0) return;
-    const item = _modalQueue.shift();
-    _isModalShowing = true;
-    _renderCustomModal(item);
-};
-
-const _showCustomModal = (type, msg, title, onConfirm, onCancel) => {
-    _modalQueue.push({ type, msg, title, onConfirm, onCancel });
-    _processModalQueue();
-};
-
-const _renderCustomModal = ({ type, msg, title, onConfirm, onCancel }) => {
-    const overlay = document.getElementById('custom-modal-overlay');
-    if (!overlay) {
-        _isModalShowing = false;
-        alert(msg);
-        _processModalQueue();
-        return;
-    }
-
-    const titleEl = document.getElementById('custom-modal-title');
-    const msgEl = document.getElementById('custom-modal-msg');
-    const cancelBtn = document.getElementById('custom-modal-btn-cancel');
-    const confirmBtn = document.getElementById('custom-modal-btn-confirm');
-
-    titleEl.textContent = title || '알림';
-    msgEl.textContent = msg || '';
-
-    if (type === 'confirm') {
-        cancelBtn.classList.remove('d-none');
-    } else {
-        cancelBtn.classList.add('d-none');
-    }
-
-    // 기존 이벤트 리스너 제거용 clone
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-    const newCancelBtn = cancelBtn.cloneNode(true);
-    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-
-    const _closeAndNext = (callback) => {
-        hideModalElement(overlay);
-        _isModalShowing = false;
-        if (callback) callback();
-        _processModalQueue();
-    };
-
-    newConfirmBtn.addEventListener('click', () => _closeAndNext(onConfirm));
-    newCancelBtn.addEventListener('click', () => _closeAndNext(onCancel));
-
-    // ESC 키 닫기
-    const _escHandler = (e) => {
-        if (e.key === 'Escape') {
-            e.stopPropagation();
-            document.removeEventListener('keydown', _escHandler);
-            _closeAndNext(onCancel);
-        }
-    };
-    document.addEventListener('keydown', _escHandler);
-
-    showModalElement(overlay);
-    refreshLucideIcons();
-
-    // 모달이 열릴 때 확인 버튼에 포커스를 강제로 주어 엔터/스페이스로 바로 닫을 수 있게 처리
-    setTimeout(() => {
-        newConfirmBtn.focus({ preventScroll: true });
-    }, 50);
-};
-
-// ════════════════════════════════════════════════════
-// Bootstrap 5 / CoreUI Toast 알림 (우측 상단 팝업)
-// ════════════════════════════════════════════════════
-const _showToast = (msg, type = 'info') => {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.style.zIndex = '9999';
-        document.body.appendChild(container);
-    }
-
-    let bgClass = 'bg-primary';
-    let icon = 'info';
-    if (type === 'success') { bgClass = 'bg-success'; icon = 'circle-check'; }
-    if (type === 'error') { bgClass = 'bg-danger'; icon = 'circle-x'; }
-    if (type === 'warning') { bgClass = 'bg-warning text-dark'; icon = 'triangle-alert'; }
-
-    const toastEl = document.createElement('div');
-    toastEl.className = `toast align-items-center text-white ${bgClass} border-0`;
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-
-    // 닫기 버튼 렌더링
-    toastEl.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body fw-bold d-flex align-items-center">
-                <i data-lucide="${icon}" class="toast-icon"></i><span>${msg}</span>
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-
-    container.appendChild(toastEl);
-    refreshLucideIcons();
-
-    // CoreUI (또는 Bootstrap) Toast API 사용
-    if (typeof coreui !== 'undefined' && coreui.Toast) {
-        const toast = new coreui.Toast(toastEl, { delay: 3000 });
-        toast.show();
-        toastEl.addEventListener('hidden.coreui.toast', () => toastEl.remove());
-    } else if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
-        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-        toast.show();
-        toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-    } else {
-        // Fallback: 프레임워크가 로드되지 않은 경우 CSS 강제 표시
-        toastEl.classList.add('show');
-        setTimeout(() => {
-            toastEl.classList.remove('show');
-            setTimeout(() => toastEl.remove(), 300);
-        }, 3000);
-    }
-};
-
-const showSpinner = () => {
-    ajaxCount++;
-    const overlay = document.getElementById('global-spinner-overlay');
-    if (overlay) overlay.classList.add('active');
-};
-
-const hideSpinner = () => {
-    ajaxCount--;
-    if (ajaxCount <= 0) {
-        ajaxCount = 0;
-        const overlay = document.getElementById('global-spinner-overlay');
-        if (overlay) overlay.classList.remove('active');
-    }
-};
-
-// 세션 만료 감지/전환.
-// SecurityConfig는 formLogin(loginPage="/login")만 두고 커스텀 EntryPoint가 없어,
-// 미인증(세션 만료) 요청을 Spring Security가 /login 으로 302 리다이렉트한다.
-// axios는 이를 투명하게 따라가 "로그인 페이지 HTML(200, text/html)"을 받으므로,
-// API 호출(JSON 예상)이 HTML을 받으면 세션 만료로 판정해 로그인 페이지로 전환한다.
-const _LOGIN_MARKERS = /login-shell|login-form|SMS V3 로그인/;
-const _SESSION_REDIRECTING = { done: false };
-
-const _isSessionExpiredResponse = (response) => {
-    if (!response) return false;
-    const ct = (response.headers && response.headers['content-type']) || '';
-    if (ct.indexOf('text/html') !== -1) return true;
-    return typeof response.data === 'string' && _LOGIN_MARKERS.test(response.data);
-};
-
-const _redirectToLogin = () => {
-    const onLogin = location.pathname.replace(/\/+$/, '').endsWith('/login');
-    if (onLogin || _SESSION_REDIRECTING.done) return false;
-    _SESSION_REDIRECTING.done = true;
-    console.warn('[session] 만료 감지 — /login 으로 전환');
-    location.replace('/login');
-    return true;
-};
-
-const _haltChain = () => new Promise(() => {});
-
-// 전역 Axios 요청 인터셉터 (로딩 on)
-axios.interceptors.request.use(
-    config => {
-        showSpinner();
-        // CSRF: 서버 csrf 활성화 대응. <meta>의 토큰을 요청 헤더로 싣는다 (GET 등 비변경 요청은 서버가 무시)
-        const csrfToken = document.querySelector('meta[name="_csrf"]');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
-        if (csrfToken && csrfHeader && csrfToken.content && csrfHeader.content) {
-            config.headers[csrfHeader.content] = csrfToken.content;
-        }
-        return config;
-    },
-    error => {
-        hideSpinner();
-        return Promise.reject(error);
-    }
-);
-
-
-// 전역 Axios 인터셉터 (ApiResponse 택배 상자 언래핑 및 글로벌 예외 처리)
-axios.interceptors.response.use(
-    response => {
-        hideSpinner();
-
-        if (_isSessionExpiredResponse(response)) {
-            _redirectToLogin();
-            return _haltChain();
-        }
-
-        // 백엔드에서 온 데이터가 우리가 만든 ApiResponse 규격(code가 존재)인 경우
-        if (response.data && response.data.code !== undefined) {
-            if (response.data.code === 200) {
-                // 성공: 껍데기(ApiResponse)를 까서 알맹이(data)만 response.data에 덮어씌움
-                // 이렇게 하면 개별 JS 파일(history.js 등)은 코드를 전혀 수정할 필요가 없음!
-                response.data = response.data.data;
-            } else {
-                // 실패: HTTP 상태 코드는 200이지만, 비즈니스 에러인 경우 (예: code 400)
-                _showCustomModal('alert', response.data.message, '오류');
-                return Promise.reject(new Error(response.data.message));
-            }
-        }
-        return response;
-    },
-    error => {
-        hideSpinner();
-
-        if (error.response
-            && (error.response.status === 401 || error.response.status === 403)
-            && _redirectToLogin()) {
-            return _haltChain();
-        }
-
-        // HTTP 상태 코드가 4xx, 5xx 인 경우 (GlobalExceptionHandler 통과)
-        if (error.response && error.response.data) {
-            const apiErr = error.response.data;
-            let displayMsg = apiErr.message || '오류가 발생했습니다.';
-
-            // @Valid 실패 시 필드별 에러(errors[])가 있으면 목록 형태로 포맷팅
-            if (apiErr.errors && Array.isArray(apiErr.errors) && apiErr.errors.length > 0) {
-                const errorList = apiErr.errors.map(e => `• ${e.message}`).join('\n');
-                displayMsg = `${apiErr.message}\n\n${errorList}`;
-
-                // 각 필드에 에러 스타일 적용 (data-field 속성 기반)
-                apiErr.errors.forEach(e => {
-                    const fieldEl = document.querySelector(`[data-field="${e.field}"]`)
-                        || document.querySelector(`#${e.field}`)
-                        || document.querySelector(`[name="${e.field}"]`);
-                    if (fieldEl) {
-                        fieldEl.classList.add('is-invalid');
-                        // 값 변경 시 에러 스타일 제거
-                        const _clearInvalid = () => fieldEl.classList.remove('is-invalid');
-                        fieldEl.addEventListener('input', _clearInvalid, { once: true });
-                        fieldEl.addEventListener('change', _clearInvalid, { once: true });
-                    }
-                });
-            }
-
-            _showCustomModal('alert', displayMsg, '오류');
-        } else {
-            _showCustomModal('alert', '서버와 통신 중 알 수 없는 오류가 발생했습니다.', '시스템 오류');
-        }
-        return Promise.reject(error);
-    }
-);
-
-const CommonUtils = (() => {
-
-    // ════════════════════════════════════════════════════
-    //  공통 코드 (콤보박스) 자동 생성
-    // ════════════════════════════════════════════════════
+    /* --------------------------------------------------------------------------
+     * 공통 코드 콤보박스
+     * -------------------------------------------------------------------------- */
+    /**
+     * `.common-combo[data-code-type]` select를 서버 공통 코드로 채운다.
+     *
+     * 같은 code type을 사용하는 select가 여러 개여도 페이지 초기화 1회 동안 API는 한 번만 호출한다.
+     * HTML에 미리 선언된 `전체`, `선택` 등의 option은 보존하고 조회 결과를 뒤에 추가한다.
+     *
+     * @returns {Promise<void>} 모든 콤보의 조회/구성이 끝나면 완료된다.
+     */
     const initCombos = async () => {
         const comboList = document.querySelectorAll('.common-combo');
         if (comboList.length === 0) return;
 
-        // 동일한 코드를 여러 콤보박스에서 요청할 수 있으므로, 중복 요청 방지용 캐시
+        /* 함수 호출 1회 범위의 캐시다. 화면을 새로 열면 서버에서 다시 조회한다. */
         const cache = {};
 
         for (const selectEl of comboList) {
@@ -369,6 +52,7 @@ const CommonUtils = (() => {
             if (!cache[type]) {
                 try {
                     const res = await axios.get(`/api/common-code/${type}`);
+                    /* http-client 응답 인터셉터가 ApiResponse.data를 이미 언래핑한다. */
                     cache[type] = res.data;
                 } catch (e) {
                     console.error(`공통 코드 조회 실패 [${type}]`, e);
@@ -376,27 +60,37 @@ const CommonUtils = (() => {
                 }
             }
 
-            // 기존 옵션이 '전체' 등으로 세팅되어 있을 수 있으므로 보존하면서 추가
-            const existingOptions = selectEl.innerHTML;
-            let newOptions = '';
+            /* HTML에 선언된 '전체', '선택' 등의 기본 option을 보존한다. */
+            const existing = selectEl.innerHTML;
+            let appended = '';
             cache[type].forEach(item => {
-                newOptions += `<option value="${item.code}">${item.name}</option>`;
+                appended += `<option value="${item.code}">${item.name}</option>`;
             });
-            selectEl.innerHTML = existingOptions + newOptions;
+            selectEl.innerHTML = existing + appended;
         }
     };
 
-
-    // ════════════════════════════════════════════════════
-    //  날짜 / 시간 검색 폼 초기화 유틸
-    // ════════════════════════════════════════════════════
+    /* --------------------------------------------------------------------------
+     * 날짜/시간 검색 기본값
+     * -------------------------------------------------------------------------- */
+    /**
+     * 화면에 존재하는 공통 날짜/시간 검색 필드에 기본값을 채운다.
+     *
+     * `forceReset=false`면 사용자가 입력한 기존 값을 보존하고 빈 필드만 채운다.
+     * `forceReset=true`면 초기화 버튼 처리처럼 현재 값을 기본값으로 덮어쓴다.
+     * 지원 ID는 분리형(startDate/startTime/endDate/endTime), 통합형(startDateTime/endDateTime),
+     * 그리고 일반 `input[type=date]`다.
+     *
+     * @param {boolean} [forceReset=false] 기존 값까지 기본값으로 교체할지 여부
+     * @returns {void}
+     */
     const setDefaultDateTime = (forceReset = false) => {
         const now = dayjs();
         const todayStr = now.format('YYYY-MM-DD');
-        const fromTime = now.subtract(1, 'hour').format('HH:mm'); // 현재 -1시간
-        const toTime = now.add(1, 'hour').format('HH:mm');      // 현재 +1시간
+        const fromTime = now.subtract(1, 'hour').format('HH:mm');
+        const toTime = now.add(1, 'hour').format('HH:mm');
 
-        // ① 분리형: #startDate / #startTime / #endDate / #endTime
+        /* 분리형: #startDate / #startTime / #endDate / #endTime */
         const startDate = document.querySelector('#startDate');
         const endDate = document.querySelector('#endDate');
         const startTime = document.querySelector('#startTime');
@@ -407,33 +101,25 @@ const CommonUtils = (() => {
         if (startTime && (forceReset || !startTime.value)) startTime.value = fromTime;
         if (endTime && (forceReset || !endTime.value)) endTime.value = toTime;
 
-        // ② 통합형: datetime-local input (#startDateTime / #endDateTime 또는 data-default-date)
+        /* 통합형: #startDateTime / #endDateTime */
         const startDT = document.querySelector('#startDateTime');
         const endDT = document.querySelector('#endDateTime');
 
         if (startDT && (forceReset || !startDT.value)) startDT.value = `${todayStr}T00:00`;
         if (endDT && (forceReset || !endDT.value)) endDT.value = `${todayStr}T23:59`;
 
-        // ③ 단순 date type input (날짜만, 시간 없음)
+        /* 일반 date input: 날짜만 설정한다. */
         document.querySelectorAll('input[type="date"]').forEach(el => {
             if (forceReset || !el.value) el.value = todayStr;
         });
     };
 
-    const getSearchParams = () => {
-        const startDate = document.querySelector('#startDate')?.value || '';
-        const startTime = document.querySelector('#startTime')?.value || '00:00';
-        const endDate = document.querySelector('#endDate')?.value || '';
-        const endTime = document.querySelector('#endTime')?.value || '23:59';
-
-        return {
-            startDateTime: startDate ? `${startDate}T${startTime}:00` : '',
-            endDateTime: endDate ? `${endDate}T${endTime}:59` : '',
-            receiverNo: document.querySelector('#receiverNo')?.value.trim() || '',
-            sendType: document.querySelector('#sendType')?.value || '',
-        };
-    };
-
+    /**
+     * 레거시 공통 검색조건(receiverNo/sendType)을 비우고 날짜 범위를 다시 설정한다.
+     * 화면에 해당 필드가 없어도 오류를 발생시키지 않는다.
+     *
+     * @returns {void}
+     */
     const resetFields = () => {
         const receiverNo = document.querySelector('#receiverNo');
         const sendType = document.querySelector('#sendType');
@@ -444,47 +130,19 @@ const CommonUtils = (() => {
         setDefaultDateTime(true);
     };
 
-
-    // ════════════════════════════════════════════════════
-    //  모달 처리 로직
-    // ════════════════════════════════════════════════════
-    const openDetail = (url, fillFn) => {
-        axios.get(url)
-            .then(res => {
-                fillFn(res.data);
-                document.querySelector('#detailModal')?.classList.add('open');
-            })
-            .catch(err => {
-                // axios interceptor에서 이미 알림창을 띄우므로 여기서는 별도로 alert 안함
-                console.error("모달 데이터 로드 실패", err);
-            });
-    };
-
-    const closeModal = () =>
-        document.querySelector('#detailModal')?.classList.remove('open');
-
-    const closeModalOnOverlay = e => {
-        if (e.target.id === 'detailModal') closeModal();
-    };
-
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-    // ════════════════════════════════════════════════════
-    //  데이터 포매터 (Grid 등에서 자주 사용)
-    // ════════════════════════════════════════════════════
+    /* --------------------------------------------------------------------------
+     * 표시 포매터
+     * -------------------------------------------------------------------------- */
+    /** 그리드/카드 표시용 포매터 모음. 원본 데이터는 변경하지 않고 표시 문자열만 반환한다. */
     const fmt = {
-        /**
-         * 숫자에 콤마 추가 (10000 -> 10,000)
-         */
+        /** 숫자를 현재 브라우저 로케일의 천 단위 구분 문자열로 변환한다. */
         money: (val) => {
             if (val == null || val === '') return '0';
             const num = Number(val);
             if (isNaN(num)) return val;
             return num.toLocaleString();
         },
-        /**
-         * 전화번호 하이픈 자동 추가 (01012345678 -> 010-1234-5678)
-         */
+        /** 숫자 이외의 문자를 제거한 뒤 국내 전화번호 길이에 맞춰 하이픈을 넣는다. */
         phone: (val) => {
             if (!val) return '';
             const clean = String(val).replace(/[^0-9]/g, '');
@@ -498,24 +156,28 @@ const CommonUtils = (() => {
         }
     };
 
-    // 자동 실행 등록
-    document.addEventListener('DOMContentLoaded', () => {
-        initCombos();
-    });
-
-    // ════════════════════════════════════════════════════
-    //  Autocomplete (말풍선 자동완성) 공통 초기화
-    //  사용 예)
-    //  CommonUtils.initAutocomplete({
-    //      inputEl:   '#bankCdText',
-    //      balloonEl: '#bankBalloon',
-    //      apiUrl:    '/api/common-code/bank',
-    //      syncCombo: '#bankCdCombo',   // 선택사항
-    //      minLength:  1,
-    //      debounceMs: 200,
-    //      onSelect: (item) => console.log(item) // 선택사항
-    //  });
-    // ════════════════════════════════════════════════════
+    /* --------------------------------------------------------------------------
+     * Autocomplete
+     * -------------------------------------------------------------------------- */
+    /**
+     * 입력창과 결과 말풍선을 연결하는 debounce 기반 autocomplete를 구성한다.
+     *
+     * API 응답은 `{code, name}` 객체 배열을 전제로 한다. 기본 renderer는 이 값을 HTML에 삽입하므로
+     * 공통 코드처럼 서버에서 신뢰할 수 있게 관리되는 값에 사용한다. 임의 사용자 입력을 결과 객체에
+     * 그대로 담는 API라면 화면에서 escape 처리된 `renderItem`을 별도로 전달해야 한다.
+     *
+     * @param {object} options
+     * @param {string|Element} options.inputEl 검색어를 입력할 input 또는 selector
+     * @param {string|Element} options.balloonEl 검색 결과를 표시할 컨테이너 또는 selector
+     * @param {string} options.apiUrl 검색 API URL
+     * @param {string|Element|null} [options.syncCombo=null] 선택 코드를 동기화할 select 또는 selector
+     * @param {string} [options.paramName='keyword'] API query parameter 이름
+     * @param {number} [options.minLength=1] 검색을 시작할 최소 글자 수
+     * @param {number} [options.debounceMs=200] 마지막 입력 후 API를 호출하기까지의 지연 시간(ms)
+     * @param {Function|null} [options.renderItem=null] 결과 객체 하나를 HTML 문자열로 바꾸는 함수
+     * @param {Function|null} [options.onSelect=null] 항목 선택 후 `{code, name}`으로 호출할 함수
+     * @returns {{close: Function, select: Function}|undefined} 외부 제어 함수. 필수 DOM이 없으면 undefined
+     */
     const initAutocomplete = ({
         inputEl, balloonEl, apiUrl,
         syncCombo = null,
@@ -536,93 +198,100 @@ const CommonUtils = (() => {
 
         let debounceTimer;
 
-        // 기본 아이템 렌더링
-        const _renderItem = renderItem || ((item) =>
+        const renderItemFn = renderItem || ((item) =>
             `<div class="autocomplete-item" data-code="${item.code}" data-name="${item.name}">
                 <span class="ac-code">${item.code}</span>
                 <span class="ac-name">${item.name}</span>
              </div>`
         );
 
-        const _close = () => { balloon.style.display = 'none'; };
+        /* DOM을 제거하지 않고 숨겨 다음 검색에서 같은 컨테이너를 재사용한다. */
+        const close = () => { balloon.style.display = 'none'; };
 
-        const _select = (code, name) => {
+        const select = (code, name) => {
+            /* 표시 input과 선택 select에는 name이 아니라 업무 코드값을 동기화한다. */
             input.value = code;
-            // 코드로 값을 직접 설정하면 브라우저 input 이벤트가 발생하지 않으므로 수동 dispatch
-            // → 외부에서 input 이벤트를 감지하는 syncBankCd 등의 핸들러가 정상 동작
+            /* value 직접 설정은 input 이벤트를 발생시키지 않으므로 수동으로 알린다. */
             input.dispatchEvent(new Event('input', { bubbles: true }));
 
             if (combo) {
                 combo.value = code;
                 combo.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            _close();
+            close();
             if (onSelect) onSelect({ code, name });
         };
 
-        // 콤보 → 텍스트 동기화
+        /* select 변경을 검색 input에 동기화한다. */
         if (combo) {
             combo.addEventListener('change', () => {
                 input.value = combo.value;
-                _close();
+                close();
             });
         }
 
-        // 텍스트 입력 → 검색
+        /* 검색 input 변경을 debounce API 조회로 연결한다. */
         input.addEventListener('input', () => {
             clearTimeout(debounceTimer);
             const kw = input.value.trim();
 
             if (kw.length < minLength) {
-                _close();
+                close();
                 if (combo) combo.value = '';
                 return;
             }
 
+            /* 빠른 연속 입력은 취소하고 마지막 입력만 API 호출로 이어지게 한다. */
             debounceTimer = setTimeout(() => {
                 axios.get(apiUrl, { params: { [paramName]: kw } })
                     .then(res => {
-                        // 전역 인터셉터가 ApiResponse를 언래핑하므로 res.data가 곧 목록이다
+                        /* 전역 인터셉터가 ApiResponse를 언래핑하므로 res.data가 실제 목록이다. */
                         const list = res.data || [];
                         if (!list.length) {
                             balloon.innerHTML = '<div class="ac-empty">검색 결과 없음</div>';
                             balloon.style.display = 'block';
                             return;
                         }
-                        balloon.innerHTML = list.map(_renderItem).join('');
+                        balloon.innerHTML = list.map(renderItemFn).join('');
                         balloon.style.display = 'block';
 
                         balloon.querySelectorAll('.autocomplete-item').forEach(item => {
                             item.addEventListener('click', () =>
-                                _select(item.dataset.code, item.dataset.name));
+                                select(item.dataset.code, item.dataset.name));
                         });
                     })
-                    .catch(() => _close());
+                    .catch(() => close());
             }, debounceMs);
         });
 
-        // 외부 클릭 시 닫기
+        /* 입력창과 말풍선 바깥을 클릭하면 결과만 닫고 선택 값은 유지한다. */
         document.addEventListener('click', e => {
-            if (!input.contains(e.target) && !balloon.contains(e.target)) _close();
+            if (!input.contains(e.target) && !balloon.contains(e.target)) close();
         });
 
-        // 컨트롤러 반환 (필요 시 외부에서 제어)
-        return { close: _close, select: _select };
+        return { close, select };
     };
 
-    return {
+    /* 정적 화면은 별도 호출 없이 공통 코드 콤보를 초기화한다. */
+    document.addEventListener('DOMContentLoaded', () => {
+        initCombos();
+    });
+
+    /* --------------------------------------------------------------------------
+     * 공개 API
+     * -------------------------------------------------------------------------- */
+    const CommonUtils = {
         initCombos,
         initAutocomplete,
-        refreshIcons: refreshLucideIcons,
         setDefaultDateTime,
-        getSearchParams,
         resetFields,
-        openDetail,
-        closeModal,
-        closeModalOnOverlay,
         fmt,
-        toast: (msg, type) => _showToast(msg, type),
-        alert: (msg, title, callback) => _showCustomModal('alert', msg, title, callback),
-        confirm: (msg, callback, title, onCancel) => _showCustomModal('confirm', msg, title, callback, onCancel)
+        /* notify.js 공개 API를 getter로 연결해 기존 CommonUtils 호출부를 유지한다. */
+        get toast()     { return window.Notify ? window.Notify.toast   : () => {}; },
+        get alert()     { return window.Notify ? window.Notify.alert   : () => {}; },
+        get confirm()   { return window.Notify ? window.Notify.confirm : () => {}; },
+        get refreshIcons() { return window.Notify ? window.Notify.refreshIcons : () => {}; }
     };
+
+    window.CommonUtils = CommonUtils;
 })();

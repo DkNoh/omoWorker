@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.scbk.sms.mapper.sms.CustomerSearchMapper">
+
+    <!-- Scaffold 생성(v1). 생성 후 개발자가 직접 수정해 소유한다. -->
+    <!-- 화면 DatePicker 검색값은 YYYYMMDD 문자열로 전달된다 (TuiPageBuilder 규약).
+         비교 컬럼이 DATE/TIMESTAMP면 TO_DATE/TO_TIMESTAMP로 감싸고,
+         단일 날짜 = 조건은 당일 00:00:00 이상, 다음날 00:00:00 미만 범위로 변환한다. -->
+
+    <sql id="searchConditions">
+        <where>
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND (A.CUSTOMER_NM LIKE '%' || #{searchKeyword} || '%' OR A.MOBILE_NO LIKE '%' || #{searchKeyword} || '%')
+            </if>
+            <if test="agreeYn != null and agreeYn != ''">
+                AND A.AGREE_YN = #{agreeYn}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND A.USE_YN = #{useYn}
+            </if>
+        </where>
+    </sql>
+
+    <sql id="baseQuery">
+            SELECT
+                C.CUSTOMER_ID AS CUSTOMER_ID,
+                C.CUSTOMER_NM AS CUSTOMER_NM,
+                C.MOBILE_NO AS MOBILE_NO,
+                C.EMAIL AS EMAIL,
+                C.BIRTH_DT AS BIRTH_DT,
+                C.GENDER_CD AS GENDER_CD,
+                C.AGREE_YN AS AGREE_YN,
+                C.USE_YN AS USE_YN,
+                C.REG_DTTM AS REG_DTTM
+            FROM SMS.CUSTOMER C
+    </sql>
+
+    <select id="count" resultType="int">
+        /* CustomerSearchMapper.count */
+        SELECT COUNT(1) FROM (
+        <include refid="baseQuery"/>
+        ) A
+        <include refid="searchConditions"/>
+    </select>
+
+    <select id="selectList" resultType="com.scbk.sms.vo.sms.CustomerSearchVO">
+        /* CustomerSearchMapper.selectList */
+        SELECT A.*
+        FROM (
+        <include refid="baseQuery"/>
+        ) A
+        <include refid="searchConditions"/>
+        ORDER BY CUSTOMER_ID
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <insert id="insert">
+        /* CustomerSearchMapper.insert */
+        INSERT INTO SMS.CUSTOMER (
+            CUSTOMER_NM,
+            MOBILE_NO,
+            EMAIL,
+            BIRTH_DT,
+            GENDER_CD,
+            AGREE_YN,
+            USE_YN,
+            REG_DTTM
+        ) VALUES (
+            #{customerNm,jdbcType=VARCHAR},
+            #{mobileNo,jdbcType=VARCHAR},
+            #{email,jdbcType=VARCHAR},
+            #{birthDt,jdbcType=VARCHAR},
+            #{genderCd,jdbcType=VARCHAR},
+            #{agreeYn,jdbcType=VARCHAR},
+            #{useYn,jdbcType=VARCHAR},
+            SYSTIMESTAMP
+        )
+    </insert>
+
+    <!-- update 기준: 수정 허용 컬럼만 SET하고, 잠금 컬럼을 지정한 경우 WHERE에 함께 둔다. -->
+    <update id="update">
+        /* CustomerSearchMapper.update */
+        UPDATE SMS.CUSTOMER
+           SET CUSTOMER_NM = #{customerNm,jdbcType=VARCHAR},
+               MOBILE_NO = #{mobileNo,jdbcType=VARCHAR},
+               EMAIL = #{email,jdbcType=VARCHAR},
+               BIRTH_DT = #{birthDt,jdbcType=VARCHAR},
+               GENDER_CD = #{genderCd,jdbcType=VARCHAR},
+               AGREE_YN = #{agreeYn,jdbcType=VARCHAR},
+               USE_YN = #{useYn,jdbcType=VARCHAR}
+         WHERE CUSTOMER_ID = #{customerId,jdbcType=NUMERIC}
+    </update>
+
+    <delete id="delete">
+        /* CustomerSearchMapper.delete */
+        DELETE FROM SMS.CUSTOMER WHERE CUSTOMER_ID = #{customerId,jdbcType=NUMERIC}
+    </delete>
+
+    <select id="selectDetail" resultType="com.scbk.sms.vo.sms.CustomerSearchVO">
+        /* CustomerSearchMapper.selectDetail */
+        SELECT A.*
+        FROM (
+        <include refid="baseQuery"/>
+        ) A
+        WHERE A.CUSTOMER_ID = #{customerId}
+    </select>
+
+</mapper>

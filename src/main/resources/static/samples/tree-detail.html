@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  분할 화면 정적 샘플 — 메뉴 관리 (트리 + 상세)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/tree-detail.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  시연 내용:
+  - 좌측 트리 패널: 펼침/접힘 토글, 노드 유형 아이콘(그룹/메뉴), 선택 하이라이트
+  - 우측 상세 패널: 트리 노드 선택 시 상세 폼에 값 바인딩
+  - 모든 데이터는 JS 내장 mock — 서버 없이 file://에서 완전 동작
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 아래 <style>의 화면 전용 스타일을 <th:block layout:fragment="css"> 로 옮긴다.
+     (상세 행 레이아웃은 공통 admin-form-detail.css 에 있으므로 복사하지 않는다.)
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md, 실전 참고: templates/system/menu-manage.html
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>메뉴 관리 — 트리/상세 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+
+        /* 트리 패널 */
+        .tree-shell {
+            max-height: 560px;
+            overflow-y: auto;
+            padding: var(--sms-space-2);
+        }
+
+        .tree-node-row {
+            display: flex;
+            align-items: center;
+            gap: var(--sms-space-2);
+            padding: var(--sms-space-2) var(--sms-space-3);
+            border-radius: var(--sms-radius);
+            cursor: pointer;
+            color: var(--sms-text-body);
+            font-size: var(--sms-fs-body-sm);
+            transition: background var(--sms-transition-fast);
+        }
+
+        .tree-node-row:hover {
+            background: var(--sms-bg-muted);
+        }
+
+        .tree-node-row.is-selected {
+            background: var(--sms-primary-soft);
+            color: var(--sms-primary);
+            font-weight: var(--sms-fw-semibold);
+        }
+
+        .tree-node-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            color: var(--sms-text-muted);
+            transition: transform var(--sms-transition-fast);
+        }
+
+        .tree-node-toggle.is-expanded {
+            transform: rotate(90deg);
+        }
+
+        .tree-node-toggle.is-leaf {
+            visibility: hidden;
+        }
+
+        .tree-node-icon {
+            display: inline-flex;
+            color: var(--sms-text-muted);
+        }
+
+        .tree-node-row.is-selected .tree-node-icon {
+            color: var(--sms-primary);
+        }
+
+        .tree-node-label {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tree-node-type {
+            font-size: var(--sms-fs-overline);
+            color: var(--sms-text-muted);
+            border: 1px solid var(--sms-border);
+            border-radius: var(--sms-radius-sm);
+            padding: 0 var(--sms-space-1);
+        }
+
+        .tree-node-children {
+            padding-left: var(--sms-space-5);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>메뉴 관리 <small class="text-body-sm">(시스템관리 &gt; 메뉴관리)</small></h2>
+            </div>
+
+            <div class="row g-3">
+                <!-- 좌측: 트리 패널 -->
+                <div class="col-12 col-lg-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                            <span class="fs-6 fw-medium">메뉴 트리</span>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="btn-create" class="btn btn-outline-primary btn-sm px-2">
+                                    <i data-lucide="plus" aria-hidden="true"></i><span>신규</span>
+                                </button>
+                                <button type="button" id="btn-refresh" class="btn btn-outline-secondary btn-sm px-2">
+                                    <i data-lucide="rotate-cw" aria-hidden="true"></i><span>새로고침</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="menu-tree" class="tree-shell" role="tree" aria-label="메뉴 트리"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 우측: 상세 패널 -->
+                <div class="col-12 col-lg-8">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3">
+                            <div class="d-flex align-items-center justify-content-between gap-3">
+                                <h3 class="fs-6 fw-semibold mb-0">메뉴 상세 정보</h3>
+                                <span class="text-caption"><span class="text-danger">*</span> 필수 입력</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <form id="menu-detail-form" autocomplete="off" novalidate>
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="menuId">메뉴 ID</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <input type="text" class="form-control" id="menuId" name="menuId"
+                                               placeholder="트리의 메뉴를 선택하세요" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="menuNm">메뉴명</label>
+                                    </div>
+                                    <div class="col-12 col-sm-9 form-detail-control">
+                                        <input type="text" class="form-control" id="menuNm" name="menuNm"
+                                               maxlength="50" placeholder="메뉴명" data-validate="required|maxlength:50">
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label class="form-detail-required" for="menuType">메뉴 유형</label>
+                                    </div>
+                                    <div class="col-12 col-sm-3 form-detail-control">
+                                        <select class="form-select" id="menuType" name="menuType" data-validate="required">
+                                            <option value="">선택</option>
+                                            <option value="G">그룹</option>
+                                            <option value="M">메뉴</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label for="parentMenuId">상위 메뉴</label>
+                                    </div>
+                                    <div class="col-12 col-sm-3 form-detail-control">
+                                        <input type="text" class="form-control" id="parentMenuId" name="parentMenuId"
+                                               placeholder="상위 메뉴 ID">
+                                    </div>
+                                </div>
+
+                                <div class="row g-0 form-detail-row">
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <label for="sortOrd">정렬 순서</label>
+                                    </div>
+                                    <div class="col-12 col-sm-3 form-detail-control">
+                                        <input type="number" class="form-control" id="sortOrd" name="sortOrd"
+                                               min="0" inputmode="numeric" data-validate="number">
+                                    </div>
+                                    <div class="col-12 col-sm-3 form-detail-label">
+                                        <span class="form-detail-required" id="use-yn-label">사용 여부</span>
+                                    </div>
+                                    <div class="col-12 col-sm-3 form-detail-control">
+                                        <div class="d-flex gap-4" role="radiogroup" aria-labelledby="use-yn-label">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="useYes"
+                                                       name="useYn" value="Y" checked>
+                                                <label class="form-check-label" for="useYes">사용</label>
+                                            </div>
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input" type="radio" id="useNo"
+                                                       name="useYn" value="N">
+                                                <label class="form-check-label" for="useNo">미사용</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="card-footer bg-white d-flex justify-content-end gap-2 py-3">
+                            <button type="button" id="btn-save" class="btn btn-primary px-4">
+                                <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/tree-detail.js"></script>
+</body>
+</html>

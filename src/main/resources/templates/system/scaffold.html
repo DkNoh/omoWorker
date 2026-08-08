@@ -51,17 +51,16 @@
                     <select id="screenMode" class="form-select">
                         <option value="LIST">목록 조회만</option>
                         <option value="EXCEL">목록 + 엑셀</option>
-                        <option value="DETAIL">목록 + 상세 모달</option>
                         <option value="CRUD">목록 + 등록/수정/삭제</option>
                     </select>
                 </div>
                 <div class="col-auto form-check form-switch ms-2">
-                    <input class="form-check-input" type="checkbox" id="includeModal">
-                    <label class="form-check-label" for="includeModal">상세 모달 사용</label>
-                </div>
-                <div class="col-auto form-check form-switch ms-2">
                     <input class="form-check-input" type="checkbox" id="includePrivacy">
                     <label class="form-check-label" for="includePrivacy">개인정보 포함(@PrivacyLog)</label>
+                </div>
+                <div class="col-auto form-check form-switch ms-2">
+                    <input class="form-check-input" type="checkbox" id="showRowNumber" checked>
+                    <label class="form-check-label" for="showRowNumber">그리드 No 표시</label>
                 </div>
                 <div class="col-auto ms-auto">
                     <button type="button" id="btn-refresh-options" class="btn btn-outline-dark px-3 me-2"><i data-lucide="refresh-cw"></i><span>옵션 갱신</span></button>
@@ -75,20 +74,21 @@
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h3 class="fs-6 fw-bold mb-0">조회조건 옵션</h3>
-                        <span class="text-secondary small">$변수 기준으로 생성됩니다</span>
+                        <span class="text-secondary small">화면명은 DB 컬럼 comment 기본이며 BETWEEN은 시작일자/종료일자, 직접 수정 가능</span>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle mb-0">
                             <thead>
                             <tr>
                                 <th>파라미터</th>
+                                <th>화면 한글명</th>
                                 <th>입력 타입</th>
                                 <th>기본값</th>
                                 <th>콤보/라디오 옵션</th>
                             </tr>
                             </thead>
                             <tbody id="search-param-options">
-                            <tr><td colspan="4" class="text-secondary">조회 SQL 입력 후 옵션 갱신을 누르세요.</td></tr>
+                            <tr><td colspan="5" class="text-secondary">조회 SQL 입력 후 옵션 갱신을 누르세요.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -97,17 +97,17 @@
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h3 class="fs-6 fw-bold mb-0">컬럼 옵션</h3>
-                        <span class="text-secondary small">SELECT alias 기준으로 생성됩니다</span>
+                        <span class="text-secondary small">화면명은 DB 컬럼 comment 기본이며 직접 수정할 수 있습니다</span>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle mb-0">
                             <thead>
                             <tr>
-                                <th>그리드</th>
-                                <th>모달</th>
-                                <th>수정</th>
+                                <th>그리드 표시</th>
+                                <th>등록·수정 표시</th>
+                                <th>등록·수정 입력</th>
                                 <th>컬럼</th>
-                                <th>헤더명</th>
+                                <th>화면 한글명</th>
                                 <th>너비</th>
                                 <th>정렬</th>
                                 <th>날짜 포맷</th>

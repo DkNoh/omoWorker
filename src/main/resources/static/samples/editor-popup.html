@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  에디터 팝업 정적 샘플 — 공지사항 작성 (Toast UI Editor)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/editor-popup.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  시연 내용:
+  - Toast UI Editor(wysiwyg) 본문 편집기 — #content-editor 를 에디터가 대체,
+    실제 전송값은 숨겨진 #content textarea(markdown)에 동기화
+  - 저장 시 editor.getMarkdown() 으로 본문 추출
+  - 수정 모드(URL ?noticeId=...) 진입 시 editor.setMarkdown() 으로 기존 본문 로드
+  - 에디터 접근성(a11y) 속성 부여 패턴
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 에디터 CSS 는 <th:block layout:fragment="css"> 로,
+     에디터 JS(toastui-editor-all.min.js)는 <th:block layout:fragment="script"> 안에서
+     페이지 JS 보다 먼저 th:src="@{/lib/toastui-editor/3.2.2/...}" 로 로드한다.
+     (에디터는 defaultLayout 이 아닌 화면 단위 로드 — 실전 참고: basic/notice-popup.html)
+  4. 팝업(window.open)으로 쓰는 경우 사이드바/헤더를 숨기는 화면 전용 CSS 를
+     layout:fragment="css" 에 둔다 (notice-popup.html 주석 참고).
+  5. 하드코딩 값을 th:value 바인딩으로, PAGE_AUTH 스텁을 서버 주입으로 교체한다.
+  6. 규약: docs/menual/toastui-editor_manual.md
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>공지사항 작성 — 에디터 팝업 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <!-- Toast UI Editor: 화면 단위 로드 (defaultLayout 미포함) -->
+    <link rel="stylesheet" href="../lib/toastui-editor/3.2.2/toastui-editor.min.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .editor-popup-badge {
+            font-size: var(--sms-fs-caption);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <h2 id="popup-title">공지사항 등록 <small class="text-body-sm">(기본메뉴 &gt; 공지사항)</small></h2>
+                    <span class="badge bg-primary editor-popup-badge">에디터 팝업 예제</span>
+                </div>
+                <button type="button" id="btn-close" class="btn btn-secondary btn-sm">
+                    <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+                </button>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form id="notice-form" autocomplete="off" novalidate>
+                        <!-- PK 및 낙관적 잠금 (hidden) -->
+                        <input type="hidden" id="noticeId" name="noticeId">
+                        <input type="hidden" id="beforeUpdDttm" name="beforeUpdDttm">
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold">제목 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title"
+                                   maxlength="100" placeholder="제목을 입력하세요"
+                                   data-validate="required|maxlength:100" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="content" id="content-label" class="form-label fw-bold">본문</label>
+                            <!-- Toast UI Editor 가 이 요소를 대체한다.
+                                 실제 전송값은 아래 숨겨진 textarea(markdown)에 동기화된다. -->
+                            <div id="content-editor"></div>
+                            <textarea id="content" name="content" class="d-none" aria-hidden="true"></textarea>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label for="noticeType" class="form-label fw-bold">유형</label>
+                                <select class="form-select" id="noticeType" name="noticeType">
+                                    <option value="">선택</option>
+                                    <option value="GENERAL">일반</option>
+                                    <option value="URGENT">긴급</option>
+                                    <option value="EVENT">이벤트</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="useYn" class="form-label fw-bold">사용 여부</label>
+                                <select class="form-select" id="useYn" name="useYn">
+                                    <option value="Y">사용</option>
+                                    <option value="N">미사용</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="startDt" class="form-label fw-bold">게시 시작일</label>
+                                <input type="date" class="form-control" id="startDt" name="startDt">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between gap-2 mt-4">
+                            <button type="button" id="btn-delete" class="btn btn-outline-danger px-3 d-none">
+                                <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="btn-cancel" class="btn btn-secondary px-3">
+                                    <i data-lucide="rotate-ccw" aria-hidden="true"></i><span>취소</span>
+                                </button>
+                                <button type="button" id="btn-save" class="btn btn-primary px-4">
+                                    <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<!-- Toast UI Editor: 페이지 JS 보다 먼저 로드 (UMD 전역 toastui.Editor) -->
+<script src="../lib/toastui-editor/3.2.2/toastui-editor-all.min.js"></script>
+<script src="../js/basic/editor-popup.js"></script>
+</body>
+</html>

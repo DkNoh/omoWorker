@@ -17,6 +17,7 @@ import com.scbk.sms.dto.system.MenuUpdateRequestDTO;
 import com.scbk.sms.exception.CustomException;
 import com.scbk.sms.exception.ErrorCode;
 import com.scbk.sms.mapper.system.MenuManageMapper;
+import com.scbk.sms.service.menu.MenuCacheRevision;
 import com.scbk.sms.vo.system.MenuAuthDetailVO;
 import com.scbk.sms.vo.system.MenuManageVO;
 import com.scbk.sms.vo.system.MenuRoleVO;
@@ -32,12 +33,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MenuManageServiceTest {
 
   @Mock private MenuManageMapper mapper;
+  @Mock private MenuCacheRevision menuCacheRevision;
 
   private MenuManageService service;
 
   @BeforeEach
   void setUp() {
-    service = new MenuManageService(mapper);
+    service = new MenuManageService(mapper, menuCacheRevision);
   }
 
   @Test
@@ -181,6 +183,99 @@ class MenuManageServiceTest {
 
     // then
     then(mapper).should().insert(request);
+    then(menuCacheRevision).should().invalidateAfterCommit();
+  }
+
+  @Test
+  void 레벨2_화면_아래_등록하면_레벨3과_다음_정렬순서를_서버가_계산한다() {
+    // given
+    MenuUpdateRequestDTO request = menuRequest("NOTICE_SUB", "M", "/basic/notice/sub");
+    request.setParentMenuId("BASIC_NOTICE");
+    request.setMenuLevel(99);
+    request.setSortOrd(99);
+    MenuManageVO parent = menu("BASIC_NOTICE", "G_BASIC", "M");
+    parent.setMenuLevel(2);
+    given(mapper.selectByMenuId("NOTICE_SUB")).willReturn(null);
+    given(mapper.countByUrlExceptMenuId("/basic/notice/sub", "NOTICE_SUB")).willReturn(0);
+    given(mapper.selectByMenuId("BASIC_NOTICE")).willReturn(parent);
+    given(mapper.selectNextSortOrd("BASIC_NOTICE")).willReturn(20);
+
+    // when
+    service.create(request);
+
+    // then
+    assertThat(request.getMenuLevel()).isEqualTo(3);
+    assertThat(request.getSortOrd()).isEqualTo(20);
+    then(mapper).should().insert(request);
+  }
+
+  @Test
+  void 존재하지_않는_메뉴는_부모로_지정할_수_없다() {
+    // given
+    MenuUpdateRequestDTO request = menuRequest("NOTICE_SUB", "M", "/basic/notice/sub");
+    request.setParentMenuId("MISSING_PARENT");
+    given(mapper.selectByMenuId("NOTICE_SUB")).willReturn(null);
+    given(mapper.countByUrlExceptMenuId("/basic/notice/sub", "NOTICE_SUB")).willReturn(0);
+    given(mapper.selectByMenuId("MISSING_PARENT")).willReturn(null);
+
+    // when / then
+    assertThatThrownBy(() -> service.create(request))
+        .isInstanceOf(CustomException.class)
+        .extracting(e -> ((CustomException) e).getErrorCode())
+        .isEqualTo(ErrorCode.MENU_PARENT_INVALID);
+    then(mapper).should(never()).insert(any());
+  }
+
+  @Test
+  void 화면_메뉴_아래로_이동하면_모든_자손_레벨도_같이_이동한다() {
+    // given
+    MenuManageVO existing = menu("G_CHILD", "G_BASIC", "G");
+    existing.setMenuLevel(2);
+    existing.setSortOrd(10);
+    existing.setSystemYn("N");
+    MenuManageVO newParent = menu("BASIC_NOTICE", "G_BASIC", "M");
+    newParent.setMenuLevel(2);
+    MenuManageVO root = menu("G_BASIC", null, "G");
+    root.setMenuLevel(1);
+    given(mapper.selectByMenuId("G_CHILD")).willReturn(existing);
+    given(mapper.selectByMenuId("BASIC_NOTICE")).willReturn(newParent);
+    given(mapper.selectByMenuId("G_BASIC")).willReturn(root);
+    given(mapper.selectNextSortOrd("BASIC_NOTICE")).willReturn(20);
+    given(mapper.update(any())).willReturn(1);
+    MenuUpdateRequestDTO request = menuRequest("G_CHILD", "G", null);
+    request.setParentMenuId("BASIC_NOTICE");
+
+    // when
+    service.update(request);
+
+    // then
+    assertThat(request.getMenuLevel()).isEqualTo(3);
+    assertThat(request.getSortOrd()).isEqualTo(20);
+    then(mapper).should().shiftDescendantMenuLevels("G_CHILD", 1);
+  }
+
+  @Test
+  void 화면_메뉴는_자식이_있어도_수정할_수_있다() {
+    // given
+    MenuManageVO existing = menu("BASIC_NOTICE", "G_BASIC", "M");
+    existing.setMenuLevel(2);
+    existing.setSortOrd(10);
+    existing.setMenuUrl("/basic/notice");
+    existing.setSystemYn("N");
+    MenuManageVO parent = menu("G_BASIC", null, "G");
+    parent.setMenuLevel(1);
+    given(mapper.selectByMenuId("BASIC_NOTICE")).willReturn(existing);
+    given(mapper.selectByMenuId("G_BASIC")).willReturn(parent);
+    given(mapper.update(any())).willReturn(1);
+    MenuUpdateRequestDTO request = menuRequest("BASIC_NOTICE", "M", "/basic/notice");
+    request.setParentMenuId("G_BASIC");
+
+    // when
+    service.update(request);
+
+    // then
+    then(mapper).should().update(request);
+    then(mapper).should(never()).countChildren("BASIC_NOTICE");
   }
 
   @Test
@@ -231,6 +326,7 @@ class MenuManageServiceTest {
 
     // then
     then(mapper).should().update(request);
+    then(menuCacheRevision).should().invalidateAfterCommit();
   }
 
   @Test
@@ -381,6 +477,7 @@ class MenuManageServiceTest {
     // then : auth 먼저 지우고 그 다음 메뉴 행을 지운다 (순서: delete → deleteMenuAuthByMenuId)
     then(mapper).should().deleteMenuAuthByMenuId("CUSTOM");
     then(mapper).should().delete("CUSTOM");
+    then(menuCacheRevision).should().invalidateAfterCommit();
   }
 
   private MenuManageVO menu(String menuId, String parentMenuId, String menuType) {

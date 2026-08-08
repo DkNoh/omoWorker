@@ -6,7 +6,7 @@ paths:
 
 # Thymeleaf / UI Rules
 
-- 업무 화면 구조는 `docs/base/screen-convention.md`의 골격을 그대로 따른다.
+- 업무 화면은 `docs/base/screen-convention.md`의 문서화된 패턴(목록/상세폼/모달)으로 구성한다. 공통 자산(그리드/HTTP/모달/상세폼 행 레이아웃) 재발명 금지.
 - 업무 화면은 `layout:decorate="~{defaultLayout}"`를 사용한다. login.html은 예외다.
 - 목록 그리드는 `TuiPageBuilder`로만 초기화한다. 그리드를 직접 구현하지 않는다.
 - 버튼/그리드 ID는 `btn-search`, `btn-reset`, `btn-excel`, `grid`, `pagination`, `total-count`를 사용한다.

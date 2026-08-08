@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- Scaffold 생성(CRUD). 생성 후 개발자가 직접 수정해 소유한다. -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{defaultLayout}">
+<head>
+    <title>고객별 조회</title>
+</head>
+<body>
+<main layout:fragment="content">
+
+    <div class="content-header">
+        <h2>고객별 조회</h2>
+    </div>
+
+        <div class="card mb-4 shadow-sm border-0 scaffold-search-card">
+        <div class="card-body">
+            <div class="row align-items-center g-3 flex-wrap">
+                <div class="col-auto"><label for="searchKeyword" class="col-form-label fw-bold">searchKeyword</label></div>
+                <div class="col-auto"><input type="text" id="searchKeyword" class="form-control scaffold-search-control" aria-label="searchKeyword"></div>
+                <div class="col-auto"><label for="agreeYn" class="col-form-label fw-bold">agreeYn</label></div>
+                <div class="col-auto"><input type="text" id="agreeYn" class="form-control scaffold-search-control" aria-label="agreeYn"></div>
+                <div class="col-auto"><label for="useYn" class="col-form-label fw-bold">useYn</label></div>
+                <div class="col-auto"><input type="text" id="useYn" class="form-control scaffold-search-control" aria-label="useYn"></div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary px-3" aria-label="신규 등록"><i data-lucide="plus" aria-hidden="true"></i><span>등록</span></button>
+                    <button type="button" id="btn-search" class="btn btn-primary px-4" aria-label="조회"><i data-lucide="search" aria-hidden="true"></i><span>조회</span></button>
+                    <button type="button" id="btn-reset" class="btn btn-secondary px-3" aria-label="검색 조건 초기화"><i data-lucide="rotate-ccw" aria-hidden="true"></i><span>초기화</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/toast-grid :: gridCard(null, null, null, null)}"></div>
+
+    <th:block th:replace="~{fragments/modal-base :: layout(
+        modalId='customer-search-modal',
+        title='고객별 조회',
+        size='modal-lg',
+        bodyContent=~{::#modal-body},
+        footerContent=null
+    )}">
+        <div id="modal-body">
+            <form id="detail-form" class="row g-3" autocomplete="off" novalidate>
+                <input type="hidden" name="customerId">
+                <div class="row g-3">
+                <div class="col-12 col-md-6"><div class="form-label">CUSTOMER_ID</div><div class="form-control-plaintext" data-readonly-field="customerId"></div></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-customerNm">CUSTOMER_NM</label><input type="text" class="form-control" id="f-customerNm" name="customerNm"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-mobileNo">MOBILE_NO</label><input type="text" class="form-control" id="f-mobileNo" name="mobileNo"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-email">EMAIL</label><input type="text" class="form-control" id="f-email" name="email"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-birthDt">BIRTH_DT</label><input type="text" class="form-control" id="f-birthDt" name="birthDt"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-genderCd">GENDER_CD</label><input type="text" class="form-control" id="f-genderCd" name="genderCd"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-agreeYn">AGREE_YN</label><input type="text" class="form-control" id="f-agreeYn" name="agreeYn"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="f-useYn">USE_YN</label><input type="text" class="form-control" id="f-useYn" name="useYn"></div>
+                <div class="col-12 col-md-6"><div class="form-label">REG_DTTM</div><div class="form-control-plaintext" data-readonly-field="regDttm"></div></div>
+                </div>
+            </form>
+        </div>
+    </th:block>
+
+</main>
+<th:block layout:fragment="script">
+    <script th:src="@{/js/sms/customer-search.js}"></script>
+</th:block>
+</body>
+</html>

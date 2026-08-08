@@ -96,12 +96,14 @@ sms:
 GlobalModelAdvice의 `@ModelAttribute`는 화면(HTML) 요청마다 실행되므로 source별 DB 부하가 다르다.
 
 - local: `sms.menu.source=static`이므로 `StaticMenuSource`를 사용하고, `PageAuth.all()`로 권한 쿼리를 skip한다. 메뉴/권한 조회로 DB를 치지 않으므로 성능 이슈가 없다.
-- dev/prod: `sms.menu.source=db`이므로 `DbMenuSource`를 사용한다. `GlobalModelAdvice`가 매 HTTP 요청마다 `selectReadableMenus`(메뉴 트리)와 `getPermissions`(페이지 권한)을 호출한다. 현재 `DbMenuSource`에는 캐시가 없다.
+- dev/prod: `sms.menu.source=db`이므로 `DbMenuSource`를 사용한다. `GlobalModelAdvice`는 역할별 `menuTree`와 요청 URL별 `pageAuth`를 HTTP 세션에 저장한다. 같은 메뉴 revision에서는 메뉴 트리는 세션당 1회, 화면 권한은 URL당 1회만 계산한다.
 
-메뉴와 권한은 세션 단위로 거의 변하지 않으므로, dev/prod 트래픽이 늘면 `DbMenuSource`에 캐시 후보다:
+`MenuManageService`의 등록·수정·삭제가 커밋되면 애플리케이션의 메뉴 revision이 증가한다. 기존 로그인 세션은 다음 화면 요청에서 revision 불일치를 확인해 `menuTree`와 `pageAuthCache`를 함께 비우고 최신 DB 값을 다시 조회한다. 실패하거나 롤백된 변경은 revision을 올리지 않는다.
 
-1. (권장) `@Cacheable`을 `roleCodes` 키로 적용 — 동일 사용자 반복 요청은 DB 호출을 생략한다. TTL/evict 정책만 정한다.
-2. 메뉴 트리는 전역 캐시 — 메뉴 자체는 정적이므로 트리 전체를 1회 로드 후 메모리에서 `roleCodes`로 필터링한다.
-3. `getPermissions` 결과를 세션(`HttpSession`)에 캐시 — 권한은 세션 수명 동안 불변이므로 요청당 쿼리를 세션당 1회로 줄인다.
+현재 revision은 단일 애플리케이션 인스턴스 메모리에 있다. 여러 서버 인스턴스로 운영한다면 다음 중 하나를 추가해야 한다.
 
-운영 메뉴가 자주 바뀌지 않는 정적 구조라면 2번이 가장 효율적이다. 트래픽이 적은 현 단계에서는 그대로 두고, 부하가 생기면 적용한다.
+- DB에 공유 메뉴 revision을 저장하고 각 인스턴스가 비교
+- Redis 등 공유 캐시의 version/evict 이벤트 사용
+- 메시지 브로커로 커밋 후 무효화 이벤트 전파
+
+역할 목록 자체는 로그인 principal에 들어간다. `TB_EMP_ROLE` 변경은 재로그인 후 반영하며 메뉴 revision으로 principal의 역할 목록을 바꾸지 않는다.

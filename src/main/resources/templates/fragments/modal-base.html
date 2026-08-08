@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  fragments/modal-base.html
+  개발자 수동 비즈니스 모달 표준 뼈대 — Phase 1 신규 도입
+
+  Fragment API:
+    th:replace="~{fragments/modal-base :: layout(
+        modalId=...,
+        title=...,
+        size=...,
+        bodyContent=...,
+        footerContent=...
+    )}"
+
+  매개변수:
+    - modalId       (필수) 모달 DOM id. scaffold는 ${domainId + '-modal'} 규약 사용
+    - title         (필수) 모달 제목
+    - size          (옵션) modal-sm/modal-md(기본)/modal-lg/modal-xl/modal-fullscreen
+    - bodyContent   (필수) Thymeleaf fragment reference (~{::#modal-body} 형식)
+    - footerContent (옵션) null이면 기본 footer(삭제/닫기/저장 버튼) 사용
+
+  DOM id 규약 (modal-manager.js와 계약 일치):
+    - 모달:    id="${modalId}"
+    - 제목:    id="${modalId + '-title'}"
+    - 저장:    id="${modalId + '-btn-save'}"
+    - 삭제:    id="${modalId + '-btn-delete'}"
+
+  주의: bodyContent=~{::#modal-body} 참조는 동일 템플릿 내 id="modal-body" 요소 1개만 허용
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="layout(modalId, title, size, bodyContent, footerContent)"
+     class="modal fade"
+     th:id="${modalId}"
+     tabindex="-1"
+     aria-hidden="true"
+     data-coreui-backdrop="static">
+    <div class="modal-dialog" th:classappend="${size ?: 'modal-md'}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" th:id="${modalId + '-title'}" th:text="${title}">제목</h5>
+                <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <th:block th:replace="${bodyContent}"></th:block>
+            </div>
+
+            <div class="modal-footer">
+                <th:block th:if="${footerContent != null}">
+                    <th:block th:replace="${footerContent}"></th:block>
+                </th:block>
+                <th:block th:if="${footerContent == null}">
+                    <button type="button" class="btn btn-danger me-auto d-none" th:id="${modalId + '-btn-delete'}">
+                        <i data-lucide="trash-2" aria-hidden="true"></i><span>삭제</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">
+                        <i data-lucide="x" aria-hidden="true"></i><span>닫기</span>
+                    </button>
+                    <button type="button" class="btn btn-primary" th:id="${modalId + '-btn-save'}">
+                        <i data-lucide="save" aria-hidden="true"></i><span>저장</span>
+                    </button>
+                </th:block>
+            </div>
+        </div>
+    </div>
+</div>
+</html>

@@ -12,12 +12,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * 렌더링된 산출물의 프로젝트 상대 경로를 결정하고 미리보기 또는 실제 쓰기를 수행한다.
+ *
+ * <p>파일명은 알려진 산출물 목록으로만 라우팅하며 module/domain 입력 형식, 프로젝트 루트 이탈, 대소문자만 다른 기존 파일 충돌을 쓰기 전에
+ * 차단한다. {@link #preview(ScaffoldRequestDTO, Map)}와 {@link #apply(ScaffoldRequestDTO, Map)}는 같은 경로 판정 로직을 사용해
+ * 확인창에서 본 대상과 실제 적용 대상을 일치시킨다.
+ */
 @Component
 @Profile("local")
 public class ScaffoldFileApplier {
@@ -40,6 +48,7 @@ public class ScaffoldFileApplier {
     this.outputRoot = outputRoot.toAbsolutePath().normalize();
   }
 
+  /** 파일을 쓰지 않고 각 산출물의 대상 경로와 변경 상태를 계산한다. */
   public List<ScaffoldApplyFileResultDTO> preview(
       ScaffoldRequestDTO request, Map<String, String> generatedFiles) {
     validateRequest(request);
@@ -47,11 +56,13 @@ public class ScaffoldFileApplier {
     List<ScaffoldApplyFileResultDTO> results = new ArrayList<>();
     for (Map.Entry<String, String> entry : generatedFiles.entrySet()) {
       Path targetPath = resolveTargetPath(request, entry.getKey());
+      validateNoCaseOnlyCollision(targetPath);
       results.add(result(entry.getKey(), targetPath, entry.getValue()));
     }
     return results;
   }
 
+  /** 미리보기 검증을 먼저 통과한 뒤 변경된 내용을 UTF-8로 기록한다. */
   public List<ScaffoldApplyFileResultDTO> apply(
       ScaffoldRequestDTO request, Map<String, String> generatedFiles) {
     List<ScaffoldApplyFileResultDTO> preview = preview(request, generatedFiles);
@@ -62,6 +73,7 @@ public class ScaffoldFileApplier {
     return preview;
   }
 
+  /** 산출물 이름을 허용된 소스·리소스·테스트·SQL 경로 중 하나로 매핑한다. */
   Path resolveTargetPath(ScaffoldRequestDTO request, String generatedName) {
     String moduleName = request.getModuleName();
     String domainId = request.getDomainId();
@@ -114,6 +126,39 @@ public class ScaffoldFileApplier {
       Files.writeString(targetPath, content, StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new UncheckedIOException("scaffold 파일 적용에 실패했습니다: " + targetPath, e);
+    }
+  }
+
+  private void validateNoCaseOnlyCollision(Path targetPath) {
+    Path parent = targetPath.getParent();
+    if (!Files.isDirectory(parent)) {
+      return;
+    }
+
+    String expectedName = targetPath.getFileName().toString();
+    try (Stream<Path> siblings = Files.list(parent)) {
+      Path collision =
+          siblings
+              .filter(
+                  sibling -> {
+                    String actualName = sibling.getFileName().toString();
+                    return actualName.equalsIgnoreCase(expectedName)
+                        && !actualName.equals(expectedName);
+                  })
+              .findFirst()
+              .orElse(null);
+      if (collision == null) {
+        return;
+      }
+
+      throw new IllegalArgumentException(
+          "scaffold 적용 경로 대소문자 충돌: "
+              + toDisplayPath(outputRoot.relativize(targetPath))
+              + "은(는) 기존 "
+              + toDisplayPath(outputRoot.relativize(collision))
+              + "과 충돌합니다. domainClass 표기를 기존 파일과 정확히 맞추세요.");
+    } catch (IOException e) {
+      throw new UncheckedIOException("scaffold 적용 경로 확인에 실패했습니다: " + targetPath, e);
     }
   }
 

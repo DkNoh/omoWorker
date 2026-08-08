@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  상세 조회 정적 샘플 — 발송 상세 (읽기 전용)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/detail-view.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  읽기 전용 상세 화면 패턴:
+  - 행 레이아웃은 수정폼과 동일하게 공통 admin-form-detail.css 를 재사용한다.
+  - 컨트롤 칸에는 <input>/<select> 대신 일반 텍스트(<p class="detail-value">)를
+    표시한다. 입력·수정 요소를 두지 않는 것이 이 패턴의 핵심이다.
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 아래 <style>의 화면 전용 스타일을 <th:block layout:fragment="css"> 로 옮긴다.
+     (행 레이아웃은 공통 admin-form-detail.css 에 있으므로 복사하지 않는다.)
+  4. 하드코딩 값을 th:text 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md "상세폼 화면 패턴"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>발송 상세 조회 — 읽기 전용 상세 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .detail-value {
+            margin: 0;
+            color: var(--sms-text-body);
+            font-size: var(--sms-fs-body);
+            line-height: 1.55;
+            word-break: keep-all;
+            overflow-wrap: anywhere;
+        }
+
+        .detail-value.is-empty {
+            color: var(--sms-text-disabled);
+        }
+
+        .detail-value--content {
+            width: 100%;
+            padding: var(--sms-space-3) var(--sms-space-4);
+            border: 1px solid var(--sms-border-subtle);
+            border-radius: var(--sms-radius-md);
+            background: var(--sms-bg-surface-alt);
+            white-space: pre-wrap;
+        }
+
+        .detail-status {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--sms-space-1);
+            padding: var(--sms-space-1) var(--sms-space-3);
+            border-radius: var(--sms-radius-pill);
+            font-size: var(--sms-fs-body-sm);
+            font-weight: var(--sms-fw-semibold);
+            color: var(--sms-text-muted);
+            background: var(--sms-bg-muted);
+        }
+
+        .detail-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: var(--sms-radius-pill);
+            background: currentColor;
+        }
+
+        .detail-status.is-success {
+            color: var(--sms-success);
+            background: var(--sms-success-soft);
+        }
+
+        .detail-status.is-fail {
+            color: var(--sms-danger);
+            background: var(--sms-danger-soft);
+        }
+
+        .detail-status.is-wait {
+            color: var(--sms-warning);
+            background: var(--sms-warning-soft);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>발송 상세 조회 <small class="text-body-sm">(메시지관리 &gt; 발송관리 &gt; 상세 조회)</small></h2>
+            </div>
+
+            <div id="detail-view">
+                <div class="card shadow-sm border-0 mb-0">
+                    <div class="card-header bg-white py-3">
+                        <div class="d-flex align-items-center justify-content-between gap-3">
+                            <h3 class="fs-6 fw-semibold mb-0">발송 상세 정보</h3>
+                            <span class="text-caption">읽기 전용 화면</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>발송번호</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="sendNo"></p>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>발송일시</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="sendDttm"></p>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>수신번호</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="receiveTelNo"></p>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>회신번호</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="callbackTelNo"></p>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>메시지유형</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="messageType"></p>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>발송상태</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <span class="detail-status" id="sendStatus"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>메시지제목</span>
+                            </div>
+                            <div class="col-12 col-sm-10 form-detail-control">
+                                <p class="detail-value" id="messageTitle"></p>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label align-items-start">
+                                <span>메시지내용</span>
+                            </div>
+                            <div class="col-12 col-sm-10 form-detail-control align-items-start">
+                                <p class="detail-value detail-value--content" id="messageContent"></p>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>등록자</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="regEmpNm"></p>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span>등록일시</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <p class="detail-value" id="regDttm"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" id="btn-back" class="btn btn-secondary px-3">
+                        <i data-lucide="arrow-left" aria-hidden="true"></i>
+                        <span>목록</span>
+                    </button>
+                    <button type="button" id="btn-edit" class="btn btn-primary px-4">
+                        <i data-lucide="pencil" aria-hidden="true"></i>
+                        <span>수정</span>
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/detail-view.js"></script>
+</body>
+</html>

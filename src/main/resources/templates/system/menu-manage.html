@@ -15,7 +15,7 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <button type="button" id="btn-create" th:if="${pageAuth.create}" class="btn btn-outline-primary">
-                <i data-lucide="plus"></i><span>신규 메뉴</span>
+                <i data-lucide="plus"></i><span>최상위 메뉴 추가</span>
             </button>
             <button type="button" id="btn-refresh" class="btn btn-secondary">
                 <i data-lucide="rotate-cw"></i><span>트리 새로고침</span>
@@ -66,10 +66,15 @@
                 </header>
                 <div class="card-body">
                     <form id="menu-detail-form" autocomplete="off" novalidate>
-                        <input type="hidden" name="menuId" id="f-menuId">
                         <fieldset class="menu-detail-fields">
                             <legend class="visually-hidden">메뉴 정보</legend>
                             <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="f-menuId" class="form-label">메뉴 ID</label>
+                                    <input type="text" class="form-control" id="f-menuId" name="menuId"
+                                           maxlength="50" required aria-describedby="f-menuId-help">
+                                    <div class="form-text" id="f-menuId-help">신규 등록 후에는 변경할 수 없습니다.</div>
+                                </div>
                                 <div class="col-md-6">
                                     <label for="f-menuNm" class="form-label">메뉴명</label>
                                     <input type="text" class="form-control" id="f-menuNm" name="menuNm" required>
@@ -97,11 +102,13 @@
                                 </div>
                                 <div class="col-md-3">
                                     <label for="f-menuLevel" class="form-label">레벨</label>
-                                    <input type="number" class="form-control" id="f-menuLevel" name="menuLevel" min="1">
+                                    <input type="number" class="form-control" id="f-menuLevel" name="menuLevel"
+                                           min="1" readonly tabindex="-1">
                                 </div>
                                 <div class="col-md-3">
                                     <label for="f-sortOrd" class="form-label">정렬순서</label>
-                                    <input type="number" class="form-control" id="f-sortOrd" name="sortOrd" min="0">
+                                    <input type="number" class="form-control" id="f-sortOrd" name="sortOrd"
+                                           min="0" readonly tabindex="-1">
                                 </div>
                                 <div class="col-md-3">
                                     <label for="f-iconNm" class="form-label">아이콘명</label>

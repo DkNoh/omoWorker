@@ -8,7 +8,8 @@ v3 BASE PROJECT에서 static 메뉴와 DB seed가 공통으로 사용하는 v2 �
 |---|---|---|---|---:|---|
 | `G_BASIC` |  | 기본메뉴 |  | 10 | 대메뉴 |
 | `BASIC_INTRO` | `G_BASIC` | SMS관리시스템 안내 | `/basic/intro` | 10 |  |
-| `BASIC_NOTICE` | `G_BASIC` | 공지사항 | `/basic/notice` | 20 |  |
+| `BASIC_NOTICE` | `G_BASIC` | 공지사항 |  | 20 | 레벨 2 그룹 |
+| `BASIC_NOTICE_LIST` | `BASIC_NOTICE` | 공지사항 목록 | `/basic/notice` | 10 | 레벨 3 메뉴 |
 | `BASIC_MESSAGE` | `G_BASIC` | 메시지조회 | `/basic/message` | 30 |  |
 | `BASIC_USER_SEARCH` | `G_BASIC` | 사용자조회 | `/basic/user-search` | 40 |  |
 | `BASIC_MFA` | `G_BASIC` | MFA사용자관리 | `/basic/mfa` | 50 |  |

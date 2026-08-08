@@ -61,6 +61,8 @@
         els.fMenuId = document.getElementById('f-menuId');
         els.fMenuType = document.getElementById('f-menuType');
         els.fParentMenuId = document.getElementById('f-parentMenuId');
+        els.fMenuLevel = document.getElementById('f-menuLevel');
+        els.fSortOrd = document.getElementById('f-sortOrd');
         els.authTbody = document.getElementById('menu-auth-tbody');
         els.authSection = document.getElementById('menu-auth-section');
         els.authRowCount = document.getElementById('auth-row-count');
@@ -201,6 +203,15 @@
         if (window.lucide && window.lucide.createIcons) {
             window.lucide.createIcons();
         }
+        syncCreateButtonLabel();
+    };
+
+    const selectedMenu = () => state.tree.find(menu => menu.menuId === state.selectedMenuId) || null;
+
+    const syncCreateButtonLabel = () => {
+        if (!els.btnCreate) return;
+        const label = els.btnCreate.querySelector('span');
+        if (label) label.textContent = selectedMenu() ? '하위 메뉴 추가' : '최상위 메뉴 추가';
     };
 
     // ─── 상세/권한 패널 ─────────────────────────────────────────────
@@ -222,7 +233,7 @@
             }
         }
         const candidates = state.tree
-            .filter(m => m.menuType === 'G' && !excluded.has(m.menuId))
+            .filter(m => !excluded.has(m.menuId))
             .sort((a, b) => (a.menuLevel - b.menuLevel) || String(a.menuId).localeCompare(String(b.menuId)));
         candidates.forEach(m => {
             const opt = document.createElement('option');
@@ -325,9 +336,26 @@
         });
     };
 
+    /** 부모를 기준으로 화면에 표시할 레벨과 다음 형제 정렬순서를 계산한다. 서버가 저장 직전에 다시 확정한다. */
+    const syncHierarchyDefaults = (preserveCurrentSort) => {
+        const parentMenuId = els.fParentMenuId.value || null;
+        const parent = parentMenuId
+            ? state.tree.find(menu => menu.menuId === parentMenuId)
+            : null;
+        els.fMenuLevel.value = parent ? Number(parent.menuLevel || 0) + 1 : 1;
+
+        if (preserveCurrentSort) return;
+        const siblingSorts = state.tree
+            .filter(menu => (menu.parentMenuId || null) === parentMenuId)
+            .map(menu => Number(menu.sortOrd || 0));
+        const maxSortOrd = siblingSorts.length ? Math.max(...siblingSorts) : 0;
+        els.fSortOrd.value = maxSortOrd + 10;
+    };
+
     const selectMenu = async (menuId) => {
         if (!menuId) return;
         state.selectedMenuId = menuId;
+        syncCreateButtonLabel();
         // 트리의 선택 상태 표시 갱신
         els.tree.querySelectorAll('.menu-node-row').forEach(r => {
             const sel = r.dataset.menuId === menuId;
@@ -351,6 +379,7 @@
             const editable = !!els.btnSave; // 저장 버튼이 화면에 있으면 편집 가능
             renderAuthMatrix(state.activeRoles, state.authRows, editable);
             els.authSection.hidden = false;
+            if (els.btnDelete) els.btnDelete.hidden = false;
             showDetailPanel(true);
             if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         } catch (e) {
@@ -360,19 +389,15 @@
 
     // ─── 신규 메뉴 (create) ─────────────────────────────────────────
     const startCreate = () => {
+        const parent = selectedMenu();
         state.mode = 'create';
-        state.selectedMenuId = null;
-        els.tree.querySelectorAll('.menu-node-row').forEach(r => {
-            r.classList.remove('is-selected');
-            r.setAttribute('aria-selected', 'false');
-        });
         const blank = {
             menuId: '',
-            parentMenuId: '',
+            parentMenuId: parent ? parent.menuId : '',
             menuNm: '',
             menuUrl: '',
-            menuLevel: 1,
-            sortOrd: 10,
+            menuLevel: parent ? Number(parent.menuLevel || 0) + 1 : 1,
+            sortOrd: 0,
             menuType: 'M',
             iconNm: '',
             displayYn: 'Y',
@@ -382,10 +407,13 @@
         };
         fillParentMenuSelect(null);
         bindForm(blank);
+        els.fParentMenuId.value = blank.parentMenuId;
+        syncHierarchyDefaults(false);
         els.fMenuId.readOnly = false;
         els.fSystemYn.value = 'N';
-        els.detailMenuId.textContent = '(신규)';
+        els.detailMenuId.textContent = parent ? `(신규: ${parent.menuNm} 아래)` : '(신규 최상위)';
         els.authSection.hidden = true;
+        if (els.btnDelete) els.btnDelete.hidden = true;
         showDetailPanel(true);
         if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         els.fMenuId.focus();
@@ -443,6 +471,7 @@
 
     // ─── 삭제 ───────────────────────────────────────────────────────
     const removeMenu = () => {
+        if (state.mode === 'create') return;
         const menuId = state.selectedMenuId;
         if (!menuId) return;
         CommonUtils.confirm(`메뉴 [${menuId}] 를 삭제하시겠습니까? 권한 행도 함께 삭제됩니다.`, async () => {
@@ -477,6 +506,14 @@
             els.treeFilter.addEventListener('input', () => {
                 clearTimeout(timer);
                 timer = setTimeout(renderTree, 200);
+            });
+        }
+        if (els.fParentMenuId) {
+            els.fParentMenuId.addEventListener('change', () => {
+                const current = selectedMenu();
+                const sameParent = state.mode === 'view'
+                    && (current?.parentMenuId || null) === (els.fParentMenuId.value || null);
+                syncHierarchyDefaults(sameParent);
             });
         }
         reloadTree();

@@ -29,12 +29,14 @@ public class ScaffoldCaseStore {
     this.objectMapper = objectMapper;
   }
 
+  /** 모듈명과 도메인 경로를 충돌 없는 JSON 파일명으로 변환한다. */
   public Path resolveCasePath(ScaffoldRequestDTO request) {
     String fileName =
         request.getModuleName() + "_" + request.getDomainId().replace("/", "_") + ".json";
     return CASES_DIR.resolve(fileName);
   }
 
+  /** apply 당시 확정된 요청·컬럼·타입·방언을 UTF-8 JSON으로 저장한다. */
   public void save(ScaffoldCaseRecord record) {
     try {
       Path path = resolveCasePath(record.getRequest());
@@ -47,6 +49,7 @@ public class ScaffoldCaseStore {
     }
   }
 
+  /** 저장된 모든 case를 읽어 일괄 재생성 입력으로 반환한다. 디렉터리가 없으면 빈 목록이다. */
   public List<ScaffoldCaseRecord> loadAll() {
     List<ScaffoldCaseRecord> records = new ArrayList<>();
     if (!Files.exists(CASES_DIR)) {

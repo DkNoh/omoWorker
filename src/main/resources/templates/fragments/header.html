@@ -44,22 +44,28 @@
             document.addEventListener("DOMContentLoaded", function () {
                 const currentPath = window.location.pathname;
 
-                document.querySelectorAll('.nav-group-items .nav-link').forEach(link => {
+                document.querySelectorAll('.sidebar-nav .nav-link:not(.nav-group-toggle)').forEach(link => {
                     const href = link.getAttribute('href');
 
                     if (href === currentPath) {
                         link.classList.add('active');
 
-                        const parentGroup = link.closest('.nav-group');
-                        if (parentGroup) {
+                        const path = [link.textContent.trim()];
+                        let parentGroup = link.closest('.nav-group');
+                        while (parentGroup) {
                             parentGroup.classList.add('show');
-                            const parentMenuText = parentGroup.querySelector('.nav-group-toggle span').textContent.trim();
-                            const subMenuText = link.textContent.trim();
+                            const groupLabel = parentGroup.querySelector(
+                                ':scope > .sidebar-parent-link span, '
+                                + ':scope > .nav-group-toggle span:not(.visually-hidden)'
+                            );
+                            const groupName = groupLabel?.textContent.trim();
+                            if (groupName && groupName !== path[0]) path.unshift(groupName);
+                            parentGroup = parentGroup.parentElement?.closest('.nav-group') || null;
+                        }
 
-                            const headerTitle = document.getElementById('headerTitle');
-                            if (headerTitle) {
-                                headerTitle.textContent = parentMenuText + ' > ' + subMenuText;
-                            }
+                        const headerTitle = document.getElementById('headerTitle');
+                        if (headerTitle) {
+                            headerTitle.textContent = path.join(' > ');
                         }
                     }
                 });

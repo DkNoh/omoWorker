@@ -1,0 +1,240 @@
+package com.scbk.sms.controller.sms;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scbk.sms.dto.common.PageResponseDTO;
+import com.scbk.sms.dto.sms.SmsHistorySearchRequestDTO;
+import com.scbk.sms.dto.sms.SmsHistoryUpdateRequestDTO;
+import com.scbk.sms.exception.CustomException;
+import com.scbk.sms.exception.ErrorCode;
+import com.scbk.sms.exception.GlobalExceptionHandler;
+import com.scbk.sms.service.sms.SmsHistoryService;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+/**
+ * SmsHistoryController의 HTTP 바인딩과 공통 ApiResponse 계약 테스트.
+ *
+ * <p>standalone MockMvc로 정상 요청뿐 아니라 잘못된 파라미터, JSON, Content-Type과 서비스 예외 변환을 함께 검증한다.
+ */
+@ExtendWith(MockitoExtension.class)
+class SmsHistoryControllerTest {
+
+    @Mock
+    private SmsHistoryService service;
+
+    private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(new SmsHistoryController(service))
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+        objectMapper = new ObjectMapper().findAndRegisterModules();
+    }
+
+    @Test
+    void data는_정상_요청을_DTO에_매핑하고_ApiResponse로_응답한다() throws Exception {
+        // given
+        given(service.search(any())).willReturn(
+            PageResponseDTO.of(List.of(), new SmsHistorySearchRequestDTO(), 0));
+        ArgumentCaptor<SmsHistorySearchRequestDTO> captor =
+            ArgumentCaptor.forClass(SmsHistorySearchRequestDTO.class);
+
+        // when / then
+        mockMvc.perform(get("/sms/history/data")
+                .param("page", "2")
+                .param("size", "20")
+                .param("sendDtFrom", "1")
+                .param("sendDtTo", "1")
+                .param("sendType", "1")
+                .param("sendStatus", "1")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.message").value("SUCCESS"))
+            .andExpect(jsonPath("$.data.totalCount").value(0));
+
+        then(service).should(times(1)).search(captor.capture());
+        assertThat(captor.getValue().getPage()).isEqualTo(2);
+        assertThat(captor.getValue().getSize()).isEqualTo(20);
+        assertThat(captor.getValue().getSendDtFrom()).isEqualTo("1");
+        assertThat(captor.getValue().getSendDtTo()).isEqualTo("1");
+        assertThat(captor.getValue().getSendType()).isEqualTo("1");
+        assertThat(captor.getValue().getSendStatus()).isEqualTo("1");
+    }
+
+    @Test
+    void data의_숫자_파라미터가_잘못되면_400이고_서비스를_호출하지_않는다() throws Exception {
+        // when / then
+        mockMvc.perform(get("/sms/history/data").param("page", "invalid"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(400));
+
+        then(service).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void data에_지원하지_않는_HTTP_메서드는_405이고_서비스를_호출하지_않는다() throws Exception {
+        // when / then
+        mockMvc.perform(post("/sms/history/data"))
+            .andExpect(status().isMethodNotAllowed())
+            .andExpect(jsonPath("$.code").value(405));
+
+        then(service).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 서비스_예외는_공통_ApiResponse로_변환한다() throws Exception {
+        // given
+        given(service.search(any())).willThrow(new CustomException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        // when / then
+        mockMvc.perform(get("/sms/history/data"))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.code").value(500))
+            .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_SERVER_ERROR.getMessage()))
+            .andExpect(jsonPath("$.data").doesNotExist());
+
+        then(service).should(times(1)).search(any());
+    }
+
+    @Test
+    void create는_정상_JSON을_DTO에_매핑하고_한_번_호출한다() throws Exception {
+        // given
+        ArgumentCaptor<SmsHistoryUpdateRequestDTO> captor =
+            ArgumentCaptor.forClass(SmsHistoryUpdateRequestDTO.class);
+
+        // when / then
+        mockMvc.perform(post("/sms/history/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sendDt\":\"2020-01-01T00:00:00\",\"sendType\":\"1\",\"sendStatus\":\"1\",\"receiverNo\":\"1\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.message").value("등록되었습니다."));
+
+        then(service).should(times(1)).create(captor.capture());
+        assertThat(captor.getValue().getSendDt()).isEqualTo(java.time.LocalDateTime.of(2020, 1, 1, 0, 0));
+        assertThat(captor.getValue().getSendType()).isEqualTo("1");
+        assertThat(captor.getValue().getSendStatus()).isEqualTo("1");
+        assertThat(captor.getValue().getReceiverNo()).isEqualTo("1");
+    }
+
+    @Test
+    void update는_정상_JSON을_DTO에_매핑하고_한_번_호출한다() throws Exception {
+        // given
+        ArgumentCaptor<SmsHistoryUpdateRequestDTO> captor =
+            ArgumentCaptor.forClass(SmsHistoryUpdateRequestDTO.class);
+
+        // when / then
+        mockMvc.perform(post("/sms/history/update")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sendDt\":\"2020-01-01T00:00:00\",\"sendType\":\"1\",\"sendStatus\":\"1\",\"receiverNo\":\"1\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.message").value("수정되었습니다."));
+
+        then(service).should(times(1)).update(captor.capture());
+        assertThat(captor.getValue().getSendDt()).isEqualTo(java.time.LocalDateTime.of(2020, 1, 1, 0, 0));
+        assertThat(captor.getValue().getSendType()).isEqualTo("1");
+        assertThat(captor.getValue().getSendStatus()).isEqualTo("1");
+        assertThat(captor.getValue().getReceiverNo()).isEqualTo("1");
+    }
+
+    @Test
+    void 필수값이_누락되면_400이고_서비스를_호출하지_않는다() throws Exception {
+        // when / then
+        mockMvc.perform(post("/sms/history/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.errors").isArray());
+
+        then(service).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 필수_문자열이_공백이면_400이고_서비스를_호출하지_않는다() throws Exception {
+        // when / then
+        mockMvc.perform(post("/sms/history/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sendDt\":\"2020-01-01T00:00:00\",\"sendType\":\"   \",\"sendStatus\":\"1\",\"receiverNo\":\"1\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(400));
+
+        then(service).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 잘못된_JSON은_400이고_서비스를_호출하지_않는다() throws Exception {
+        // when / then
+        mockMvc.perform(post("/sms/history/create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"invalid\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(400));
+
+        then(service).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 지원하지_않는_ContentType은_415이고_서비스를_호출하지_않는다() throws Exception {
+        // when / then
+        mockMvc.perform(post("/sms/history/create")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content("value=1"))
+            .andExpect(status().isUnsupportedMediaType())
+            .andExpect(jsonPath("$.code").value(415));
+
+        then(service).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void 선언되지_않은_필드는_UpdateRequestDTO에_매핑되지_않는다() throws Exception {
+        // given
+        ArgumentCaptor<SmsHistoryUpdateRequestDTO> captor =
+            ArgumentCaptor.forClass(SmsHistoryUpdateRequestDTO.class);
+
+        // when / then
+        mockMvc.perform(post("/sms/history/update")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"unexpectedSystemField\":\"tampered\",\"sendDt\":\"2020-01-01T00:00:00\",\"sendType\":\"1\",\"sendStatus\":\"1\",\"receiverNo\":\"1\"}"))
+            .andExpect(status().isOk());
+
+        then(service).should(times(1)).update(captor.capture());
+        JsonNode mapped = objectMapper.valueToTree(captor.getValue());
+        assertThat(mapped.has("unexpectedSystemField")).isFalse();
+    }
+
+    @Test
+    void delete는_PK를_정확히_매핑하고_한_번_호출한다() throws Exception {
+        // when / then
+        mockMvc.perform(post("/sms/history/delete")
+                .param("smsHistoryId", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.message").value("삭제되었습니다."));
+
+        then(service).should(times(1)).delete(1L);
+    }
+}

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  상세폼 정적 샘플 — 메시지 관리 (수정)
+  ----------------------------------------------------------------------------
+  브라우저에서 파일을 직접 열거나(file://), 서버 기동 후
+  /samples/message-edit.html 로 확인한다. 서버/file:// 모두 동작하도록
+  CSS/JS는 상대 경로(../)를 사용한다.
+  (서버 기동 시 prod 프로파일에서는 /samples/** 가 404로 차단된다.)
+
+  실제 화면으로 만들 때:
+  1. 이 파일의 <main>...</main>을 templates/<도메인>/<화면>.html 로 복사하고
+     html 태그에 xmlns:layout + layout:decorate="~{defaultLayout}" 을 붙인다.
+  2. <main>을 <main layout:fragment="content"> 로 바꾼다.
+  3. 아래 <style>의 화면 전용 스타일을 <th:block layout:fragment="css"> 로 옮긴다.
+     (행 레이아웃은 공통 admin-form-detail.css 에 있으므로 복사하지 않는다.)
+  4. 하드코딩 값을 th:value / th:each 바인딩으로 교체한다.
+  5. 하단 페이지 스크립트를 <th:block layout:fragment="script"> 안에서
+     th:src="@{/js/...}" 로 로드한다.
+     (공통 CSS/JS 로드 부분은 defaultLayout 이 담당하므로 복사하지 않는다.)
+  6. 규약: docs/base/screen-convention.md "상세폼 화면 패턴" + "수정폼 화면 규약"
+  ============================================================================
+-->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" content="" />
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <title>메시지 관리 — 상세폼 샘플</title>
+
+    <link rel="stylesheet" href="../lib/tui-pagination.css" />
+    <link rel="stylesheet" href="../lib/tui-date-picker.css" />
+    <link rel="stylesheet" href="../lib/tui-grid.css" />
+
+    <script src="../lib/tui-pagination.min.js"></script>
+    <script src="../lib/xlsx.full.min.js"></script>
+    <script src="../lib/tui-date-picker.min.js"></script>
+    <script src="../lib/tui-grid.min.js"></script>
+    <script src="../lib/axios.min.js"></script>
+    <script src="../lib/dayjs.min.js"></script>
+    <script src="../lib/ko.js"></script>
+    <script src="../lib/lucide.js"></script>
+    <script src="../lib/imask.min.js"></script>
+    <script src="../lib/just-validate.min.js"></script>
+    <script>dayjs.locale('ko');</script>
+
+    <link rel="stylesheet" href="../vendor/coreui/css/coreui.min.css">
+    <link rel="stylesheet" href="../css/admin-common.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-ui-bridge.css" />
+    <link rel="stylesheet" href="../css/admin-form-detail.css" />
+
+    <script src="../js/common/notify.js"></script>
+    <script src="../js/common/http-client.js"></script>
+    <script src="../js/common/modal-manager.js"></script>
+    <script src="../js/common/common-utils.js"></script>
+    <script src="../js/common/form-binder.js"></script>
+    <script src="../js/common/field-format.js"></script>
+    <script src="../js/common/tui-common.js"></script>
+    <script src="../js/common/tui-page-builder.js"></script>
+
+    <script>
+        /* 정적 샘플용 스텁 — 실제 화면에서는 defaultLayout.html 이 서버 값으로 주입한다. */
+        const SESSION_INFO = { empId: 'SAMPLE', depId: 'SAMPLE', empNm: '샘플사용자', depNm: '샘플부서' };
+        window.PAGE_AUTH = {
+            read: true, create: true, update: true, delete: true,
+            approve: false, cancel: false, download: false, maskView: false
+        };
+    </script>
+
+    <style>
+        /* 화면 전용 스타일 — 실제 화면 전환 시 layout:fragment="css" 로 이동 */
+        .message-edit-date-field {
+            width: min(100%, 220px);
+        }
+
+        .message-edit-unit-control {
+            width: min(100%, 180px);
+        }
+
+        .message-edit-ad-warning {
+            color: var(--sms-danger);
+            font-size: var(--sms-fs-body-sm);
+            font-weight: var(--sms-fw-semibold);
+            word-break: keep-all;
+        }
+
+        .message-edit-readonly {
+            background: var(--sms-bg-muted) !important;
+            color: var(--sms-text-muted);
+        }
+
+        /* 샘플은 셸(사이드바/헤더)이 없어 content-area 좌측 여백을 제거 */
+        .content-area {
+            margin-left: 0 !important;
+        }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="content-area">
+    <div class="container-fluid mb-4 p-0">
+        <main id="main-content">
+
+            <div class="content-header">
+                <h2>메시지 관리 <small class="text-body-sm">(시스템관리 &gt; 메시지관리 &gt; 수정)</small></h2>
+            </div>
+
+            <form id="message-edit-form" autocomplete="off" novalidate>
+                <input type="hidden" id="messageId" name="messageId">
+                <input type="hidden" id="messageCode" name="messageCode" value="99">
+                <input type="hidden" id="beforeUpdateDttm" name="beforeUpdateDttm">
+
+                <div class="card shadow-sm border-0 mb-0">
+                    <div class="card-header bg-white py-3">
+                        <div class="d-flex align-items-center justify-content-between gap-3">
+                            <h3 class="fs-6 fw-semibold mb-0">메시지 상세 정보</h3>
+                            <span class="text-caption"><span class="text-danger">*</span> 필수 입력</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="messageTitle">메시지 제목</label>
+                            </div>
+                            <div class="col-12 col-sm-10 form-detail-control">
+                                <input type="text" class="form-control" id="messageTitle" name="messageTitle"
+                                       value="온라인 즉시 발급 카드정보"
+                                       maxlength="100" placeholder="메시지 제목을 입력하세요"
+                                       data-validate="required|maxlength:100" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label for="messageCodeDisplay">메시지 코드</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <input type="text" class="form-control message-edit-readonly"
+                                       id="messageCodeDisplay" value="99" readonly aria-readonly="true">
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="depId">부서명</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <!-- 정적 샘플은 백엔드가 없어 공통코드 API 를 타지 않는다.
+                                     실제 화면 전환 시 class="common-combo" data-code-type="dept" 를 붙여
+                                     /api/common-code/dept 로 부서 목록을 받는다. -->
+                                <select class="form-select" id="depId" name="depId"
+                                        data-validate="required" required>
+                                    <option value="">부서를 선택하세요</option>
+                                    <option value="CARD" selected>카드상품팀</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="managerName">담당자명</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <input type="text" class="form-control" id="managerName" name="managerName"
+                                       value="홍길동" maxlength="50"
+                                       placeholder="담당자명을 입력하세요"
+                                       data-validate="required|maxlength:50" required>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label for="managerMobileNo">핸드폰</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <input type="tel" class="form-control" id="managerMobileNo" name="managerMobileNo"
+                                       value="01000000000" maxlength="13" placeholder="담당자 연락처"
+                                       data-mask="phone" data-validate="phone">
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="onlineBatchType">온라인/배치 구분</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <select class="form-select" id="onlineBatchType" name="onlineBatchType"
+                                        data-validate="required" required>
+                                    <option value="">구분을 선택하세요</option>
+                                    <option value="ONLINE" selected>온라인</option>
+                                    <option value="BATCH">배치</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="accessLocation">접근 위치</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <select class="form-select" id="accessLocation" name="accessLocation"
+                                        data-validate="required" required>
+                                    <option value="">접근 위치를 선택하세요</option>
+                                    <option value="INTERNAL" selected>내부 시스템</option>
+                                    <option value="EXTERNAL">외부 연계</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="sendTime">발송 시간</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <div class="input-group message-edit-unit-control">
+                                    <input type="number" class="form-control" id="sendTime" name="sendTime"
+                                           value="0" min="0" max="23" inputmode="numeric"
+                                           data-validate="required|number" required>
+                                    <span class="input-group-text">시</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="sendInterval">발송 간격</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div class="input-group message-edit-unit-control">
+                                        <input type="number" class="form-control" id="sendInterval" name="sendInterval"
+                                               value="120" min="0" max="1440" inputmode="numeric"
+                                               data-validate="required|number" required>
+                                        <span class="input-group-text">분</span>
+                                    </div>
+                                    <span class="text-caption">예: 120분</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span class="form-detail-required" id="use-yn-label">사용 여부</span>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <div class="d-flex gap-4" role="radiogroup" aria-labelledby="use-yn-label">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="radio" id="useYes"
+                                               name="useYn" value="Y" required>
+                                        <label class="form-check-label" for="useYes">예</label>
+                                    </div>
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="radio" id="useNo"
+                                               name="useYn" value="N" checked required>
+                                        <label class="form-check-label" for="useNo">아니요</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="startDate">시작일자</label>
+                            </div>
+                            <div class="col-12 col-sm-4 form-detail-control">
+                                <div class="message-edit-date-field">
+                                    <div class="tui-datepicker-input tui-datetime-input scaffold-datepicker-input w-100">
+                                        <input type="text" id="startDate" name="startDate"
+                                               value="2026-01-01" autocomplete="off"
+                                               aria-label="시작일자" placeholder="YYYY-MM-DD" required>
+                                        <span class="tui-ico-date" aria-hidden="true"></span>
+                                    </div>
+                                    <div id="startDatePickerLayer" class="scaffold-date-picker-layer"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <label class="form-detail-required" for="callbackNumber">회신 번호</label>
+                            </div>
+                            <div class="col-12 col-sm-10 form-detail-control">
+                                <input type="tel" class="form-control message-edit-unit-control"
+                                       id="callbackNumber" name="callbackNumber"
+                                       value="15880000" maxlength="13" placeholder="승인된 회신번호"
+                                       inputmode="numeric" pattern="[0-9-]{8,13}"
+                                       data-validate="required" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label">
+                                <span class="form-detail-required" id="message-purpose-label">메시지 성격</span>
+                            </div>
+                            <div class="col-12 col-sm-10 form-detail-control">
+                                <div class="d-flex flex-wrap align-items-center gap-4"
+                                     role="radiogroup" aria-labelledby="message-purpose-label">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="radio" id="purposeNotice"
+                                               name="messagePurpose" value="NOTICE" checked required>
+                                        <label class="form-check-label" for="purposeNotice">공지성</label>
+                                    </div>
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="radio" id="purposeAdvertisement"
+                                               name="messagePurpose" value="ADVERTISEMENT" required>
+                                        <label class="form-check-label" for="purposeAdvertisement">광고성</label>
+                                    </div>
+                                    <span class="message-edit-ad-warning d-none" id="advertisement-warning">
+                                        광고성 메시지는 반드시 광고성 메시지 관리 화면에서 등록해야 합니다.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-0 form-detail-row">
+                            <div class="col-12 col-sm-2 form-detail-label align-items-start">
+                                <label class="form-detail-required" for="messageContent">메시지 내용</label>
+                            </div>
+                            <div class="col-12 col-sm-10 form-detail-control align-items-start">
+                                <div class="w-100">
+                                    <textarea class="form-control" id="messageContent" name="messageContent"
+                                              rows="11" placeholder="메시지 내용을 입력하세요"
+                                              data-validate="required" required>[SC은행] 리워드11 신용카드 즉시발급
+카드번호: #{카드번호}, 유효기간: #{유효기간}</textarea>
+                                    <div class="d-flex justify-content-between gap-3 mt-2 text-caption">
+                                        <span>개인정보는 직접 입력하지 말고 승인된 치환 변수를 사용하세요.</span>
+                                        <span class="form-detail-counter text-nowrap" id="message-counter">
+                                            <strong id="message-byte-count">0</strong> / 2,600byte
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" id="btn-cancel" class="btn btn-secondary px-3">
+                        <i data-lucide="x" aria-hidden="true"></i>
+                        <span>취소</span>
+                    </button>
+                    <button type="submit" id="btn-save" class="btn btn-primary px-4">
+                        <i data-lucide="save" aria-hidden="true"></i>
+                        <span>저장</span>
+                    </button>
+                </div>
+            </form>
+
+        </main>
+    </div>
+</div>
+
+<script src="../vendor/coreui/js/coreui.bundle.min.js"></script>
+<script src="../js/system/message-edit.js"></script>
+</body>
+</html>

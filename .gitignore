@@ -29,6 +29,8 @@ logs/
 .codegraph/
 .omo/
 .playwright-mcp/
+tools/code-index/.venv/
+tools/code-index/out/
 
 # OS temp
 *~

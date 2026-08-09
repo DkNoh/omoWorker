@@ -22,6 +22,8 @@ MERGED = BASE / "out" / "index-tagged.json"
 
 API_URL = os.environ.get("CODE_INDEX_LMSTUDIO_URL", "http://100.120.61.117:1234/v1") + "/chat/completions"
 MODEL = os.environ.get("CODE_INDEX_MODEL", "qwen/qwen3.6-27b")
+# 빈 문자열이면 요청에서 생략(파라미터 미지원 서버 대비)
+REASONING_EFFORT = os.environ.get("CODE_INDEX_REASONING_EFFORT", "none")
 
 SYSTEM = (
     "너는 Java 클래스의 책임을 분석하는 분석기다. "
@@ -56,18 +58,18 @@ def render(node):
 
 
 def call(prompt, retries=2):
-    body = json.dumps(
-        {
-            "model": MODEL,
-            "messages": [
-                {"role": "system", "content": SYSTEM},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.2,
-            "max_tokens": 512,
-            "reasoning_effort": "none",
-        }
-    ).encode()
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 512,
+    }
+    if REASONING_EFFORT:
+        payload["reasoning_effort"] = REASONING_EFFORT
+    body = json.dumps(payload).encode()
     last = None
     for attempt in range(retries + 1):
         try:
